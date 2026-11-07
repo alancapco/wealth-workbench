@@ -1,5 +1,5 @@
 """Client context and portfolio DTOs per Architecture §6.1."""
-from datetime import date, datetime
+from datetime import date, datetime, UTC
 from decimal import Decimal
 from enum import Enum
 from uuid import UUID

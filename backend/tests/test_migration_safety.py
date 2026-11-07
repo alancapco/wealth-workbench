@@ -27,7 +27,7 @@ import tempfile
 # Disposable test database URL - NEVER use configured/production DB
 TEST_DB_URL = os.getenv(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://test:test@localhost:5433/test_migrations"
+    "postgresql+asyncpg://workbench_test:test_password@localhost:5433/workbench_test"
 )
 
 
@@ -62,10 +62,9 @@ async def disposable_engine() -> AsyncGenerator[AsyncEngine, None]:
     
     # Ensure clean state by dropping all tables
     async with engine.begin() as conn:
-        # Drop all tables if they exist
-        await conn.execute(text(
-            "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        ))
+        # Drop all tables if they exist (asyncpg requires separate statements)
+        await conn.execute(text("DROP SCHEMA public CASCADE"))
+        await conn.execute(text("CREATE SCHEMA public"))
     
     yield engine
     
@@ -95,8 +94,8 @@ async def test_empty_db_upgrade_to_head(
         table_count = result.scalar()
         assert table_count == 0, "Test database must start empty"
     
-    # Run upgrade to head
-    command.upgrade(alembic_config, "head")
+    # Run upgrade to head in thread pool (Alembic uses asyncio.run internally)
+    await asyncio.to_thread(command.upgrade, alembic_config, "head")
     
     # Verify alembic_version table exists
     async with disposable_engine.connect() as conn:
@@ -107,7 +106,7 @@ async def test_empty_db_upgrade_to_head(
         assert version is not None, "Migration must set version"
     
     # Second upgrade should be no-op (idempotent)
-    command.upgrade(alembic_config, "head")
+    await asyncio.to_thread(command.upgrade, alembic_config, "head")
     
     # Verify version unchanged
     async with disposable_engine.connect() as conn:
@@ -168,8 +167,8 @@ async def test_version_table_initialization(
     - Table has correct structure
     - Version is recorded correctly
     """
-    # Run migration
-    command.upgrade(alembic_config, "head")
+    # Run migration in thread pool
+    await asyncio.to_thread(command.upgrade, alembic_config, "head")
     
     # Inspect version table structure
     async with disposable_engine.connect() as conn:
@@ -216,7 +215,7 @@ async def test_downgrade_upgrade_cycle(
     - No orphaned objects left behind
     """
     # Upgrade to head first
-    command.upgrade(alembic_config, "head")
+    await asyncio.to_thread(command.upgrade, alembic_config, "head")
     
     # Get current head version
     async with disposable_engine.connect() as conn:
@@ -229,7 +228,7 @@ async def test_downgrade_upgrade_cycle(
     head_rev = script_directory.get_revision(head_version)
     if head_rev.down_revision:
         # Downgrade one step
-        command.downgrade(alembic_config, "-1")
+        await asyncio.to_thread(command.downgrade, alembic_config, "-1")
         
         # Verify version changed
         async with disposable_engine.connect() as conn:
@@ -241,7 +240,7 @@ async def test_downgrade_upgrade_cycle(
                 "Downgrade must update version"
         
         # Upgrade back to head
-        command.upgrade(alembic_config, "head")
+        await asyncio.to_thread(command.upgrade, alembic_config, "head")
         
         # Verify back at head
         async with disposable_engine.connect() as conn:
@@ -279,7 +278,7 @@ async def test_no_silent_stamping(
     
     # Attempt to run migrations - should proceed but track from base
     # (In production, this would require explicit reconciliation per §7)
-    command.upgrade(alembic_config, "head")
+    await asyncio.to_thread(command.upgrade, alembic_config, "head")
     
     # Verify alembic_version exists and has a version
     async with disposable_engine.connect() as conn:
@@ -365,7 +364,7 @@ async def test_synthetic_legacy_data_preservation(
         """))
     
     # Run migrations (should preserve legacy data)
-    command.upgrade(alembic_config, "head")
+    await asyncio.to_thread(command.upgrade, alembic_config, "head")
     
     # Verify legacy data preserved
     async with disposable_engine.connect() as conn:

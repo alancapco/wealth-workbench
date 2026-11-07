@@ -3,7 +3,7 @@
 Architecture §3.1 - AUTH_MODE=fixture requires APP_ENV=local|test, isolated fixture database.
 No production bypass. Real OIDC implementation external gate.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, UTC, timedelta, timezone
 from uuid import UUID
 
 from app.core.config import settings

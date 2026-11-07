@@ -2,7 +2,7 @@
 
 U-015: Evidence-backed Shariah compliance estimation (default OFF).
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from sqlalchemy import select
@@ -109,7 +109,7 @@ class EstimateRepository(TenantScopedRepository[ShariahEstimate]):
             evidence_ids=evidence_ids,
             reasoning=reasoning,
             limitations=limitations,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         self.session.add(estimate_record)
         await self.session.flush()

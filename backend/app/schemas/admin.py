@@ -1,5 +1,5 @@
 """Admin configuration, audit, and telemetry schemas."""
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any
 from uuid import UUID
 

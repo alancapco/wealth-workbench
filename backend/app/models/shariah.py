@@ -2,7 +2,7 @@
 
 U-015: Evidence-backed Shariah compliance estimation (not fatwa/approval).
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKeyConstraint, String, Text, UniqueConstraint

@@ -14,7 +14,7 @@ with mocked repositories where database operations would fail.
 Full PostgreSQL integration tests should be run separately with real database.
 """
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -278,7 +278,7 @@ class TestTelemetryService:
         
         expected_structure = {
             "metric_name": "ranking.evaluation_time",
-            "time_range": {"from": datetime.utcnow(), "to": datetime.utcnow()},
+            "time_range": {"from": datetime.now(UTC), "to": datetime.now(UTC)},
             "count": 5,
             "sum": 1.5,
             "avg": 0.3,

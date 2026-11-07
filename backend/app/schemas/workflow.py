@@ -1,5 +1,5 @@
 """Workflow orchestration DTOs per Architecture §6.2."""
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from uuid import UUID
 

@@ -1,5 +1,5 @@
 """Household service for cross-member context (U-016, DEC-07 gated)."""
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -108,5 +108,5 @@ class HouseholdService:
             member_contexts=member_contexts,
             total_members=len(members),
             consenting_members=consenting_count,
-            aggregated_at=datetime.utcnow(),
+            aggregated_at=datetime.now(UTC),
         )

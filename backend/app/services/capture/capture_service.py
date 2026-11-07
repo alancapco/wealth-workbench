@@ -1,5 +1,5 @@
 """Capture session management: start, pause, resume, stop with segment tracking."""
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -63,10 +63,10 @@ class CaptureService:
             provider_key=provider_key,
             status="STARTING",
             row_version=1,
-            lease_valid_until=datetime.utcnow() + timedelta(hours=4),  # Policy-driven
+            lease_valid_until=datetime.now(UTC) + timedelta(hours=4),  # Policy-driven
             lease_revoked=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         
         self.session.add(capture)
@@ -96,7 +96,7 @@ class CaptureService:
         
         capture.status = new_status
         capture.row_version += 1
-        capture.updated_at = datetime.utcnow()
+        capture.updated_at = datetime.now(UTC)
         
         if provider_ref:
             capture.provider_ref = provider_ref
@@ -140,7 +140,7 @@ class CaptureService:
             raise ValueError(f"Can only resume from PAUSED, current: {capture.status}")
         
         # Check lease still valid
-        if capture.lease_revoked or (capture.lease_valid_until and capture.lease_valid_until < datetime.utcnow()):
+        if capture.lease_revoked or (capture.lease_valid_until and capture.lease_valid_until < datetime.now(UTC)):
             raise ValueError("Capture lease expired or revoked")
         
         return await self.update_status(tenant_id, client_id, capture_id, "RECORDING")
@@ -185,7 +185,7 @@ class CaptureService:
             if capture.last_confirmed_transcript_ms is None or transcript_ms > capture.last_confirmed_transcript_ms:
                 capture.last_confirmed_transcript_ms = transcript_ms
         
-        capture.updated_at = datetime.utcnow()
+        capture.updated_at = datetime.now(UTC)
         await self.session.flush()
         return capture
 
@@ -208,7 +208,7 @@ class CaptureService:
             raise ValueError(f"Capture {capture_id} not found")
         
         capture.lease_revoked = True
-        capture.updated_at = datetime.utcnow()
+        capture.updated_at = datetime.now(UTC)
         await self.session.flush()
         return capture
 

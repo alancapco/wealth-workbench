@@ -3,12 +3,25 @@ Market Data Service - Tiger Broker Integration
 Provides real-time market data, quotes, and news via HTTP API
 """
 from typing import List, Dict, Optional
-from datetime import datetime, timezone
+from datetime import datetime, UTC, timezone
 import asyncio
+import time
+import requests
 from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
+
+ALPHAVANTAGE_URL = "https://www.alphavantage.co/query"
+ALPHAVANTAGE_CACHE_SECONDS = 15 * 60
+# Alpha Vantage's free quote feed covers US listings. These Hong Kong codes
+# are the same issuers' US tickers that the quote endpoint actually returns.
+ALPHAVANTAGE_SYMBOLS = {
+    "0005.HK": "HSBC",
+    "00700.HK": "TCEHY",
+    "0700.HK": "TCEHY",
+    "700.HK": "TCEHY",
+}
 
 # Laohu8 publishes the Chinese edition. The en_US ids from the same feed
 # return HTTP 410 / code 10001 ("News does not exist") on the detail URL.
@@ -25,6 +38,139 @@ class MarketDataService:
 
         logger.info(f"Market service initialized with Tiger ID: {self.tiger_id}")
         self._tiger_news = None
+        self._av_cache: dict[tuple, tuple[float, dict]] = {}
+        self._av_last_request = 0.0
+
+    def _av_symbol(self, symbol: str) -> str:
+        cleaned = symbol.strip().upper()
+        return ALPHAVANTAGE_SYMBOLS.get(cleaned, cleaned)
+
+    def _av_message(self, payload: dict) -> str:
+        return str(payload.get("Note") or payload.get("Information") or payload.get("Error Message") or "")
+
+    def _av_get(self, params: dict) -> dict:
+        key = (settings.ALPHAVANTAGE_API_KEY or "").strip()
+        if not key:
+            return {}
+        cache_key = tuple(sorted(params.items()))
+        cached = self._av_cache.get(cache_key)
+        now = time.monotonic()
+        if cached and now - cached[0] < ALPHAVANTAGE_CACHE_SECONDS:
+            return cached[1]
+
+        # Free keys allow about one request per second.
+        wait = 1.15 - (now - self._av_last_request)
+        if self._av_last_request and wait > 0:
+            time.sleep(wait)
+
+        response = requests.get(
+            ALPHAVANTAGE_URL,
+            params={**params, "apikey": key},
+            timeout=20,
+        )
+        self._av_last_request = time.monotonic()
+        response.raise_for_status()
+        payload = response.json()
+        message = self._av_message(payload)
+        if message:
+            logger.info("Alpha Vantage %s: %s", params.get("function"), message[:180])
+            return payload
+        self._av_cache[cache_key] = (self._av_last_request, payload)
+        return payload
+
+    def _parse_av_time(self, value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc).isoformat()
+        except ValueError:
+            return None
+
+    def _fetch_av_news(self, symbols: Optional[List[str]], limit: int) -> Optional[List[Dict]]:
+        if not (settings.ALPHAVANTAGE_API_KEY or "").strip():
+            return None
+        params: dict[str, str] = {
+            "function": "NEWS_SENTIMENT",
+            "sort": "LATEST",
+            "limit": str(max(1, min(limit, 50))),
+        }
+        if symbols:
+            params["tickers"] = ",".join(self._av_symbol(symbol) for symbol in symbols)
+        else:
+            params["topics"] = "financial_markets"
+        payload = self._av_get(params)
+        feed = payload.get("feed")
+        if not isinstance(feed, list):
+            return None
+        items = []
+        for article in feed[:limit]:
+            items.append({
+                "id": article.get("url") or article.get("title"),
+                "title": article.get("title") or "",
+                "content": article.get("summary") or "",
+                "timestamp": self._parse_av_time(article.get("time_published")),
+                "source": article.get("source") or "Alpha Vantage",
+                "url": article.get("url"),
+                "symbol": None,
+            })
+        return items
+
+    def _fetch_av_quote(self, symbol: str) -> Optional[Dict]:
+        payload = self._av_get({
+            "function": "GLOBAL_QUOTE",
+            "symbol": self._av_symbol(symbol),
+        })
+        quote = payload.get("Global Quote") or {}
+        price = quote.get("05. price")
+        if not price:
+            return None
+        percent = str(quote.get("10. change percent") or "0").replace("%", "")
+        return {
+            "symbol": symbol,
+            "quoted_symbol": quote.get("01. symbol"),
+            "price": float(price),
+            "change": float(quote.get("09. change") or 0),
+            "change_percent": float(percent or 0),
+            "volume": int(float(quote.get("06. volume") or 0)),
+            "source_id": "AlphaVantage",
+            "source_kind": "EOD",
+            "feed_timestamp": datetime.now(timezone.utc).isoformat(),
+            "mode": self.mode,
+            "open": float(quote.get("02. open") or 0),
+            "high": float(quote.get("03. high") or 0),
+            "low": float(quote.get("04. low") or 0),
+            "prev_close": float(quote.get("08. previous close") or 0),
+        }
+
+    def _fetch_av_quotes(self, symbols: List[str]) -> List[Dict]:
+        quotes = []
+        for symbol in symbols:
+            quote = self._fetch_av_quote(symbol)
+            if quote:
+                quotes.append(quote)
+        return quotes
+
+    def _fetch_av_history(self, symbol: str, limit: int) -> Optional[List[Dict]]:
+        payload = self._av_get({
+            "function": "TIME_SERIES_DAILY",
+            "symbol": self._av_symbol(symbol),
+            "outputsize": "compact",
+        })
+        series = payload.get("Time Series (Daily)")
+        if not isinstance(series, dict):
+            return None
+        rows = []
+        for day, bar in list(series.items())[:limit]:
+            rows.append({
+                "timestamp": day,
+                "open": float(bar["1. open"]),
+                "high": float(bar["2. high"]),
+                "low": float(bar["3. low"]),
+                "close": float(bar["4. close"]),
+                "volume": int(float(bar["5. volume"])),
+                "source_id": "AlphaVantage",
+            })
+        return rows
 
     def _private_key_material(self) -> str:
         key = (settings.TIGER_PRIVATE_KEY or "").strip().strip('"').strip("'")
@@ -96,17 +242,15 @@ class MarketDataService:
             return ""
 
     async def get_real_time_quote(self, symbols: List[str]) -> List[Dict]:
-        """
-        Get real-time quotes for given symbols
-        Returns mock data for now since Tiger SDK has dependency issues
-        """
+        """Latest quote. Alpha Vantage GLOBAL_QUOTE when a key is configured."""
         try:
-            logger.info(f"Fetching quotes for {symbols}")
+            if (settings.ALPHAVANTAGE_API_KEY or "").strip():
+                logger.info(f"Fetching Alpha Vantage quotes for {symbols}")
+                return await asyncio.to_thread(self._fetch_av_quotes, symbols)
 
-            # Mock data for demo - replace with actual API calls when Tiger SDK is working
             ticks = []
             for symbol in symbols:
-                tick_data = {
+                ticks.append({
                     "symbol": symbol,
                     "price": 50.0 + hash(symbol) % 100,
                     "change": (hash(symbol) % 5) - 2.5,
@@ -114,25 +258,24 @@ class MarketDataService:
                     "volume": 1000000 + hash(symbol) % 5000000,
                     "source_id": "TigerBroker",
                     "source_kind": "LIVE_FEED" if self.mode == "LIVE" else "REPLAY",
-                    "feed_timestamp": datetime.now(),
+                    "feed_timestamp": datetime.now(timezone.utc).isoformat(),
                     "mode": self.mode,
                     "open": 49.0 + hash(symbol) % 100,
                     "high": 52.0 + hash(symbol) % 100,
                     "low": 48.0 + hash(symbol) % 100,
                     "prev_close": 50.0 + hash(symbol) % 100,
-                }
-                ticks.append(tick_data)
-
-            logger.info(f"Retrieved {len(ticks)} quotes")
+                })
             return ticks
-
         except Exception as e:
             logger.error(f"Error fetching quotes: {e}")
             return []
 
     async def get_market_news(self, symbols: Optional[List[str]] = None, limit: int = 20) -> List[Dict]:
-        """Market highlights, or per-symbol news when symbols are supplied. Source: Tiger Broker."""
+        """Alpha Vantage NEWS_SENTIMENT when the key allows it, otherwise Tiger Broker."""
         try:
+            alphavantage = await asyncio.to_thread(self._fetch_av_news, symbols, limit)
+            if alphavantage:
+                return alphavantage
             logger.info(f"Fetching Tiger news (symbols: {symbols}, limit: {limit})")
             return await asyncio.to_thread(self._fetch_news, symbols, limit)
         except Exception as e:
@@ -157,7 +300,7 @@ class MarketDataService:
                     "price": quote["price"],
                     "signal_type": "OPPORTUNITY" if quote["change_percent"] > 0 else "RISK",
                     "timestamp": quote["feed_timestamp"],
-                    "source": "TigerBroker",
+                    "source": quote.get("source_id") or "AlphaVantage",
                 }
 
             return None
@@ -167,30 +310,26 @@ class MarketDataService:
             return None
 
     async def get_historical_data(self, symbol: str, period: str = "1d", limit: int = 100) -> List[Dict]:
-        """
-        Get historical price data for charting
-        Returns mock data for demo
-        """
+        """Daily bars from Alpha Vantage TIME_SERIES_DAILY when a key is configured."""
         try:
-            logger.info(f"Fetching historical data for {symbol}")
+            if (settings.ALPHAVANTAGE_API_KEY or "").strip():
+                logger.info(f"Fetching Alpha Vantage daily bars for {symbol}")
+                rows = await asyncio.to_thread(self._fetch_av_history, symbol, limit)
+                if rows is not None:
+                    return rows
 
-            # Mock historical data
             historical_data = []
             base_price = 50.0 + hash(symbol) % 100
-
             for i in range(min(limit, 30)):
-                data_point = {
-                    "timestamp": datetime.now(),
+                historical_data.append({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "open": base_price + i * 0.5,
                     "high": base_price + i * 0.5 + 2,
                     "low": base_price + i * 0.5 - 1,
                     "close": base_price + i * 0.5 + 0.5,
                     "volume": 1000000 + i * 10000,
-                }
-                historical_data.append(data_point)
-
+                })
             return historical_data
-
         except Exception as e:
             logger.error(f"Error fetching historical data for {symbol}: {e}")
             return []

@@ -3,7 +3,7 @@ Brief Service - Generate meeting briefs from real data
 Implements versioning, provenance, and HubSpot integration
 """
 from typing import Dict, Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, UTC, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.models import Client, Interaction, Holding
@@ -52,7 +52,7 @@ class BriefService:
             interactions_section = await self._build_recent_interactions(client, db)
 
             # Section 4: Market News
-            news_section = await self._build_market_news(client)
+            news_section = await self._build_market_news(client, db)
 
             # Section 5: Proposed Agenda
             agenda_section = await self._build_proposed_agenda(
@@ -121,26 +121,34 @@ class BriefService:
         )
         holdings = result.scalars().all()
 
-        changes = []
-        for holding in holdings:
-            try:
-                signal = await market_data_service.detect_market_signal(
-                    holding.symbol, threshold=2.0
-                )
-                if signal:
-                    changes.append(
-                        f"{signal['symbol']} {signal['change_percent']:+.1f}%: "
-                        f"Position value impact ${holding.current_value * abs(signal['change_percent']) / 100:,.0f}"
-                    )
-            except Exception as e:
-                logger.warning(f"Could not fetch signal for {holding.symbol}: {e}")
+        symbols = [holding.symbol for holding in holdings]
+        quotes = await market_data_service.get_real_time_quote(symbols) if symbols else []
+        by_symbol = {quote["symbol"]: quote for quote in quotes}
 
-        content = "\n".join(changes) if changes else "No material market movements detected in portfolio holdings."
+        changes = []
+        source = "Alpha Vantage"
+        for holding in holdings:
+            quote = by_symbol.get(holding.symbol)
+            if not quote:
+                changes.append(f"{holding.symbol}: no quote returned")
+                continue
+            source = quote.get("source_id") or source
+            quoted_as = quote.get("quoted_symbol")
+            via = f" (quoted as {quoted_as})" if quoted_as and quoted_as != holding.symbol else ""
+            impact = (holding.current_value or 0) * abs(quote["change_percent"]) / 100
+            material = abs(quote["change_percent"]) >= 2
+            changes.append(
+                f"{holding.symbol}{via} {quote['change_percent']:+.2f}% at {quote['price']:.2f}. "
+                f"Position impact {client.currency} {impact:,.0f}."
+                + (" Material move." if material else " Within the 2% material threshold.")
+            )
+
+        content = "\n".join(changes) if changes else "No holdings to compare with market prices."
 
         return {
             "content": content,
             "provenance": {
-                "source": "TigerBroker Market Data · LIVE",
+                "source": source,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "confidence": 1.0,
                 "source_kind": "LIVE_FEED"
@@ -159,11 +167,18 @@ class BriefService:
         interactions = result.scalars().all()
 
         content_lines = []
+        now = datetime.now(timezone.utc)
         for interaction in interactions:
-            days_ago = (datetime.now(timezone.utc) - interaction.interaction_date.replace(tzinfo=timezone.utc)).days
-            content_lines.append(
-                f"• {interaction.interaction_type.title()} ({days_ago} days ago): {interaction.summary}"
-            )
+            when = interaction.interaction_date
+            if when is None:
+                days_ago = None
+            else:
+                if when.tzinfo is None:
+                    when = when.replace(tzinfo=timezone.utc)
+                days_ago = (now - when).days
+            when_label = "undated" if days_ago is None else f"{days_ago} days ago"
+            kind = (interaction.interaction_type or "interaction").replace("_", " ").title()
+            content_lines.append(f"• {kind} ({when_label}): {interaction.summary or 'No summary recorded.'}")
 
         content = "\n".join(content_lines) if content_lines else "No recent interactions recorded."
 
@@ -177,23 +192,36 @@ class BriefService:
             }
         }
 
-    async def _build_market_news(self, client: Client) -> Dict:
-        """Build market news from TigerBroker"""
+    async def _build_market_news(self, client: Client, db: AsyncSession) -> Dict:
+        """News for the client's holdings, then the general market feed."""
+        result = await db.execute(
+            select(Holding.symbol).where(Holding.client_id == client.id)
+        )
+        symbols = [row[0] for row in result.all() if row[0]]
+        source = "Tiger Broker"
         try:
-            news_items = await market_data_service.get_market_news(limit=5)
+            news_items = []
+            if symbols:
+                news_items = await market_data_service.get_market_news(symbols=symbols, limit=4)
+            if not news_items:
+                news_items = await market_data_service.get_market_news(limit=4)
             content_lines = []
             for item in news_items:
-                content_lines.append(f"• {item['title']}: {item['content'][:100]}...")
-
-            content = "\n".join(content_lines) if content_lines else "No relevant market news available."
+                source = item.get("source") or source
+                summary = (item.get("content") or "").strip()
+                line = f"• {item.get('title') or 'Untitled'}"
+                if summary:
+                    line += f": {summary[:240]}"
+                content_lines.append(line)
+            content = "\n".join(content_lines) if content_lines else "No market news returned for this client."
         except Exception as e:
             logger.error(f"Error fetching market news: {e}")
-            content = "Market news temporarily unavailable."
+            content = "Market news request failed."
 
         return {
             "content": content,
             "provenance": {
-                "source": "TigerBroker News · LIVE",
+                "source": source,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "confidence": 1.0,
                 "source_kind": "LIVE_FEED"
@@ -211,8 +239,8 @@ class BriefService:
         agenda_items = []
 
         # Add agenda items based on material changes
-        if "movement" in changes["content"].lower():
-            agenda_items.append("1. Review recent market movements and portfolio impact")
+        if "%" in changes["content"]:
+            agenda_items.append("1. Review today's price moves and the position impact")
 
         # Add rebalancing if needed
         if client.preferences and "last_rebalancing" in client.preferences:

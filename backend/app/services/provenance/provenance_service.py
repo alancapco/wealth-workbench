@@ -3,7 +3,7 @@ Provenance Tracking Service
 Implements per-statement provenance (G-23)
 """
 from typing import Dict, List
-from datetime import datetime, timezone
+from datetime import datetime, UTC, timezone
 from enum import Enum
 import logging
 

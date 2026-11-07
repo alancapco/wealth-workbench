@@ -3,7 +3,7 @@ Client Ranking Service
 Implements the prioritization algorithm based on Opportunity, Risk, and Retention
 """
 from typing import List, Dict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, UTC, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.models import Client, Holding, Interaction

@@ -2,7 +2,7 @@
 
 Architecture §3.2, §5 - frozen contracts verification.
 """
-from datetime import datetime, timezone
+from datetime import datetime, UTC, timezone
 from decimal import Decimal
 from uuid import uuid4
 

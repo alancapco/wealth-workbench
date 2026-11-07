@@ -2,7 +2,7 @@
 
 Architecture §6.6, SQL priority_evaluations/priority_items/priority_controls/contact_outcomes tables.
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from sqlalchemy import (

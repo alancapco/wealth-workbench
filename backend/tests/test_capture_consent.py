@@ -8,7 +8,7 @@ Validates:
 - Calendar acceptance NOT consent
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,7 +38,7 @@ async def setup_tenant_client(db_session: AsyncSession):
         context_revision=1,
         ownership_source="test",
         ownership_version="1",
-        verified_at=datetime.utcnow(),
+        verified_at=datetime.now(UTC),
     )
     db_session.add(client_scope)
     
@@ -49,7 +49,7 @@ async def setup_tenant_client(db_session: AsyncSession):
         client_id=client_id,
         resolution="RM_CONFIRMED",
         resolved_by="test-rm",
-        resolved_at=datetime.utcnow(),
+        resolved_at=datetime.now(UTC),
         row_version=1,
     )
     db_session.add(meeting)
@@ -284,7 +284,7 @@ async def test_extraction_edit_tracking(db_session: AsyncSession, setup_tenant_c
         workflow_id=uuid4(),
         kind="EXTRACTION",
         created_by="ai-extractor",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     db_session.add(lineage)
     
@@ -321,7 +321,7 @@ async def test_extraction_edit_tracking(db_session: AsyncSession, setup_tenant_c
         environment_kind="FIXTURE",
         environment_id="test",
         created_by="ai-extractor",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     db_session.add(current_revision)
     

@@ -5,6 +5,8 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 import logging
 
+from app.services.market.market_service import market_data_service
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -14,7 +16,6 @@ async def get_quotes(
 ):
     """Get real-time quotes for symbols"""
     try:
-        from app.services.market.market_service import market_data_service
         symbol_list = [s.strip() for s in symbols.split(",")]
         quotes = await market_data_service.get_real_time_quote(symbol_list)
         return {"quotes": quotes}
@@ -29,7 +30,6 @@ async def get_market_news(
 ):
     """Get market news"""
     try:
-        from app.services.market.market_service import market_data_service
         symbol_list = [s.strip() for s in symbols.split(",")] if symbols else None
         news = await market_data_service.get_market_news(symbol_list, limit)
         return {"news": news, "count": len(news)}
@@ -44,7 +44,6 @@ async def detect_signals(
 ):
     """Detect significant market movements"""
     try:
-        from app.services.market.market_service import market_data_service
         symbol_list = [s.strip() for s in symbols.split(",")]
         signals = []
         for symbol in symbol_list:

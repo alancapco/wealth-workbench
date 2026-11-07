@@ -13,7 +13,7 @@ Test scenarios:
 7. Unique constraint on relationships
 """
 import pytest
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import uuid4
 
 from app.models.family import FamilyRelationship, HouseholdGroup, HouseholdMembership

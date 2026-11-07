@@ -1,5 +1,5 @@
 """Capture API endpoints per Architecture §6.4 (API-034..044)."""
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -147,7 +147,7 @@ async def record_consent(
         
         return Envelope(
             data={"consent": response},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -172,7 +172,7 @@ async def get_consent(
         if not consent:
             return Envelope(
                 data={"consent": None, "blockers": ["NO_CONSENT"]},
-                meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+                meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
             )
         
         response = ConsentResponse(
@@ -193,7 +193,7 @@ async def get_consent(
         
         return Envelope(
             data={"consent": response, "blockers": []},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -245,7 +245,7 @@ async def withdraw_consent(
         
         return Envelope(
             data={"consent": response, "capture": None, "invalidated_refs": []},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -290,7 +290,7 @@ async def start_capture(
         
         return Envelope(
             data={"capture": response},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -339,7 +339,7 @@ async def append_segments(
         
         return Envelope(
             data={"capture": response},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -387,7 +387,7 @@ async def apply_extraction_edits(
                 },
                 "invalidated_refs": [],  # Would list downstream dependencies
             },
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

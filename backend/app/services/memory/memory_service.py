@@ -3,7 +3,7 @@ Client Memory Service - Persistent relationship context
 Implements D5 memory requirements (G-13)
 """
 from typing import Dict, List
-from datetime import datetime, timezone
+from datetime import datetime, UTC, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Text, select
 from sqlalchemy.dialects.postgresql import UUID

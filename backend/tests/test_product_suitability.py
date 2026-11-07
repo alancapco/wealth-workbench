@@ -4,7 +4,7 @@ U-012: Test interpretation, search UNCONFIGURED, comparison, suitability, confli
 """
 import json
 import pytest
-from datetime import datetime
+from datetime import datetime, UTC
 from decimal import Decimal
 from uuid import uuid4
 
@@ -333,7 +333,7 @@ async def test_override_requires_approval(db_session: AsyncSession, test_config_
         ],
         ticket_eligible=True,
         blockers=[],
-        assessed_at=datetime.utcnow(),
+        assessed_at=datetime.now(UTC),
     )
     
     assessment_ref = ArtifactRef(
@@ -420,7 +420,7 @@ async def test_override_audit_trail(db_session: AsyncSession, test_config_ref, t
         ],
         ticket_eligible=True,
         blockers=[],
-        assessed_at=datetime.utcnow(),
+        assessed_at=datetime.now(UTC),
     )
     
     assessment_ref = ArtifactRef(
@@ -489,7 +489,7 @@ async def test_candidate_selection_telemetry(db_session: AsyncSession):
         product_id="PROD001",
         product_version="v1",
         selected_by=selected_by,
-        selected_at=datetime.utcnow(),
+        selected_at=datetime.now(UTC),
     )
     
     db_session.add(selection)

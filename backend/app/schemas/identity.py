@@ -2,7 +2,7 @@
 
 Architecture §3.1 AUTH-01..03, API-001.
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict

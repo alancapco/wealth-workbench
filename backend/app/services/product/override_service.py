@@ -3,7 +3,7 @@
 Architecture §6.7 API-062 - permit soft override only with policy, actor, rationale.
 Hard stop factors cannot be overridden. Original rating preserved in audit.
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -141,7 +141,7 @@ class OverrideService:
         
         # Create override record
         override_id = uuid4()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         # Persist to audit table
         import json

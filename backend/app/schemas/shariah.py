@@ -3,7 +3,7 @@
 U-015: Evidence-backed Shariah compliance estimation, NOT fatwa or approval.
 Architecture API-075, API-076 (modified for U-015 simplified scope).
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from uuid import UUID
 

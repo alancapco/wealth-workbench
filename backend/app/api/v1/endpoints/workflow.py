@@ -1,5 +1,5 @@
 """Workflow API endpoints per Architecture §6.2 (API-007..009, 025..030)."""
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
@@ -68,7 +68,7 @@ async def create_workflow(
             data={"workflow": workflow_dto},
             meta=ResponseMeta(
                 request_id=uuid4(),
-                served_at=datetime.utcnow(),
+                served_at=datetime.now(UTC),
             )
         )
     except ValueError as e:
@@ -114,7 +114,7 @@ async def get_workflow(
         
         return Envelope(
             data={"workflow": workflow_dto},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except HTTPException:
         raise
@@ -162,7 +162,7 @@ async def list_workflows(
         
         return Envelope(
             data=WorkflowListData(items=workflow_dtos, next_cursor=None),
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -215,7 +215,7 @@ async def run_stage(
         
         return Envelope(
             data={"run": run_dto},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except ValueError as e:
         if "Context revision mismatch" in str(e):
@@ -264,7 +264,7 @@ async def pause_workflow(
         
         return Envelope(
             data={"workflow": workflow_dto},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except ValueError as e:
         if "ETag mismatch" in str(e):
@@ -314,7 +314,7 @@ async def resume_workflow(
         
         return Envelope(
             data={"workflow": workflow_dto},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -359,7 +359,7 @@ async def abandon_workflow(
         
         return Envelope(
             data={"workflow": workflow_dto, "continuing_action_ids": continuing_action_ids},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -402,7 +402,7 @@ async def get_stage_run(
         
         return Envelope(
             data={"run": run_dto},
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except HTTPException:
         raise
@@ -427,7 +427,7 @@ async def list_skills(
         
         return Envelope(
             data=SkillListData(items=skills, next_cursor=None),
-            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow())
+            meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

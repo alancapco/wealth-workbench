@@ -4,7 +4,7 @@ Seeds the database with synthetic client, portfolio, and interaction data for te
 """
 import asyncio
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.core.config import settings
 from app.models.models import Client, Holding, Interaction, SourceKind

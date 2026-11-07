@@ -6,7 +6,7 @@ API-076: GET /shariah/evidence/{product_ref} - List valid evidence
 
 Feature is default OFF - returns 503 FEATURE_DISABLED if DEC-05 is OFF.
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -203,7 +203,7 @@ async def list_shariah_evidence(
             data=evidence_response,
             meta=ResponseMeta(
                 request_id=UUID("00000000-0000-0000-0000-000000000000"),  # Stub
-                served_at=datetime.utcnow(),
+                served_at=datetime.now(UTC),
             ),
         )
 

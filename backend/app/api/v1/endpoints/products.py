@@ -3,7 +3,7 @@
 Architecture §6.7 API-056 through API-062.
 """
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -117,14 +117,14 @@ async def interpret_query(
         kind="PRODUCT_INTERPRETATION",
         payload=interpretation,
         environment=Environment(kind=EnvironmentKind.FIXTURE, id="test"),
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     
     return Envelope(
         data=ProductInterpretationResponse(artifact=artifact),
         meta=ResponseMeta(
             request_id=uuid4(),
-            served_at=datetime.utcnow(),
+            served_at=datetime.now(UTC),
         ),
     )
 
@@ -197,14 +197,14 @@ async def edit_filters(
         kind="PRODUCT_INTERPRETATION",
         payload=new_interpretation,
         environment=Environment(kind=EnvironmentKind.FIXTURE, id="test"),
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     
     return Envelope(
         data=ProductInterpretationResponse(artifact=artifact),
         meta=ResponseMeta(
             request_id=uuid4(),
-            served_at=datetime.utcnow(),
+            served_at=datetime.now(UTC),
         ),
     )
 
@@ -265,7 +265,7 @@ async def search_products(
     search_result = ProductSearch(
         interpretation_ref=request.interpretation_ref,
         executed_filters=interpretation.filters,
-        executed_at=datetime.utcnow(),
+        executed_at=datetime.now(UTC),
         products=products,
         next_cursor=next_cursor,
         no_result_explanation="Product catalog is UNCONFIGURED. No provider configured." if not products else None,
@@ -289,14 +289,14 @@ async def search_products(
         kind="PRODUCT_SEARCH",
         payload=search_result,
         environment=Environment(kind=EnvironmentKind.FIXTURE, id="test"),
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     
     return Envelope(
         data=ProductSearchResponse(artifact=artifact),
         meta=ResponseMeta(
             request_id=uuid4(),
-            served_at=datetime.utcnow(),
+            served_at=datetime.now(UTC),
         ),
     )
 
@@ -370,14 +370,14 @@ async def compare_products(
         kind="PRODUCT_COMPARISON",
         payload=comparison,
         environment=Environment(kind=EnvironmentKind.FIXTURE, id="test"),
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     
     return Envelope(
         data=ProductComparisonResponse(artifact=artifact),
         meta=ResponseMeta(
             request_id=uuid4(),
-            served_at=datetime.utcnow(),
+            served_at=datetime.now(UTC),
         ),
     )
 
@@ -414,7 +414,7 @@ async def select_candidate(
     
     # Record selection
     selection_id = uuid4()
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     
     selection = CandidateSelectionModel(
         id=selection_id,
@@ -438,7 +438,7 @@ async def select_candidate(
         ),
         meta=ResponseMeta(
             request_id=uuid4(),
-            served_at=datetime.utcnow(),
+            served_at=datetime.now(UTC),
         ),
     )
 
@@ -493,14 +493,14 @@ async def assess_suitability(
         kind="ASSESSMENT",
         payload=assessment,
         environment=Environment(kind=EnvironmentKind.FIXTURE, id="test"),
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     
     return Envelope(
         data=AssessmentResponse(artifact=artifact),
         meta=ResponseMeta(
             request_id=uuid4(),
-            served_at=datetime.utcnow(),
+            served_at=datetime.now(UTC),
         ),
     )
 
@@ -570,6 +570,6 @@ async def override_assessment(
         data=SuitabilityOverrideResponse(override=override),  # type: ignore
         meta=ResponseMeta(
             request_id=uuid4(),
-            served_at=datetime.utcnow(),
+            served_at=datetime.now(UTC),
         ),
     )

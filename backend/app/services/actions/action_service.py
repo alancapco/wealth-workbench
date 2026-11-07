@@ -1,7 +1,7 @@
 """Action service for preview creation, authorization validation, and execution."""
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession

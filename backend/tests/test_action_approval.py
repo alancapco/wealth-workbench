@@ -6,7 +6,7 @@ Production would use PostgreSQL 15+ disposable test containers.
 """
 import pytest
 import pytest_asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from uuid import uuid4
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -217,7 +217,7 @@ class TestOutboxPattern:
             preview_hash="a" * 64,
             action_class="CRM_WRITE",
             actor="user@test.com",
-            authorized_at=datetime.utcnow(),
+            authorized_at=datetime.now(UTC),
             status="VALID",
         )
         
@@ -238,7 +238,7 @@ class TestOutboxPattern:
             dependency_manifest="{}",
             status="VALID",
             created_by="user@test.com",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         
         with patch.object(service.auth_repo, 'get_by_id', return_value=mock_auth), \
@@ -267,8 +267,8 @@ class TestOutboxPattern:
             status="SENDING",
             attempt_count=1,
             lease_token=uuid4(),
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         
         # Mark as unknown on timeout
@@ -298,8 +298,8 @@ class TestOutboxPattern:
             status="UNKNOWN",
             attempt_count=1,
             lease_token=uuid4(),
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         
         # Record readback attempt

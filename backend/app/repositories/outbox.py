@@ -1,5 +1,5 @@
 """Outbox pattern repositories for action dispatch and lease management."""
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import select, and_
@@ -49,7 +49,7 @@ class ActionPreviewRepository(ClientScopedRepository[ActionPreview]):
             dependency_manifest=dependency_manifest,
             status="VALID",
             created_by=created_by,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         self.session.add(preview)
         await self.session.flush()
@@ -100,7 +100,7 @@ class ActionAuthorizationRepository(ClientScopedRepository[ActionAuthorization])
             preview_hash=preview_hash,
             action_class=action_class,
             actor=actor,
-            authorized_at=datetime.utcnow(),
+            authorized_at=datetime.now(UTC),
             status="VALID",
         )
         self.session.add(authorization)
@@ -117,7 +117,7 @@ class ActionAuthorizationRepository(ClientScopedRepository[ActionAuthorization])
         
         if auth and auth.status == "VALID":
             auth.status = "INVALIDATED"
-            auth.invalidated_at = datetime.utcnow()
+            auth.invalidated_at = datetime.now(UTC)
             auth.invalidation_code = invalidation_code
             await self.session.flush()
 
@@ -143,8 +143,8 @@ class OutboxRepository(ClientScopedRepository[OutboxAction]):
             provider_operation_key=provider_operation_key,
             status="PENDING",
             attempt_count=0,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         self.session.add(action)
         await self.session.flush()
@@ -157,7 +157,7 @@ class OutboxRepository(ClientScopedRepository[OutboxAction]):
         Claim pending/expired actions with lease token for worker processing.
         Returns actions that need dispatch or reconciliation.
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         lease_until = now + timedelta(seconds=lease_duration_seconds)
         lease_token = uuid4()
 
@@ -208,16 +208,16 @@ class OutboxRepository(ClientScopedRepository[OutboxAction]):
             request_hash=request_hash,
             receipt_ref=receipt_ref,
             error_code=error_code,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(UTC),
         )
         self.session.add(attempt)
         
         # Update action attempt count and status
         action.attempt_count = attempt_no
-        action.updated_at = datetime.utcnow()
+        action.updated_at = datetime.now(UTC)
         
         if status == "CONFIRMED":
-            action.submitted_at = datetime.utcnow()
+            action.submitted_at = datetime.now(UTC)
             action.status = "SENDING"
         elif status == "NOT_ACCEPTED":
             action.status = "FAILED_SAFE"
@@ -236,9 +236,9 @@ class OutboxRepository(ClientScopedRepository[OutboxAction]):
         action.status = "SUCCEEDED"
         action.provider_ref = provider_ref
         action.provider_state = provider_state
-        action.confirmed_at = datetime.utcnow()
-        action.readback_at = datetime.utcnow()
-        action.updated_at = datetime.utcnow()
+        action.confirmed_at = datetime.now(UTC)
+        action.readback_at = datetime.now(UTC)
+        action.updated_at = datetime.now(UTC)
         action.lease_token = None
         action.lease_until = None
         await self.session.flush()

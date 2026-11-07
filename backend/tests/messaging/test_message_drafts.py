@@ -14,7 +14,7 @@ Some PostgreSQL-specific constraints (jsonb_build_array) will cause SQLite error
 in fixture setup - these are expected and do not affect message service logic tests.
 """
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 import pytest
@@ -49,7 +49,7 @@ async def test_workflow(db_session: AsyncSession):
         context_revision=1,
         ownership_source="test",
         ownership_version="v1",
-        verified_at=datetime.utcnow(),
+        verified_at=datetime.now(UTC),
     )
     db_session.add(client_scope)
     

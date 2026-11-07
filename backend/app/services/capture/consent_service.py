@@ -1,5 +1,5 @@
 """Consent management service: request, check, withdraw with policy enforcement."""
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 from uuid import UUID
 
@@ -51,7 +51,7 @@ class ConsentService:
             participant_refs=participant_refs,
             state=decision,
             actor=actor,
-            recorded_at=datetime.utcnow(),
+            recorded_at=datetime.now(UTC),
             row_version=1,
         )
         
@@ -122,7 +122,7 @@ class ConsentService:
             return consent  # Idempotent
         
         consent.state = "WITHDRAWN"
-        consent.withdrawn_at = datetime.utcnow()
+        consent.withdrawn_at = datetime.now(UTC)
         consent.row_version += 1
         
         await self.session.flush()

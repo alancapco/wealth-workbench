@@ -4,7 +4,7 @@ Tests DEC-05 gate, evidence-backed estimates, and disclaimers.
 Default OFF behavior and tenant isolation enforcement.
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from uuid import uuid4
 
 from app.models.shariah import ShariahEvidence, ShariahEstimate
@@ -80,10 +80,10 @@ class TestEvidenceService:
             product_ref="PRODUCT-001",
             evidence_type="AAOIFI_CERT",
             source_url="https://example.com/cert",
-            captured_at=datetime.utcnow(),
+            captured_at=datetime.now(UTC),
             certification_body="AAOIFI",
             compliance_status="COMPLIANT",
-            expires_at=datetime.utcnow() + timedelta(days=365),
+            expires_at=datetime.now(UTC) + timedelta(days=365),
         )
         await async_session.commit()
         
@@ -91,7 +91,7 @@ class TestEvidenceService:
         is_valid = await service.validate_evidence_freshness(
             tenant_id=tenant_id,
             evidence_id=evidence_id,
-            as_of=datetime.utcnow(),
+            as_of=datetime.now(UTC),
         )
         
         assert is_valid is True
@@ -110,10 +110,10 @@ class TestEvidenceService:
             product_ref="PRODUCT-001",
             evidence_type="SSB_REPORT",
             source_url="https://example.com/report",
-            captured_at=datetime.utcnow() - timedelta(days=400),
+            captured_at=datetime.now(UTC) - timedelta(days=400),
             certification_body="SSB Board",
             compliance_status="COMPLIANT",
-            expires_at=datetime.utcnow() - timedelta(days=30),
+            expires_at=datetime.now(UTC) - timedelta(days=30),
         )
         await async_session.commit()
         
@@ -121,7 +121,7 @@ class TestEvidenceService:
         is_valid = await service.validate_evidence_freshness(
             tenant_id=tenant_id,
             evidence_id=evidence_id,
-            as_of=datetime.utcnow(),
+            as_of=datetime.now(UTC),
         )
         
         assert is_valid is False
@@ -138,7 +138,7 @@ class TestEvidenceService:
             product_ref="PRODUCT-001",
             evidence_type="SCREENING_RESULT",
             source_url="https://example.com/screening",
-            captured_at=datetime.utcnow(),
+            captured_at=datetime.now(UTC),
             certification_body="Certified Screener",
             compliance_status="COMPLIANT",
         )
@@ -171,10 +171,10 @@ class TestEstimateService:
                 product_ref=product_ref,
                 evidence_type="AAOIFI_CERT",
                 source_url=f"https://example.com/cert-{i}",
-                captured_at=datetime.utcnow(),
+                captured_at=datetime.now(UTC),
                 certification_body="AAOIFI",
                 compliance_status="COMPLIANT",
-                expires_at=datetime.utcnow() + timedelta(days=365),
+                expires_at=datetime.now(UTC) + timedelta(days=365),
             )
         await async_session.commit()
         
@@ -220,10 +220,10 @@ class TestEstimateService:
             product_ref=product_ref,
             evidence_type="SSB_REPORT",
             source_url="https://example.com/expired",
-            captured_at=datetime.utcnow() - timedelta(days=400),
+            captured_at=datetime.now(UTC) - timedelta(days=400),
             certification_body="SSB",
             compliance_status="COMPLIANT",
-            expires_at=datetime.utcnow() - timedelta(days=1),
+            expires_at=datetime.now(UTC) - timedelta(days=1),
         )
         await async_session.commit()
         
@@ -252,10 +252,10 @@ class TestEstimateService:
             product_ref=product_ref,
             evidence_type="AAOIFI_CERT",
             source_url="https://example.com/compliant",
-            captured_at=datetime.utcnow(),
+            captured_at=datetime.now(UTC),
             certification_body="AAOIFI",
             compliance_status="COMPLIANT",
-            expires_at=datetime.utcnow() + timedelta(days=365),
+            expires_at=datetime.now(UTC) + timedelta(days=365),
         )
         await evidence_repo.create(
             evidence_id=uuid4(),
@@ -263,10 +263,10 @@ class TestEstimateService:
             product_ref=product_ref,
             evidence_type="SSB_REPORT",
             source_url="https://example.com/non-compliant",
-            captured_at=datetime.utcnow(),
+            captured_at=datetime.now(UTC),
             certification_body="SSB",
             compliance_status="NON_COMPLIANT",
-            expires_at=datetime.utcnow() + timedelta(days=365),
+            expires_at=datetime.now(UTC) + timedelta(days=365),
         )
         await async_session.commit()
         
@@ -313,7 +313,7 @@ class TestTenantIsolation:
             product_ref="SHARED-PRODUCT",
             evidence_type="AAOIFI_CERT",
             source_url="https://example.com/a",
-            captured_at=datetime.utcnow(),
+            captured_at=datetime.now(UTC),
             certification_body="AAOIFI",
             compliance_status="COMPLIANT",
         )
@@ -323,7 +323,7 @@ class TestTenantIsolation:
             product_ref="SHARED-PRODUCT",
             evidence_type="SSB_REPORT",
             source_url="https://example.com/b",
-            captured_at=datetime.utcnow(),
+            captured_at=datetime.now(UTC),
             certification_body="SSB",
             compliance_status="NON_COMPLIANT",
         )

@@ -6,6 +6,7 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,6 +54,31 @@ def get_current_actor() -> str:
 def get_tenant_id() -> str:
     """Extract tenant from authenticated session. Placeholder for U-003 scope."""
     return "fixture-tenant-001"
+
+
+class ClientBriefRequest(BaseModel):
+    client_id: str
+    force_regenerate: bool = False
+
+
+@router.post("/generate")
+async def generate_client_brief(
+    body: ClientBriefRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Meeting brief for the dashboard modal, built from holdings, quotes, interactions, and news."""
+    from app.services.brief.brief_service import brief_service
+
+    try:
+        brief = await brief_service.generate_brief(body.client_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error generating client brief: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal error generating brief")
+
+    sections = brief.pop("sections")
+    return {"brief": {**brief, **sections}}
 
 
 @router.post("/briefs", status_code=status.HTTP_201_CREATED)

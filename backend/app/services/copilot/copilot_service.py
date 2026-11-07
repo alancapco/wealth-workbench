@@ -4,7 +4,7 @@ Implements the workflow orchestration and AI-powered brief generation
 Uses OpenAI-compatible API (works with OpenAI, Anthropic, or any compatible endpoint)
 """
 from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 import uuid
 from openai import AsyncOpenAI
 from app.core.config import settings

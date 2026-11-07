@@ -1,5 +1,5 @@
 """Message artifact and generation schemas per architecture §6.5."""
-from datetime import datetime
+from datetime import datetime, UTC
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID

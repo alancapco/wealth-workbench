@@ -6,7 +6,7 @@ Implements:
 - Pause/resume with reauthorization
 - Context revision validation
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -77,7 +77,7 @@ class WorkflowOrchestrator:
                 ends_at=request.meeting.end,
                 row_version=1,
                 resolved_by=actor,
-                resolved_at=datetime.utcnow()
+                resolved_at=datetime.now(UTC)
             )
             self.session.add(meeting)
             await self.session.flush()
@@ -97,8 +97,8 @@ class WorkflowOrchestrator:
             entry_point=request.entry.value,
             task_context=request.task_context,
             created_by=actor,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC)
         )
         
         self.session.add(workflow)
@@ -184,7 +184,7 @@ class WorkflowOrchestrator:
         
         workflow.status = WorkflowStatus.PAUSED.value
         workflow.row_version += 1
-        workflow.updated_at = datetime.utcnow()
+        workflow.updated_at = datetime.now(UTC)
         
         await self.audit.record_event(
             tenant_id=tenant_id,
@@ -221,7 +221,7 @@ class WorkflowOrchestrator:
         # Resume transitions to NOT_STARTED, requires explicit stage run
         workflow.status = WorkflowStatus.NOT_STARTED.value
         workflow.row_version += 1
-        workflow.updated_at = datetime.utcnow()
+        workflow.updated_at = datetime.now(UTC)
         
         await self.audit.record_event(
             tenant_id=tenant_id,
@@ -257,7 +257,7 @@ class WorkflowOrchestrator:
         
         workflow.status = WorkflowStatus.ABANDONED.value
         workflow.row_version += 1
-        workflow.updated_at = datetime.utcnow()
+        workflow.updated_at = datetime.now(UTC)
         
         # Find continuing actions (would query outbox_actions in full impl)
         continuing_action_ids: list[UUID] = []

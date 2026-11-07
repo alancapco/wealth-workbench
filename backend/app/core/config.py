@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     LLM_BASE_URL: str = "https://api.openai.com/v1"
     LLM_MODEL: str = "gpt-4-turbo-preview"
     MARKET_NEWS_API_KEY: str = ""
+    ALPHAVANTAGE_API_KEY: str = ""
     REDIS_URL: str = "redis://localhost:6379"
     SHARIAH_TOOLS_PATH: str = "/tmp"
 

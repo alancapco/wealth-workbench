@@ -1,5 +1,5 @@
 """Extraction service: AI extraction stub and RM edit persistence."""
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any, Optional
 from uuid import UUID
 
@@ -67,7 +67,7 @@ class ExtractionService:
             environment_kind=environment_kind,
             environment_id=environment_id,
             created_by=created_by,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         
         self.session.add(revision)
@@ -165,7 +165,7 @@ class ExtractionService:
             environment_kind=current.environment_kind,
             environment_id=current.environment_id,
             created_by=actor,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         
         self.session.add(new_revision)

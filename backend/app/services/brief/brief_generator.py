@@ -6,7 +6,7 @@ Never fabricates portfolio/interaction data; uses frozen workflow context.
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, UTC, timezone
 from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4

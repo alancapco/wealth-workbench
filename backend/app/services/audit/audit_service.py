@@ -2,7 +2,7 @@
 Audit Service - Track all actions for compliance
 """
 from typing import Dict
-from datetime import datetime, timezone
+from datetime import datetime, UTC, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.models import AuditLog
 import uuid

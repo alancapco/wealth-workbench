@@ -3,7 +3,7 @@
 Architecture §6.7 API-061 - assess product suitability against current profile.
 Pre-screen only, not compliance approval. Missing/expired profile blocks GREEN rating.
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 from decimal import Decimal
 
@@ -84,7 +84,7 @@ class SuitabilityService:
                         resolution=BlockerResolution.ADMIN,
                     )
                 ],
-                assessed_at=datetime.utcnow(),
+                assessed_at=datetime.now(UTC),
             )
         
         # Missing/expired profile blocks GREEN and ticket
@@ -121,7 +121,7 @@ class SuitabilityService:
                         resolution=BlockerResolution.ADMIN,
                     )
                 ],
-                assessed_at=datetime.utcnow(),
+                assessed_at=datetime.now(UTC),
             )
         
         # Evaluate factors (stub - real impl queries profile and product risk/objective match)
@@ -165,7 +165,7 @@ class SuitabilityService:
             factors=factors,
             ticket_eligible=ticket_eligible,
             blockers=blockers,
-            assessed_at=datetime.utcnow(),
+            assessed_at=datetime.now(UTC),
         )
     
     async def _check_profile_validity(

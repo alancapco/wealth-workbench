@@ -2,7 +2,7 @@
 
 U-015: Preliminary technical estimate, NOT fatwa or religious authority ruling.
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,7 +53,7 @@ class EstimateService:
         Returns:
             Estimate with evidence, reasoning, and disclaimer
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         # Fetch valid (non-expired) evidence
         valid_evidence = await self.evidence_repo.list_valid_evidence(

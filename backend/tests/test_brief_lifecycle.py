@@ -4,7 +4,7 @@ Tests canonical five-section brief with frozen context, section-level reviews,
 edit creates new revision, stale source representation, never fabricates data.
 """
 import json
-from datetime import datetime, timezone
+from datetime import datetime, UTC, timezone
 from uuid import uuid4
 
 import pytest

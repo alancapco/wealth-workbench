@@ -1,5 +1,5 @@
 """Action preview, authorization, and execution schemas."""
-from datetime import datetime
+from datetime import datetime, UTC
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID

@@ -5,7 +5,7 @@ Integrates with the Islamic AI Shariah tools
 import sys
 import os
 from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 from app.core.config import settings
 import logging
 

@@ -1,7 +1,7 @@
 """Message generation service."""
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -63,7 +63,7 @@ class MessageService:
             meeting_id=None,  # Messages may not have meeting context
             kind="MESSAGE",
             created_by=actor,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         self.session.add(lineage)
 
@@ -83,7 +83,7 @@ class MessageService:
             environment_kind=environment_kind,
             environment_id=environment_id,
             created_by=actor,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         self.session.add(revision)
 
@@ -221,7 +221,7 @@ class MessageService:
             environment_kind=environment_kind,
             environment_id=environment_id,
             created_by=actor,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         self.session.add(new_revision)
 

@@ -7,7 +7,7 @@ on content change, memory superseding, outbox lease/crash recovery.
 import hashlib
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 
 import pytest
 from sqlalchemy import text
@@ -88,7 +88,7 @@ async def test_tenant(session: AsyncSession):
         tenant_id="test-tenant-001",
         environment_kind="FIXTURE",
         environment_id="pytest",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     session.add(tenant)
     await session.commit()
@@ -102,7 +102,7 @@ async def test_client(session: AsyncSession, test_tenant):
         id=uuid.uuid4(),
         name="Test Client",
         email="test@example.com",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     session.add(client)
     await session.flush()
@@ -114,7 +114,7 @@ async def test_client(session: AsyncSession, test_tenant):
         context_revision=1,
         ownership_source="pytest",
         ownership_version="v1",
-        verified_at=datetime.utcnow(),
+        verified_at=datetime.now(UTC),
     )
     session.add(scope)
     await session.commit()
@@ -133,8 +133,8 @@ async def test_workflow(session: AsyncSession, test_tenant, test_client):
         context_revision=1,
         entry_point="test",
         created_by="pytest",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     session.add(workflow)
     await session.commit()
@@ -420,7 +420,7 @@ class TestMemorySuperseding:
             source_revision_id=revision.id,
             authorization_id=authorization.id,
             confirmed_by="pytest",
-            confirmed_at=datetime.utcnow(),
+            confirmed_at=datetime.now(UTC),
         )
         session.add(memory_v1)
         await session.commit()
@@ -437,7 +437,7 @@ class TestMemorySuperseding:
             source_revision_id=revision.id,
             authorization_id=authorization.id,
             confirmed_by="pytest",
-            confirmed_at=datetime.utcnow(),
+            confirmed_at=datetime.now(UTC),
         )
         session.add(memory_v2)
         
@@ -614,7 +614,7 @@ class TestOutboxLeaseCrashRecovery:
         
         # Worker 1 claims with expired lease
         action.lease_token = uuid.uuid4()
-        action.lease_until = datetime.utcnow() - timedelta(seconds=10)  # Already expired
+        action.lease_until = datetime.now(UTC) - timedelta(seconds=10)  # Already expired
         action.status = "SENDING"
         await session.commit()
         

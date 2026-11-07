@@ -2,7 +2,7 @@
 
 U-015: Evidence-backed Shariah compliance (default OFF, DEC-05 gated).
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession

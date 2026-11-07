@@ -2,7 +2,7 @@
 
 DEC-06 gated (family relationships), DEC-07 gated (households).
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Literal
 from uuid import UUID
 

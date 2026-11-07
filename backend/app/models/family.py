@@ -2,7 +2,7 @@
 
 U-016: Family relationship graphing and household grouping (pilot).
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKeyConstraint, String, Text, UniqueConstraint

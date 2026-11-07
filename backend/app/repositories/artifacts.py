@@ -1,5 +1,5 @@
 """Artifact lineage and revision repositories."""
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from sqlalchemy import desc, select
@@ -32,7 +32,7 @@ class ArtifactRepository(ClientScopedRepository[ArtifactLineage]):
             meeting_id=meeting_id,
             kind=kind,
             created_by=created_by,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         self.session.add(lineage)
         await self.session.flush()
@@ -85,7 +85,7 @@ class RevisionRepository(ClientScopedRepository[ArtifactRevision]):
             environment_kind=environment_kind,
             environment_id=environment_id,
             created_by=created_by,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         self.session.add(revision)
         await self.session.flush()
@@ -166,7 +166,7 @@ class ReviewRepository(ClientScopedRepository[ReviewDecision]):
             decision=decision,
             actor=actor,
             reason=reason,
-            recorded_at=datetime.utcnow(),
+            recorded_at=datetime.now(UTC),
         )
         self.session.add(review)
         await self.session.flush()

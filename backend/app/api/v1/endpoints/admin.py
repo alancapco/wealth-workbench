@@ -1,5 +1,5 @@
 """Admin configuration, audit, and telemetry endpoints (API-070 through API-073)."""
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -55,13 +55,13 @@ async def list_decision_gates(
                 key=key,
                 scope=scope,
                 enabled=enabled,
-                updated_at=datetime.utcnow(),
+                updated_at=datetime.now(UTC),
             )
         )
 
     return Envelope(
         data=DecisionGateList(gates=gates),
-        meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow()),
+        meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC)),
     )
 
 
@@ -87,12 +87,12 @@ async def get_decision_gate(
         key=key,
         scope=scope,
         enabled=enabled,
-        updated_at=datetime.utcnow(),
+        updated_at=datetime.now(UTC),
     )
 
     return Envelope(
         data=gate,
-        meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow()),
+        meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC)),
     )
 
 
@@ -148,7 +148,7 @@ async def query_audit_log(
 
     return Envelope(
         data=AuditLogResponse(events=event_details, total=len(event_details)),
-        meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow()),
+        meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC)),
     )
 
 
@@ -192,5 +192,5 @@ async def query_metrics(
 
     return Envelope(
         data=response,
-        meta=ResponseMeta(request_id=uuid4(), served_at=datetime.utcnow()),
+        meta=ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC)),
     )

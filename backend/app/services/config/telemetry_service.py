@@ -1,6 +1,6 @@
 """Telemetry service for performance monitoring and metrics."""
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -53,7 +53,7 @@ class TelemetryService:
             event_name=event_type,
             actor_safe_id=actor_safe_id,
             correlation_id=correlation_id,
-            occurred_at=timestamp or datetime.utcnow(),
+            occurred_at=timestamp or datetime.now(UTC),
             version_tags=json.dumps(labels),
             measures=json.dumps({"value": value}),
         )

@@ -2,7 +2,7 @@
 
 Architecture §3.2, §3.3, §5 - authoritative definitions.
 """
-from datetime import date, datetime
+from datetime import date, datetime, UTC
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Generic, TypeVar
@@ -186,8 +186,12 @@ class Money(BaseModel):
 class Hash(str):
     """64 lowercase hex SHA-256 hash."""
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler):
+        from pydantic_core import core_schema
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.str_schema(),
+        )
     
     @classmethod
     def validate(cls, v: Any) -> str:

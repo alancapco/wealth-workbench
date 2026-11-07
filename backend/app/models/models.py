@@ -4,7 +4,7 @@ Database Models
 from sqlalchemy import Column, String, Float, Boolean, DateTime, JSON, ForeignKey, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, UTC
 import uuid
 from app.core.database import Base
 

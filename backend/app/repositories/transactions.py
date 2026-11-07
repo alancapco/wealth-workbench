@@ -1,7 +1,7 @@
 """Transaction, audit, and idempotency repositories."""
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
@@ -39,7 +39,7 @@ class AuditRepository:
             "resource_type": resource_type,
             "resource_id": str(resource_id),
             "correlation_id": str(correlation_id),
-            "occurred_at": datetime.utcnow().isoformat(),
+            "occurred_at": datetime.now(UTC).isoformat(),
             "previous_hash": previous_hash,
             "safe_details": safe_details,
         }
@@ -55,7 +55,7 @@ class AuditRepository:
             resource_type=resource_type,
             resource_id=str(resource_id),
             correlation_id=correlation_id,
-            occurred_at=datetime.utcnow(),
+            occurred_at=datetime.now(UTC),
             previous_hash=previous_hash,
             event_hash=event_hash,
             safe_details=json.dumps(safe_details),
@@ -123,7 +123,7 @@ class IdempotencyRepository:
             idempotency_key=idempotency_key,
             request_hash=request_hash,
             status="IN_PROGRESS",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         self.session.add(request)
         await self.session.flush()
@@ -141,7 +141,7 @@ class IdempotencyRepository:
         request.response_status = response_status
         request.response_body = json.dumps(response_body)
         request.resource_ref = resource_ref
-        request.completed_at = datetime.utcnow()
+        request.completed_at = datetime.now(UTC)
         await self.session.flush()
 
 

@@ -3,7 +3,7 @@
 Implements snooze/dismiss/pin persistence with policy validation.
 Controls affect next evaluation only per explicit policy (DEC-03 gated).
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy import and_, select
@@ -68,7 +68,7 @@ class ControlService:
         control_type = control_dict["type"]
         
         # Build control model based on type
-        recorded_at = datetime.utcnow()
+        recorded_at = datetime.now(UTC)
         
         control_model = PriorityControlModel(
             id=uuid4(),
@@ -195,7 +195,7 @@ class ControlService:
             Outcome response with meaningful touchpoint classification
         """
         outcome_id = uuid4()
-        recorded_at = datetime.utcnow()
+        recorded_at = datetime.now(UTC)
         
         # Determine meaningful touchpoint classification
         # Per architecture: cannot infer two-way/attendance from send status alone

@@ -1,5 +1,5 @@
 """Brief domain DTOs per Architecture §6.3."""
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from uuid import UUID
 

@@ -1,5 +1,5 @@
 """Outbox worker for claiming pending actions and managing lease lifecycle."""
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from uuid import UUID, uuid4
 import json
 
@@ -165,7 +165,7 @@ class OutboxWorker:
             # Readback confirmed - can mark succeeded
             action.status = "SUCCEEDED"
             action.provider_ref = receipt_ref
-            action.readback_at = datetime.utcnow()
+            action.readback_at = datetime.now(UTC)
         elif status == "NOT_ACCEPTED":
             action.status = "FAILED_SAFE"
             action.last_error_code = error_code

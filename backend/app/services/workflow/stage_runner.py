@@ -6,7 +6,7 @@ Implements:
 - Retry with idempotency
 - Expiry handling (preserves output, not counted as completion)
 """
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
@@ -104,7 +104,7 @@ class StageRunner:
         if workflow.status == "NOT_STARTED":
             workflow.status = "RUNNING"
         workflow.current_stage = stage_key
-        workflow.updated_at = datetime.utcnow()
+        workflow.updated_at = datetime.now(UTC)
         
         await self.audit.record_event(
             tenant_id=tenant_id,
@@ -143,9 +143,9 @@ class StageRunner:
         
         # Claim with lease
         run.lease_token = uuid4()
-        run.lease_until = datetime.utcnow() + timedelta(seconds=lease_duration_seconds)
+        run.lease_until = datetime.now(UTC) + timedelta(seconds=lease_duration_seconds)
         run.status = StageStatus.RUNNING.value
-        run.started_at = datetime.utcnow()
+        run.started_at = datetime.now(UTC)
         
         await self.session.flush()
         return run
@@ -177,11 +177,11 @@ class StageRunner:
             raise ValueError("Lease token mismatch - stale worker")
         
         # Check lease not expired
-        if run.lease_until and datetime.utcnow() > run.lease_until:
+        if run.lease_until and datetime.now(UTC) > run.lease_until:
             raise ValueError("Lease expired")
         
         run.status = StageStatus.COMPLETED.value
-        run.completed_at = datetime.utcnow()
+        run.completed_at = datetime.now(UTC)
         run.lease_token = None
         run.lease_until = None
         

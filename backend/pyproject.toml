@@ -36,8 +36,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=7.4.4",
     "pytest-asyncio>=0.23.3",
     "pytest-env>=1.1.3",
@@ -46,7 +46,7 @@ dev-dependencies = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
-asyncio_default_fixture_loop_scope = "session"
+asyncio_default_fixture_loop_scope = "function"
 env = [
     "DATABASE_URL=postgresql+asyncpg://workbench_test:test_password@localhost:5433/workbench_test",
     "AUTH_MODE=fixture",

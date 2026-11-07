@@ -9,7 +9,7 @@ Tests:
 - GET never starts run
 """
 import pytest
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
@@ -58,7 +58,7 @@ async def client_scope(db_session: AsyncSession) -> ClientScope:
         context_revision=1,
         ownership_source="test",
         ownership_version="1.0",
-        verified_at=datetime.utcnow()
+        verified_at=datetime.now(UTC)
     )
     db_session.add(scope)
     await db_session.commit()

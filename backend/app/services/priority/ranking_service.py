@@ -5,7 +5,7 @@ DST-aware local date, and top-10 cap of currently entitled non-DNC clients.
 """
 import hashlib
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, UTC, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
 
