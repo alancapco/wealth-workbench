@@ -1,0 +1,26 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "immutable": true,
+  "zero_writes_zero_sends_before_approve": true,
+  "tokens": [
+    {
+      "token_id": "appr_001",
+      "approver_role": "RM",
+      "approver_id": "rm_sarah",
+      "approver_display": "Sarah (RM)",
+      "approved_at": "2026-11-06T10:14:32+08:00",
+      "label": "Approved by Sarah (RM) · 10:14:32",
+      "final_content_hash": "sha256:approved_content_corr_demo_0001",
+      "correlation_id": "corr_demo_0001",
+      "field_mapping_version": "fmv_20261105_1",
+      "scope": [
+        "brief v1 edit",
+        "CRM write-back (sandbox)",
+        "email draft to DEMO SINK",
+        "post_meeting_review",
+        "priority_list v3"
+      ],
+      "post_approve_declaration": "Approved by Sarah (RM) · 10:14:32 · CRM write-back → sandbox portal succeeded · draft · DEMO SINK — not delivered · 0 sends, 0 trades, 0 real dialled calls"
+    }
+  ]
+}

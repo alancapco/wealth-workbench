@@ -1,0 +1,39 @@
+{
+  "type": "crm-card",
+  "data": {
+    "title": "Client Insights",
+    "fetch": {
+      "targetUrl": "http://localhost:8000/api/v1/hubspot/contact-card",
+      "objectTypes": [
+        {
+          "name": "contacts",
+          "propertiesToSend": [
+            "email",
+            "firstname",
+            "lastname"
+          ]
+        }
+      ]
+    },
+    "display": {
+      "properties": [
+        {
+          "label": "Priority Score",
+          "dataType": "NUMERIC"
+        },
+        {
+          "label": "AUM",
+          "dataType": "CURRENCY"
+        },
+        {
+          "label": "Risk Profile",
+          "dataType": "STRING"
+        },
+        {
+          "label": "Last Interaction",
+          "dataType": "DATE"
+        }
+      ]
+    }
+  }
+}

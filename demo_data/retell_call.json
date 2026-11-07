@@ -1,0 +1,145 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "call_id": "call_syn_demo_0001",
+  "agent_id": "agent_syn_demo_0001",
+  "mode": "simulation_test_call",
+  "synthetic_caller": true,
+  "real_dialled_calls": 0,
+  "language": "en-SG",
+  "duration_seconds": 186,
+  "phone_number": "<PHONE_PLACEHOLDER>",
+  "no_real_phone_number": true,
+  "recording_url": null,
+  "audio_stored": false,
+  "no_real_personal_data": true,
+  "native_hubspot_integration": "OFF",
+  "posture": "SIMULATED (Retell test call · synthetic caller · 0 real dialled calls)",
+  "hard_blocked": [
+    "real outbound dialling",
+    "recording real persons",
+    "direct Retell to HubSpot writes"
+  ],
+  "writes_routed_through": "appr_001 (single C-3 human Approve)",
+  "post_call_webhook": {
+    "event": "call_analyzed",
+    "adapter_binding": "retell_test",
+    "transcript": [
+      {
+        "utterance_id": "utt_01",
+        "timestamp_offset": "00:00:05",
+        "speaker": "Sarah (RM)",
+        "text": "Good morning, this is a synthetic test call for the Wong review."
+      },
+      {
+        "utterance_id": "utt_02",
+        "timestamp_offset": "00:00:22",
+        "speaker": "Wong (client)",
+        "text": "Morning. Let's keep to the agenda I received."
+      },
+      {
+        "utterance_id": "utt_03",
+        "timestamp_offset": "00:00:48",
+        "speaker": "Sarah (RM)",
+        "text": "Of course. First, portfolio context as of prior close."
+      },
+      {
+        "utterance_id": "utt_04",
+        "timestamp_offset": "00:01:15",
+        "speaker": "Wong (client)",
+        "text": "Understood. Has the ASEAN equity sleeve moved much?"
+      },
+      {
+        "utterance_id": "utt_05",
+        "timestamp_offset": "00:01:40",
+        "speaker": "Sarah (RM)",
+        "text": "There is a live market event this morning; I will show the chip."
+      },
+      {
+        "utterance_id": "utt_06",
+        "timestamp_offset": "00:02:05",
+        "speaker": "Wong (client)",
+        "text": "Please keep the explanation brief."
+      },
+      {
+        "utterance_id": "utt_07",
+        "timestamp_offset": "00:02:30",
+        "speaker": "Sarah (RM)",
+        "text": "The move is in SYN-ASEQ-01 since the prior close; no action today."
+      },
+      {
+        "utterance_id": "utt_08",
+        "timestamp_offset": "00:02:52",
+        "speaker": "Wong (client)",
+        "text": "Agreed — a discussion point, not a trade."
+      },
+      {
+        "utterance_id": "utt_09",
+        "timestamp_offset": "00:03:12",
+        "speaker": "Wong (client)",
+        "text": "I think my daughter should join the next review meeting."
+      },
+      {
+        "utterance_id": "utt_10",
+        "timestamp_offset": "00:03:35",
+        "speaker": "Sarah (RM)",
+        "text": "Noted. I will add that as a preference, subject to your approval."
+      },
+      {
+        "utterance_id": "utt_11",
+        "timestamp_offset": "00:04:02",
+        "speaker": "Wong (client)",
+        "text": "Good. And please call before any portfolio change."
+      },
+      {
+        "utterance_id": "utt_12",
+        "timestamp_offset": "00:04:30",
+        "speaker": "Wong (client)",
+        "text": "Continuing on the recorded replay binding after an announced switch."
+      },
+      {
+        "utterance_id": "utt_13",
+        "timestamp_offset": "00:05:01",
+        "speaker": "Sarah (RM)",
+        "text": "The transcript is still fully synthetic and no real person was dialled."
+      },
+      {
+        "utterance_id": "utt_14",
+        "timestamp_offset": "00:05:28",
+        "speaker": "Wong (client)",
+        "text": "Fine. Keep the follow-up as a draft only."
+      },
+      {
+        "utterance_id": "utt_15",
+        "timestamp_offset": "00:06:03",
+        "speaker": "Sarah (RM)",
+        "text": "Understood. The extraction candidates will wait for your approval."
+      },
+      {
+        "utterance_id": "utt_16",
+        "timestamp_offset": "00:06:35",
+        "speaker": "Sarah (RM)",
+        "text": "That concludes the synthetic scripted transcript. Thank you."
+      }
+    ],
+    "structured_outcome": {
+      "extraction_candidates": [
+        {
+          "type": "family_preference",
+          "text": "daughter should join the next review meeting",
+          "evidence_ref": "utt_09",
+          "evidence_offset": "00:03:12",
+          "confidence": 0.94
+        },
+        {
+          "type": "contact_preference",
+          "text": "call before any portfolio change",
+          "evidence_ref": "utt_11",
+          "evidence_offset": "00:04:02",
+          "confidence": 0.91
+        }
+      ],
+      "note": "candidates only · every write follows appr_001"
+    }
+  },
+  "utterance_shape_note": "The three IF-A02 bindings (retell_test, retell_webhook_replay, scripted_stub) emit the SAME 16-id utterance shape utt_01…utt_16 as COMPLETE RUN VARIANTS; this post-call webhook therefore legitimately references all 16 ids — one call = one binding (12_… §7.4 / 14_… E-15)."
+}

@@ -1,0 +1,199 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "report_id": "integrity_report_v1.3",
+  "manifest_version": "v1.3",
+  "schema_version": "v1.3",
+  "verdict": "PASS",
+  "generated_at": "2026-11-05T17:00:00+08:00",
+  "determinism": {
+    "statement": "One numeric seed 20261105 + generator RM-WB-DEMO-v1.3 + splitmix64 namespaced sub-seeds produce byte-identical files, dataset_checksum and artefact sequence on every run (G4/NFR-3). ingested_at is excluded from checksums.",
+    "seed": 20261105,
+    "algorithm": "splitmix64-namespaced",
+    "dataset_checksum": "sha256:acc91f0c0038c03726c0314823e1082c7cc65722d950ef9e8dc8ff6d5b86669c",
+    "dataset_checksum_derivation": "sha256(concat(per-file sha256 hex hashes of the 51 DATA files, sorted by filename))",
+    "checksums_sha256_lines": 52,
+    "pack_checksum_52": "sha256:ec06381830a51ae8a31adfd805d4e314e64aa1c1f3576947944bb3df2b8de1c8",
+    "note": "The 52nd checksums.sha256 line verifies manifest_addendum_crm.json and is excluded from dataset_checksum to avoid self-reference."
+  },
+  "checks": [
+    {
+      "check": "csv_json_parse",
+      "result": "PASS",
+      "detail": "51 data files + manifest_addendum_crm.json parsed; every CSV header begins with the 8-column C-1 envelope; every JSON valid with top-level synthetic_marker"
+    },
+    {
+      "check": "fk_orphans",
+      "result": "PASS",
+      "detail": "0 orphans across 1828 references checked (35 declared FK rules)"
+    },
+    {
+      "check": "c1_nulls",
+      "result": "PASS",
+      "detail": "0 nulls — all 7 C-1 columns non-null on every fact row"
+    },
+    {
+      "check": "synthetic_marker",
+      "result": "PASS",
+      "detail": "0 bad rows — column on every CSV row + top-level marker in every JSON"
+    },
+    {
+      "check": "flat_file_vs_postgres_except",
+      "result": "PASS (expected)",
+      "detail": "SELECT key FROM staging.f_x EXCEPT SELECT key FROM core -> 0 rows in BOTH directions; file_fdw CSV twin authoritative (G5)"
+    },
+    {
+      "check": "no_real_data_guard",
+      "result": "PASS",
+      "detail": "generator targets local demo_* DSN only; manifest.files allow-list; refuses rows lacking synthetic_marker (FR-32 AC-4)"
+    },
+    {
+      "check": "zero_sent_states",
+      "result": "PASS",
+      "detail": "0 exact sent-state values; email_messages.state = draft ONLY"
+    },
+    {
+      "check": "zero_trade_execution",
+      "result": "PASS",
+      "detail": "no trade/order table, no execution path; ticket handoff execution disabled (HARD-BLOCKED)"
+    },
+    {
+      "check": "exactly_one_signal",
+      "result": "PASS",
+      "detail": "one 6% drift signal sig_0001 raised from tk_live_0001"
+    },
+    {
+      "check": "approval_token_single_immutable",
+      "result": "PASS",
+      "detail": "appr_001 · Approved by Sarah (RM) · 10:14:32 · immutable"
+    },
+    {
+      "check": "one_correlation_id",
+      "result": "PASS",
+      "detail": "corr_demo_0001 spans tick -> signal -> brief -> review -> approval -> re-rank"
+    },
+    {
+      "check": "graph_shape",
+      "result": "PASS",
+      "detail": "6 nodes / 8 edges / 6 CRM tables / 2 family packs"
+    },
+    {
+      "check": "family_pack_leakage",
+      "result": "PASS",
+      "detail": "cross_node_facts_incl_hidden_draft_jsonb: 0; packs differ exactly on the entitlement boundary"
+    },
+    {
+      "check": "entitlement_matrix",
+      "result": "PASS",
+      "detail": "ent_matrix_v1 everywhere; Mr_Tan entitled all 6; Next_gen entitled ['nd_01', 'nd_03', 'nd_04'] only"
+    },
+    {
+      "check": "replay_mode",
+      "result": "PASS",
+      "detail": "replay rows source_kind=replay, mode=replay, original feed_as_of preserved; F1 has no new tick after 09:58:14, only a stale row at age 47s"
+    },
+    {
+      "check": "zero_real_credentials",
+      "result": "PASS",
+      "detail": "only the literal placeholder <HUBSPOT_PRIVATE_APP_TOKEN> appears; token out of band (DI-19); real Bearer tokens: 0"
+    },
+    {
+      "check": "zero_real_phone_numbers",
+      "result": "PASS",
+      "detail": "only <PHONE_PLACEHOLDER> appears; 0 real dialled calls"
+    },
+    {
+      "check": "zero_real_domains",
+      "result": "PASS",
+      "detail": "all email addresses use @demo.invalid; unexpected: []"
+    },
+    {
+      "check": "custom_properties_le_10",
+      "result": "PASS",
+      "detail": "slots used [1, 2, 3, 4, 5, 6, 7, 8]; violations [] (E-13)"
+    },
+    {
+      "check": "succeeded_after_approval",
+      "result": "PASS",
+      "detail": "0 succeeded rows before 10:14:32; crm_sync_log.csv is the post-Approve snapshot and is EMPTY at pre-flight"
+    },
+    {
+      "check": "zero_real_dialled_calls",
+      "result": "PASS",
+      "detail": "real_dialled_calls: 0 (demo_sink_messages + retell_call + adapter_bindings agree)"
+    },
+    {
+      "check": "offline_binding_scenario_present",
+      "result": "PASS",
+      "detail": "S3 and S4 run on local_stub + scripted_stub with 0 external calls; S1 golden path is scripted_stub (vendor-independent) per E-14 / E-15"
+    },
+    {
+      "check": "no_new_postgres_tables",
+      "result": "PASS",
+      "detail": "HubSpot/Retell are external references; 8 schemas / 40 tables frozen; 6 crm tables re-purposed; manifest v1.3 NOT bumped"
+    },
+    {
+      "check": "fail_loud_x20",
+      "result": "PASS (declared)",
+      "detail": "SCHEMA MISMATCH · <offending file/table/record> · demo start BLOCKED · no auto-repair · ROLLBACK"
+    },
+    {
+      "check": "checksums_52_verify",
+      "result": "PASS",
+      "detail": "52 / 52 REAL SHA-256 lines verify OK (51 data files + manifest_addendum_crm.json)"
+    },
+    {
+      "check": "determinism",
+      "result": "PASS",
+      "detail": "one seed 20261105 + RM-WB-DEMO-v1.3 + splitmix64 namespaced sub-seeds produce byte-identical files and dataset_checksum; ingested_at excluded"
+    },
+    {
+      "check": "manifest_addendum_crm",
+      "result": "PASS",
+      "detail": "separate architect-authored addendum present; declares 6 crm.* tables + 16 additive/vendor files + self; manifest_version_not_bumped / phase4_sync / no_new_postgres_tables all true"
+    },
+    {
+      "check": "client_id_uuid_resolution",
+      "result": "PASS",
+      "detail": "valid uuid: True · unique per client: True · 1:1 clients<->crm_contacts: True · example cl_wong_001 = 0cabbbc6-0405-433a-a263-6fbaba4e5fa9"
+    },
+    {
+      "check": "field_mapping_version",
+      "result": "PASS",
+      "detail": "all 8 mappings use fmv_20261105_1; legacy version-token occurrences: 0"
+    },
+    {
+      "check": "six_distinct_idempotency_keys",
+      "result": "PASS",
+      "detail": "6 distinct keys for map_01..map_06; 8 total unique keys across 8 sync rows"
+    },
+    {
+      "check": "utt09_daughter_fact",
+      "result": "PASS",
+      "detail": "utt_09 @ 00:03:12 confidence 0.94; all 16 transcript source_ids match their row IDs; daughter-fact evidence refs in memory_facts / extraction_items / crm_old_new_preview / retell_call all point to utt_09"
+    },
+    {
+      "check": "audit_hash_chain",
+      "result": "PASS",
+      "detail": "18/18 audit_events.csv rows verify end-to-end; row_hash = sha256(prev_hash + event_id + event_type + event_at) from a 64-zero genesis (03 §8 canonical_event); each prev_hash equals the preceding row_hash; 0 breaks"
+    },
+    {
+      "check": "one_call_one_binding",
+      "result": "PASS",
+      "detail": "16/16 transcript_utterances.csv rows carry adapter_binding = scripted_stub and the single per-run chip STUB · declared (scripted transcript); retell_test / retell_webhook_replay are COMPLETE RUN VARIANTS (S1-R / S2) in scenarios.json + retell_call.json; aud_12 / aud_13 are BETWEEN-RUN rehearsal switches under corr_rehearsal_0001, not switches within corr_demo_0001 (E-15 / 12_ §7.4 / §9)"
+    },
+    {
+      "check": "canonical_filename_map",
+      "result": "PASS",
+      "detail": "schema_contract.json.canonical_filename_map maps all 51 manifest v1.3 files: 29 frozen-schema CSVs to <NN>_<schema>_<table>.csv, 4 frozen-schema JSONs to <NN>_<schema>_<table>.json, 18 additive crm/vendor files to their manifest_addendum_crm.json declared names; NN = load_order[].seq; no file renamed (E-16 / 12_ §10.2)"
+    }
+  ],
+  "three_zero_counters": {
+    "real_dialled_calls": 0,
+    "real_client_facing_sends": 0,
+    "real_pii": 0
+  },
+  "frozen_zero_counters": {
+    "sends": 0,
+    "trades": 0
+  }
+}

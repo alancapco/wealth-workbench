@@ -1,0 +1,43 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "not_legally_approved": true,
+  "templates": [
+    {
+      "template_id": "tpl_v1",
+      "version": "v1",
+      "subject": "Q3 review notes",
+      "body": "Dear {{client_first_name}}, {{evidence_linked_summary}}. Illustrative only · not legal/compliance-approved wording.",
+      "disclosure_version": "disc_v1"
+    },
+    {
+      "template_id": "tpl_v2",
+      "version": "v2",
+      "subject": "Follow-up after 6 Nov review",
+      "body": "Dear {{client_first_name}}, following our review, {{evidence_linked_summary}}. Illustrative only.",
+      "disclosure_version": "disc_v1"
+    },
+    {
+      "template_id": "tpl_v3",
+      "version": "v1",
+      "subject": "Welcome",
+      "body": "Welcome to the synthetic demo book. {{evidence_linked_summary}}.",
+      "disclosure_version": "disc_v1"
+    }
+  ],
+  "disclosures": [
+    {
+      "disclosure_version": "disc_v1",
+      "text": "Illustrative disclosure text only · not legally approved · SYNTHETIC DEMO DATA"
+    },
+    {
+      "disclosure_version": "disc_v2",
+      "text": "Family-pack materials are entitled per matrix version · illustrative only"
+    }
+  ],
+  "consent_wording": {
+    "accept": "I consent to a scripted recording for this demo session (synthetic)",
+    "decline": "I decline recording for this session",
+    "withdraw": "I withdraw consent for this session",
+    "note": "Illustrative only · not legally approved (A5 / OD-4 / DI-10)"
+  }
+}

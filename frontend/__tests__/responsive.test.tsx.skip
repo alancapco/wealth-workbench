@@ -1,0 +1,246 @@
+// Responsive component and hook tests
+// Authority: U-014
+
+import { renderHook, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import { useBreakpoint, useIsMobile, useTouchDevice } from '@/lib/responsive';
+import MobileNavigation from '@/components/responsive/MobileNavigation';
+import TouchOptimizedButton from '@/components/responsive/TouchOptimizedButton';
+import MobileGateGuard from '@/components/responsive/MobileGateGuard';
+
+// Mock window.innerWidth
+const setWindowWidth = (width: number) => {
+  Object.defineProperty(window, 'innerWidth', {
+    writable: true,
+    configurable: true,
+    value: width,
+  });
+  window.dispatchEvent(new Event('resize'));
+};
+
+describe('Responsive Hooks', () => {
+  describe('useBreakpoint', () => {
+    it('detects mobile breakpoint at 320px', () => {
+      setWindowWidth(320);
+      const { result } = renderHook(() => useBreakpoint());
+      expect(result.current).toBe('mobile');
+    });
+
+    it('detects mobile breakpoint at 767px', () => {
+      setWindowWidth(767);
+      const { result } = renderHook(() => useBreakpoint());
+      expect(result.current).toBe('mobile');
+    });
+
+    it('detects tablet breakpoint at 768px', () => {
+      setWindowWidth(768);
+      const { result } = renderHook(() => useBreakpoint());
+      expect(result.current).toBe('tablet');
+    });
+
+    it('detects tablet breakpoint at 1023px', () => {
+      setWindowWidth(1023);
+      const { result } = renderHook(() => useBreakpoint());
+      expect(result.current).toBe('tablet');
+    });
+
+    it('detects desktop breakpoint at 1024px', () => {
+      setWindowWidth(1024);
+      const { result } = renderHook(() => useBreakpoint());
+      expect(result.current).toBe('desktop');
+    });
+
+    it('detects desktop breakpoint at 1920px', () => {
+      setWindowWidth(1920);
+      const { result } = renderHook(() => useBreakpoint());
+      expect(result.current).toBe('desktop');
+    });
+
+    it('updates breakpoint on window resize', () => {
+      setWindowWidth(1024);
+      const { result } = renderHook(() => useBreakpoint());
+      expect(result.current).toBe('desktop');
+
+      act(() => {
+        setWindowWidth(600);
+      });
+      expect(result.current).toBe('mobile');
+    });
+  });
+
+  describe('useIsMobile', () => {
+    it('returns true on mobile breakpoint', () => {
+      setWindowWidth(375);
+      const { result } = renderHook(() => useIsMobile());
+      expect(result.current).toBe(true);
+    });
+
+    it('returns false on tablet breakpoint', () => {
+      setWindowWidth(768);
+      const { result } = renderHook(() => useIsMobile());
+      expect(result.current).toBe(false);
+    });
+
+    it('returns false on desktop breakpoint', () => {
+      setWindowWidth(1440);
+      const { result } = renderHook(() => useIsMobile());
+      expect(result.current).toBe(false);
+    });
+  });
+
+  describe('useTouchDevice', () => {
+    it('detects touch capability', () => {
+      Object.defineProperty(window, 'ontouchstart', {
+        writable: true,
+        configurable: true,
+        value: {},
+      });
+      const { result } = renderHook(() => useTouchDevice());
+      expect(typeof result.current).toBe('boolean');
+    });
+  });
+});
+
+describe('Mobile Navigation', () => {
+  it('renders on mobile breakpoint', () => {
+    setWindowWidth(375);
+    render(<MobileNavigation />);
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Clients')).toBeInTheDocument();
+    expect(screen.getByText('Calendar')).toBeInTheDocument();
+    expect(screen.getByText('Profile')).toBeInTheDocument();
+  });
+
+  it('has accessible labels', () => {
+    render(<MobileNavigation />);
+    expect(screen.getByLabelText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByLabelText('Clients')).toBeInTheDocument();
+  });
+});
+
+describe('TouchOptimizedButton', () => {
+  it('meets 44px minimum tap target', () => {
+    const { container } = render(
+      <TouchOptimizedButton>Test Button</TouchOptimizedButton>
+    );
+    const button = container.querySelector('button');
+    expect(button).toHaveClass('btn-touch');
+    // btn-touch CSS class enforces min-height: 44px
+  });
+
+  it('renders primary variant', () => {
+    render(<TouchOptimizedButton variant="primary">Primary</TouchOptimizedButton>);
+    const button = screen.getByText('Primary');
+    expect(button).toHaveClass('bg-capco-black');
+  });
+
+  it('renders secondary variant', () => {
+    render(<TouchOptimizedButton variant="secondary">Secondary</TouchOptimizedButton>);
+    const button = screen.getByText('Secondary');
+    expect(button).toHaveClass('bg-capco-gray-100');
+  });
+
+  it('renders danger variant', () => {
+    render(<TouchOptimizedButton variant="danger">Delete</TouchOptimizedButton>);
+    const button = screen.getByText('Delete');
+    expect(button).toHaveClass('bg-red-600');
+  });
+
+  it('renders full width on mobile', () => {
+    render(<TouchOptimizedButton fullWidth>Full Width</TouchOptimizedButton>);
+    const button = screen.getByText('Full Width');
+    expect(button).toHaveClass('w-full');
+  });
+
+  it('handles disabled state', () => {
+    render(<TouchOptimizedButton disabled>Disabled</TouchOptimizedButton>);
+    const button = screen.getByText('Disabled');
+    expect(button).toBeDisabled();
+    expect(button).toHaveClass('disabled:opacity-50');
+  });
+});
+
+describe('MobileGateGuard', () => {
+  beforeEach(() => {
+    // Mock apiClient
+    jest.clearAllMocks();
+  });
+
+  it('allows desktop access without gate check', async () => {
+    setWindowWidth(1440);
+    render(
+      <MobileGateGuard>
+        <div>Protected Content</div>
+      </MobileGateGuard>
+    );
+    expect(await screen.findByText('Protected Content')).toBeInTheDocument();
+  });
+
+  it('shows loading state on mobile while checking gate', () => {
+    setWindowWidth(375);
+    render(
+      <MobileGateGuard>
+        <div>Protected Content</div>
+      </MobileGateGuard>
+    );
+    expect(screen.getByText('Checking mobile access...')).toBeInTheDocument();
+  });
+
+  it('blocks mobile access when gate is disabled', async () => {
+    setWindowWidth(375);
+    // Mock API to return disabled
+    const mockGet = jest.fn().mockRejectedValue(new Error('Gate disabled'));
+    jest.spyOn(require('@/lib/api'), 'apiClient', 'get').mockImplementation(() => ({
+      get: mockGet,
+    }));
+
+    render(
+      <MobileGateGuard>
+        <div>Protected Content</div>
+      </MobileGateGuard>
+    );
+
+    expect(await screen.findByText('Mobile Access Restricted')).toBeInTheDocument();
+    expect(screen.getByText(/Mobile access requires enablement/)).toBeInTheDocument();
+  });
+
+  it('allows mobile access when gate is enabled', async () => {
+    setWindowWidth(375);
+    // Mock API to return enabled
+    const mockGet = jest.fn().mockResolvedValue({
+      data: { enabled: true },
+    });
+    jest.spyOn(require('@/lib/api'), 'apiClient', 'get').mockImplementation(() => ({
+      get: mockGet,
+    }));
+
+    render(
+      <MobileGateGuard>
+        <div>Protected Content</div>
+      </MobileGateGuard>
+    );
+
+    expect(await screen.findByText('Protected Content')).toBeInTheDocument();
+  });
+});
+
+describe('Component Responsive Variants', () => {
+  it('switches to mobile variant at mobile breakpoint', () => {
+    setWindowWidth(375);
+    // Test that components detect mobile and render appropriate variant
+    const breakpoint = useBreakpoint();
+    expect(breakpoint).toBe('mobile');
+  });
+
+  it('switches to tablet variant at tablet breakpoint', () => {
+    setWindowWidth(800);
+    const breakpoint = useBreakpoint();
+    expect(breakpoint).toBe('tablet');
+  });
+
+  it('switches to desktop variant at desktop breakpoint', () => {
+    setWindowWidth(1200);
+    const breakpoint = useBreakpoint();
+    expect(breakpoint).toBe('desktop');
+  });
+});

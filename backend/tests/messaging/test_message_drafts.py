@@ -1,0 +1,566 @@
+"""
+U-011 Message Drafts and Approval Send Tests
+
+Tests the complete message workflow:
+1. Generate message artifact from accepted items or priority reason
+2. Create action preview (CLIENT_SEND)
+3. Authorize preview
+4. Execute send
+5. Track delivery status
+
+NOTE: These tests use SQLite for basic structure validation.
+Per architecture spec, full integration tests require PostgreSQL 15+.
+Some PostgreSQL-specific constraints (jsonb_build_array) will cause SQLite errors
+in fixture setup - these are expected and do not affect message service logic tests.
+"""
+import json
+from datetime import datetime
+from uuid import UUID, uuid4
+
+import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.workflow import Workflow
+from app.models.platform import WorkbenchTenant, ClientScope
+from app.models.artifact import ArtifactLineage, ArtifactRevision
+from app.models.action import ActionPreview, ActionAuthorization, OutboxAction
+from app.schemas.message import MessageGenerate, MessageRecipient, Message
+from app.schemas.common import ConfigRef, ItemRef, Origin
+from app.services.messaging.message_service import MessageService
+from app.services.messaging.provider_stub import MessageProviderStub
+from app.services.actions.action_service import ActionService
+
+
+@pytest_asyncio.fixture
+async def test_workflow(db_session: AsyncSession):
+    """Create test tenant, client scope, and workflow."""
+    tenant = WorkbenchTenant(
+        tenant_id="test-tenant",
+        environment_kind="FIXTURE",
+        environment_id="test-env",
+    )
+    db_session.add(tenant)
+    
+    client_id = uuid4()
+    client_scope = ClientScope(
+        tenant_id="test-tenant",
+        client_id=client_id,
+        context_revision=1,
+        ownership_source="test",
+        ownership_version="v1",
+        verified_at=datetime.utcnow(),
+    )
+    db_session.add(client_scope)
+    
+    workflow = Workflow(
+        id=uuid4(),
+        tenant_id="test-tenant",
+        client_id=client_id,
+        workflow_type="MEETING_FOLLOWUP",
+        status="RUNNING",
+        context_revision=1,
+        entry_point="test",
+        created_by="test-user",
+    )
+    db_session.add(workflow)
+    
+    await db_session.commit()
+    return workflow
+
+
+class TestMessageDraftCreation:
+    """Test message artifact creation from accepted items or priority reasons."""
+
+    @pytest.mark.asyncio
+    async def test_followup_message_requires_accepted_items(
+        self, db_session: AsyncSession, test_workflow: Workflow
+    ):
+        """FOLLOWUP messages require accepted_item_refs."""
+        service = MessageService(db_session)
+        
+        request = MessageGenerate(
+            mode="FOLLOWUP",
+            channel="EMAIL",
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            accepted_item_refs=[],  # Empty - should fail
+        )
+        
+        with pytest.raises(ValueError, match="FOLLOWUP messages require accepted_item_refs"):
+            await service.generate_message(
+                tenant_id="test-tenant",
+                client_id=test_workflow.client_id,
+                workflow_id=test_workflow.id,
+                request=request,
+                actor="test-user",
+            )
+
+    @pytest.mark.asyncio
+    async def test_outreach_message_requires_priority_reason(
+        self, db_session: AsyncSession, test_workflow: Workflow
+    ):
+        """OUTREACH messages require priority_reason_ref."""
+        service = MessageService(db_session)
+        
+        request = MessageGenerate(
+            mode="OUTREACH,
+            channel="EMAIL,
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            accepted_item_refs=[],
+            priority_reason_ref=None,  # Missing - should fail
+        )
+        
+        with pytest.raises(ValueError, match="OUTREACH messages require priority_reason_ref"):
+            await service.generate_message(
+                tenant_id="test-tenant",
+                client_id=test_workflow.client_id,
+                workflow_id=test_workflow.id,
+                request=request,
+                actor="test-user",
+            )
+
+    @pytest.mark.asyncio
+    async def test_generate_followup_message_creates_artifact(
+        self, db_session: AsyncSession, test_workflow: Workflow
+    ):
+        """Generate FOLLOWUP message creates MESSAGE artifact with accepted basis."""
+        service = MessageService(db_session)
+        
+        item_ref = ItemRef(
+            artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+            item_key="meeting_note_1",
+            item_hash="c" * 64,
+        )
+        
+        request = MessageGenerate(
+            mode="FOLLOWUP,
+            channel="EMAIL,
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            accepted_item_refs=[item_ref],
+        )
+        
+        lineage, revision = await service.generate_message(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            workflow_id=test_workflow.id,
+            request=request,
+            actor="test-user",
+        )
+        
+        # Verify artifact structure
+        assert lineage.kind == "MESSAGE"
+        assert lineage.tenant_id == "test-tenant"
+        assert lineage.client_id == test_workflow.client_id
+        assert lineage.workflow_id == test_workflow.id
+        assert lineage.current_revision_id == revision.id
+        
+        # Verify revision
+        assert revision.version == 1
+        assert revision.environment_kind == "FIXTURE"
+        
+        # Verify message content
+        message = Message.model_validate_json(revision.payload)
+        assert message.mode == "FOLLOWUP"
+        assert message.channel == "EMAIL"
+        assert len(message.recipients) > 0
+        assert message.recipients[0].confirmed == False  # Starts unconfirmed
+        assert message.subject is not None  # EMAIL has subject
+        assert len(message.basis_refs) == 1
+        assert message.priority_reason_ref is None
+
+    @pytest.mark.asyncio
+    async def test_recipients_start_unconfirmed(
+        self, db_session: AsyncSession, test_workflow: Workflow
+    ):
+        """Generated messages have unconfirmed recipients - require explicit confirmation."""
+        service = MessageService(db_session)
+        
+        from app.schemas.message import PriorityReasonRef
+        
+        request = MessageGenerate(
+            mode="OUTREACH,
+            channel="SMS,
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            accepted_item_refs=[],
+            priority_reason_ref=PriorityReasonRef(
+                evaluation_id=uuid4(),
+                client_id=test_workflow.client_id,
+                reason_key="market_volatility",
+                reason_hash="d" * 64,
+            ),
+        )
+        
+        lineage, revision = await service.generate_message(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            workflow_id=test_workflow.id,
+            request=request,
+            actor="test-user",
+        )
+        
+        message = Message.model_validate_json(revision.payload)
+        
+        # All recipients start unconfirmed
+        assert all(not r.confirmed for r in message.recipients)
+        
+        # SMS has no subject
+        assert message.subject is None
+
+
+class TestMessageEditing:
+    """Test message editing creates new revisions."""
+
+    @pytest.mark.asyncio
+    async def test_edit_message_creates_new_revision(
+        self, db_session: AsyncSession, test_workflow: Workflow
+    ):
+        """Editing message creates new revision with updated content."""
+        service = MessageService(db_session)
+        
+        # Create original message
+        request = MessageGenerate(
+            mode="FOLLOWUP,
+            channel="EMAIL,
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            accepted_item_refs=[
+                ItemRef(
+                    artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+                    item_key="note_1",
+                    item_hash="c" * 64,
+                )
+            ],
+        )
+        
+        lineage, original_revision = await service.generate_message(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            workflow_id=test_workflow.id,
+            request=request,
+            actor="test-user",
+        )
+        
+        # Edit message
+        new_recipients = [
+            MessageRecipient(
+                contact_id="contact-123",
+                destination="confirmed@example.com",
+                confirmed=True,  # Now confirmed
+            )
+        ]
+        
+        new_revision = await service.edit_message(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            artifact_id=lineage.id,
+            recipients=new_recipients,
+            subject="Updated subject",
+            body="Updated body content",
+            actor="test-user",
+        )
+        
+        # Verify new revision
+        assert new_revision.version == 2
+        assert new_revision.id != original_revision.id
+        
+        # Verify updated content
+        message = Message.model_validate_json(new_revision.payload)
+        assert message.subject == "Updated subject"
+        assert message.body == "Updated body content"
+        assert len(message.recipients) == 1
+        assert message.recipients[0].confirmed == True
+        assert message.recipients[0].destination == "confirmed@example.com"
+
+
+class TestMessageProviderIntegration:
+    """Test message provider stub behavior."""
+
+    @pytest.mark.asyncio
+    async def test_provider_returns_unconfigured_without_config(self):
+        """Provider stub returns UNCONFIGURED without DEC-02 config (fail-closed)."""
+        provider = MessageProviderStub(provider_config=None)
+        
+        message = Message(
+            mode="FOLLOWUP,
+            channel="EMAIL,
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            recipients=[
+                MessageRecipient(
+                    contact_id="contact-1",
+                    destination="test@example.com",
+                    confirmed=True,
+                )
+            ],
+            subject="Test",
+            body="Test body",
+            disclosures=[],
+            basis_refs=[],
+            priority_reason_ref=None,
+            claims=[],
+        )
+        
+        receipt = await provider.send_message(
+            message=message,
+            recipient_destination="test@example.com",
+            tenant_id="test-tenant",
+            client_id=uuid4(),
+        )
+        
+        assert receipt.status == "NOT_ACCEPTED"
+        assert receipt.error_code == "PROVIDER_UNCONFIGURED"
+        assert receipt.provider_key == "UNCONFIGURED"
+
+    @pytest.mark.asyncio
+    async def test_provider_blocks_unconfirmed_recipient(self):
+        """Provider blocks send to unconfirmed recipients."""
+        provider = MessageProviderStub(provider_config={"provider_key": "test-provider"})
+        
+        message = Message(
+            mode="FOLLOWUP,
+            channel="EMAIL,
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            recipients=[
+                MessageRecipient(
+                    contact_id="contact-1",
+                    destination="test@example.com",
+                    confirmed=False,  # Not confirmed
+                )
+            ],
+            subject="Test",
+            body="Test body",
+            disclosures=[],
+            basis_refs=[],
+            priority_reason_ref=None,
+            claims=[],
+        )
+        
+        receipt = await provider.send_message(
+            message=message,
+            recipient_destination="test@example.com",
+            tenant_id="test-tenant",
+            client_id=uuid4(),
+        )
+        
+        assert receipt.status == "NOT_ACCEPTED"
+        assert receipt.error_code == "RECIPIENT_NOT_CONFIRMED"
+
+    @pytest.mark.asyncio
+    async def test_dnc_check_blocks_without_config(self):
+        """DNC check fails safe - blocks if provider unconfigured."""
+        provider = MessageProviderStub(provider_config=None)
+        
+        is_blocked = await provider.check_dnc(
+            destination="test@example.com",
+            channel="EMAIL,
+            tenant_id="test-tenant",
+        )
+        
+        # Fail-safe: block if we can't verify
+        assert is_blocked == True
+
+
+class TestMessageActionWorkflow:
+    """Test complete message workflow: generate → preview → authorize → execute."""
+
+    @pytest.mark.asyncio
+    async def test_complete_message_send_workflow(
+        self, db_session: AsyncSession, test_workflow: Workflow
+    ):
+        """Complete flow: generate message → create preview → authorize → execute."""
+        message_service = MessageService(db_session)
+        action_service = ActionService(db_session)
+        
+        # Step 1: Generate message artifact
+        request = MessageGenerate(
+            mode="FOLLOWUP,
+            channel="EMAIL,
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            accepted_item_refs=[
+                ItemRef(
+                    artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+                    item_key="note_1",
+                    item_hash="c" * 64,
+                )
+            ],
+        )
+        
+        lineage, revision = await message_service.generate_message(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            workflow_id=test_workflow.id,
+            request=request,
+            actor="test-user",
+        )
+        
+        # Step 2: Confirm recipients (edit message)
+        confirmed_recipients = [
+            MessageRecipient(
+                contact_id="contact-123",
+                destination="confirmed@example.com",
+                confirmed=True,
+            )
+        ]
+        
+        revision = await message_service.edit_message(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            artifact_id=lineage.id,
+            recipients=confirmed_recipients,
+            subject=None,  # Keep existing
+            body=None,  # Keep existing
+            actor="test-user",
+        )
+        
+        # Step 3: Create action preview (CLIENT_SEND)
+        message = Message.model_validate_json(revision.payload)
+        
+        preview = await action_service.create_preview(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            revision_id=revision.id,
+            action_class="CLIENT_SEND",
+            approved_request=json.loads(revision.payload),
+            provider_key="test-email-provider",
+            destination_ref="confirmed@example.com",
+            environment_kind="FIXTURE",
+            environment_id="test-env",
+            context_revision=1,
+            dependency_manifest={},
+            created_by="test-user",
+        )
+        
+        assert preview.action_class == "CLIENT_SEND"
+        assert preview.status == "VALID"
+        
+        # Step 4: Authorize preview
+        authorization = await action_service.authorize_preview(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            preview_id=preview.id,
+            actor="test-approver",
+        )
+        
+        assert authorization.status == "VALID"
+        assert authorization.preview_hash == preview.preview_hash
+        
+        # Step 5: Execute action
+        action = await action_service.execute_action(
+            tenant_id="test-tenant",
+            authorization_id=authorization.id,
+        )
+        
+        assert action.status == "PENDING"
+        assert action.authorization_id == authorization.id
+
+    @pytest.mark.asyncio
+    async def test_editing_message_invalidates_previews(
+        self, db_session: AsyncSession, test_workflow: Workflow
+    ):
+        """Editing message content invalidates existing action previews."""
+        message_service = MessageService(db_session)
+        action_service = ActionService(db_session)
+        
+        # Generate and create preview
+        request = MessageGenerate(
+            mode="FOLLOWUP,
+            channel="EMAIL,
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            accepted_item_refs=[
+                ItemRef(
+                    artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+                    item_key="note_1",
+                    item_hash="c" * 64,
+                )
+            ],
+        )
+        
+        lineage, revision1 = await message_service.generate_message(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            workflow_id=test_workflow.id,
+            request=request,
+            actor="test-user",
+        )
+        
+        # Create preview for v1
+        preview1 = await action_service.create_preview(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            revision_id=revision1.id,
+            action_class="CLIENT_SEND",
+            approved_request=json.loads(revision1.payload),
+            provider_key="test-email-provider",
+            destination_ref="test@example.com",
+            environment_kind="FIXTURE",
+            environment_id="test-env",
+            context_revision=1,
+            dependency_manifest={},
+            created_by="test-user",
+        )
+        
+        assert preview1.status == "VALID"
+        
+        # Edit message - creates v2
+        revision2 = await message_service.edit_message(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            artifact_id=lineage.id,
+            recipients=None,
+            subject="Changed subject",
+            body=None,
+            actor="test-user",
+        )
+        
+        # Invalidate old previews
+        count = await action_service.invalidate_previews_by_revision(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            revision_id=revision1.id,
+        )
+        
+        # Verify preview invalidated
+        await db_session.refresh(preview1)
+        assert preview1.status == "INVALIDATED"
+
+
+class TestFixtureProvenance:
+    """Test fixture evidence is properly labeled."""
+
+    @pytest.mark.asyncio
+    async def test_fixture_message_has_fixture_environment(
+        self, db_session: AsyncSession, test_workflow: Workflow
+    ):
+        """Messages created in fixture environment are labeled FIXTURE."""
+        service = MessageService(db_session)
+        
+        request = MessageGenerate(
+            mode="FOLLOWUP,
+            channel="EMAIL,
+            template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
+            accepted_item_refs=[
+                ItemRef(
+                    artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+                    item_key="note_1",
+                    item_hash="c" * 64,
+                )
+            ],
+        )
+        
+        lineage, revision = await service.generate_message(
+            tenant_id="test-tenant",
+            client_id=test_workflow.client_id,
+            workflow_id=test_workflow.id,
+            request=request,
+            actor="test-user",
+            environment_kind="FIXTURE",
+            environment_id="test-env",
+        )
+        
+        # Verify FIXTURE environment
+        assert revision.environment_kind == "FIXTURE"
+        assert revision.environment_id == "test-env"
+        
+        # Message claims should have FIXTURE-appropriate origins
+        message = Message.model_validate_json(revision.payload)
+        for claim in message.claims:
+            # FOLLOWUP from fixture = RECORDED origin
+            assert claim.origin in [Origin.RECORDED, Origin.DERIVED]

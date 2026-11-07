@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RM Workbench — My Day | Capco</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/css/capco-design.css">
+    <style>
+        /* Fix logo and header */
+        .logo { display: flex !important; align-items: center !important; gap: 1rem !important; }
+        .logo img { height: 36px !important; max-height: 36px !important; width: auto !important; }
+        .product-name {
+            color: white !important;
+            font-weight: 300 !important;
+            font-size: 0.875rem !important;
+            text-transform: uppercase !important;
+            padding-left: 1rem !important;
+            border-left: 1px solid var(--capco-gray-600) !important;
+            letter-spacing: 0.05em !important;
+        }
+
+        /* Fix button clickability and styling */
+        .btn-primary {
+            background: var(--capco-black) !important;
+            color: white !important;
+            border: none !important;
+            padding: 0.5rem 1rem !important;
+            font-size: 0.8125rem !important;
+            font-weight: 500 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            border-radius: 2px !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+            position: relative !important;
+            z-index: 10 !important;
+            display: inline-block !important;
+        }
+
+        .btn-primary:hover {
+            background: var(--capco-gray-800) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* Dashboard Enhancements with Charts */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-card {
+            background: white;
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card:hover {
+            border-color: var(--capco-gray-400);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+            transition: all 0.2s;
+        }
+
+        .dashboard-card h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--capco-gray-500);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .dashboard-value {
+            font-size: 2rem;
+            font-weight: 300;
+            color: var(--capco-black);
+            margin-bottom: 0.25rem;
+        }
+
+        .dashboard-label {
+            font-size: 0.875rem;
+            color: var(--capco-gray-600);
+        }
+
+        .dashboard-change {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        .dashboard-change.positive { color: #2E7D32; }
+        .dashboard-change.negative { color: #C62828; }
+
+        /* Mini Chart in Cards */
+        .mini-chart {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 100px;
+            height: 40px;
+            opacity: 0.15;
+        }
+
+        /* Performance Chart Section */
+        .chart-section {
+            background: white;
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-section h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--capco-gray-200);
+            padding-bottom: 0.75rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 1rem;
+        }
+
+        /* Schedule Grid */
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .schedule-card {
+            background: white;
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            padding: 1.5rem;
+        }
+
+        .schedule-card h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--capco-gray-200);
+            padding-bottom: 0.75rem;
+        }
+
+        .meeting-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--capco-gray-100);
+        }
+
+        .meeting-item:last-child { border-bottom: none; }
+
+        .meeting-time {
+            font-weight: 600;
+            color: var(--capco-black);
+            min-width: 80px;
+        }
+
+        .meeting-client { flex: 1; }
+        .meeting-client strong { display: block; margin-bottom: 0.25rem; }
+        .meeting-purpose { font-size: 0.875rem; color: var(--capco-gray-600); }
+
+        /* Market News with Live Indicators */
+        .news-item {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--capco-gray-100);
+            position: relative;
+        }
+
+        .news-item:last-child { border-bottom: none; }
+        .news-item strong { display: block; font-size: 0.9375rem; margin-bottom: 0.25rem; }
+        .news-item span { font-size: 0.8125rem; color: var(--capco-gray-500); }
+
+        .news-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2E7D32;
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Priority Actions */
+        .action-item {
+            background: #FFF3E0;
+            border-left: 4px solid #F57C00;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-item:hover {
+            background: #FFE0B2;
+            transform: translateX(4px);
+        }
+
+        .action-item strong { display: block; margin-bottom: 0.25rem; }
+        .action-item span { font-size: 0.875rem; color: var(--capco-gray-700); }
+
+        .action-item.critical {
+            background: #FFEBEE;
+            border-left-color: #C62828;
+        }
+
+        /* Evidence Chips */
+        .evidence-chip {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            border-radius: 2px;
+            margin-top: 0.5rem;
+        }
+
+        .evidence-chip.live {
+            background: #E8F5E9;
+            border: 1px solid #2E7D32;
+            color: #1B5E20;
+        }
+
+        .evidence-chip.verified {
+            background: #E3F2FD;
+            border: 1px solid #1565C0;
+            color: #0D47A1;
+        }
+
+        /* Book Overview Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            margin-top: 2rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--capco-gray-500);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--capco-black);
+        }
+
+        .stat-value.success {
+            color: #2E7D32;
+        }
+
+        /* Portfolio Allocation Donut */
+        .allocation-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .donut-chart {
+            background: white;
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            padding: 1.5rem;
+        }
+
+        .donut-chart h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--capco-gray-200);
+            padding-bottom: 0.75rem;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .legend-label {
+            flex: 1;
+        }
+
+        .legend-value {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Persistent Header (SCR-01) -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="logo">
+                    <img src="assets/images/capco_logo.png" alt="Capco" onerror="this.style.display='none'; this.nextElementSibling.textContent='CAPCO'; this.nextElementSibling.style.color='white'; this.nextElementSibling.style.fontSize='1.5rem'; this.nextElementSibling.style.fontWeight='700';">
+                    <span class="product-name">Wealth Workbench</span>
+                </div>
+            </div>
+            <div class="header-center" style="display: flex; flex-direction: column; align-items: center;">
+                <div class="mode-chip">LIVE MARKET DATA · <span class="clock-time">09:58:14 SGT</span></div>
+                <div class="workflow-trace" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; color: var(--capco-gray-500); margin-top: 0.5rem;">
+                    <span class="workflow-stage active" data-stage="rank.clients" style="color: white; font-weight: 600;">rank.clients</span> →
+                    <span class="workflow-stage" data-stage="brief.generate">brief.generate</span> →
+                    <span class="workflow-stage" data-stage="meeting.capture">meeting.capture</span> →
+                    <span class="workflow-stage" data-stage="review.approve">review.approve</span>
+                    <span style="margin-left: 1rem;">corr_id: 8f21a4b2</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-profile">
+                    <span class="user-name">Sarah Chen</span>
+                    <span class="user-role">Relationship Manager</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <h1 style="margin-bottom: 0.5rem;">Good Morning, Sarah</h1>
+        <p class="date-display">Tuesday, 16 March 2026 · <span class="clock-time">09:58:32 SGT</span></p>
+
+        <!-- Dashboard KPI Cards with Mini Charts -->
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <h3>Total AUM Under Management</h3>
+                <div class="dashboard-value">$428.5M</div>
+                <div class="dashboard-label">Across 45 clients</div>
+                <div class="dashboard-change positive">↑ $12.3M this month (+2.9%)</div>
+                <canvas class="mini-chart" id="miniChart1"></canvas>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Today's Meetings</h3>
+                <div class="dashboard-value">3</div>
+                <div class="dashboard-label">Next at 10:00 AM</div>
+                <div class="dashboard-change">Kenneth Wong · Rebalancing</div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Open Actions</h3>
+                <div class="dashboard-value">7</div>
+                <div class="dashboard-label">Requiring attention</div>
+                <div class="dashboard-change negative">2 overdue</div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Portfolio Performance</h3>
+                <div class="dashboard-value">+5.8%</div>
+                <div class="dashboard-label">YTD weighted average</div>
+                <div class="dashboard-change positive">↑ Outperforming benchmark +1.2%</div>
+                <canvas class="mini-chart" id="miniChart2"></canvas>
+            </div>
+        </div>
+
+        <!-- Portfolio Allocation & Performance Charts -->
+        <div class="allocation-container">
+            <div class="donut-chart">
+                <h2>Book Allocation Overview</h2>
+                <canvas id="allocationChart" style="max-height: 250px;"></canvas>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #000000;"></div>
+                        <div class="legend-label">Equities</div>
+                        <div class="legend-value">62%</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #666666;"></div>
+                        <div class="legend-label">Fixed Income</div>
+                        <div class="legend-value">28%</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #CCCCCC;"></div>
+                        <div class="legend-label">Cash</div>
+                        <div class="legend-value">10%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2>YTD Performance Trend</h2>
+                <canvas id="performanceChart" style="max-height: 250px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Today's Schedule & Market News -->
+        <div class="schedule-grid">
+            <div class="schedule-card">
+                <h2>Today's Schedule</h2>
+
+                <div class="meeting-item" style="background: #FFF3E0; margin: 0 -1rem; padding: 1rem 1rem;">
+                    <div class="meeting-time">10:00 AM</div>
+                    <div class="meeting-client">
+                        <strong>Kenneth Wong · HKD 45.2M AUM</strong>
+                        <div class="meeting-purpose">Rebalancing discussion — Portfolio drifted 6% from target (HSBC +2.3% market event)</div>
+                        <button class="btn-primary" onclick="alert('Navigate to client brief')" style="margin-top: 0.75rem; padding: 0.5rem 1rem; font-size: 0.8125rem;">Open Brief & Prepare</button>
+                    </div>
+                </div>
+
+                <div class="meeting-item">
+                    <div class="meeting-time">1:00 PM</div>
+                    <div class="meeting-client">
+                        <strong>Ahmad Rahman · SGD 32.8M AUM</strong>
+                        <div class="meeting-purpose">Annual review — Faith-based investing focus, zakat calculation</div>
+                    </div>
+                </div>
+
+                <div class="meeting-item">
+                    <div class="meeting-time">3:30 PM</div>
+                    <div class="meeting-client">
+                        <strong>Tan Family Office · SGD 120.5M AUM (7 entities)</strong>
+                        <div class="meeting-purpose">Quarterly family review — 4 members attending, consolidated reporting</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="schedule-card">
+                <h2>Market News</h2>
+
+                <div class="news-item">
+                    <strong><span class="news-indicator"></span>HSBC Holdings +2.3%</strong>
+                    <span>Strong Q3 earnings, guidance upgraded</span>
+                    <div>
+                        <span class="evidence-chip live">● LIVE · Reuters · 09:58:14</span>
+                    </div>
+                </div>
+
+                <div class="news-item">
+                    <strong>Hang Seng Index +1.8%</strong>
+                    <span>Tech sector rally on policy support</span>
+                </div>
+
+                <div class="news-item">
+                    <strong>SGX Trading Update</strong>
+                    <span>Higher volumes, stable spreads</span>
+                </div>
+
+                <div class="news-item">
+                    <strong>Fed Rate Decision</strong>
+                    <span>Expected unchanged, watch guidance</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Priority Actions -->
+        <div class="schedule-card">
+            <h2>Priority Actions for Today</h2>
+
+            <div class="action-item" onclick="alert('Open brief')">
+                <strong>1. Prepare rebalancing brief for Kenneth Wong</strong>
+                <span>Portfolio drift 6% due to HSBC +2.3% move · High confidence opportunity · Due before 10:00 AM meeting</span>
+            </div>
+
+            <div class="action-item">
+                <strong>2. Complete annual zakat calculation for Ahmad Rahman</strong>
+                <span>Shariah-compliant documentation required for 1:00 PM meeting</span>
+            </div>
+
+            <div class="action-item critical">
+                <strong>3. Review overdue suitability profiles (2 clients)</strong>
+                <span>Li Wei (expired 10 Mar) · Chen Family (expired 08 Mar) · Blocking new trades</span>
+            </div>
+
+            <div class="action-item">
+                <strong>4. Consolidate Tan Family reports across 7 entities</strong>
+                <span>Patriarch + 3 family members attending 3:30 PM review · Generation 2 & 3 views needed</span>
+            </div>
+        </div>
+
+        <!-- Book Overview Stats -->
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-label">Clients</div>
+                <div class="stat-value">45</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Family Offices</div>
+                <div class="stat-value">8</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg. AUM</div>
+                <div class="stat-value">$9.5M</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Meetings (MTD)</div>
+                <div class="stat-value">18</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Net New (YTD)</div>
+                <div class="stat-value success">+$38M</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="system-footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <span class="system-indicator">System Ready</span>
+                <span class="data-label">SYNTHETIC DEMO DATA</span>
+            </div>
+            <div class="footer-right">
+                <span class="disclaimer">Demo environment • All data synthetic • Not for production use</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Update clock
+        setInterval(() => {
+            const now = new Date();
+            const sgt = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
+            const time = sgt.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.querySelectorAll('.clock-time').forEach(el => el.textContent = time + ' SGT');
+        }, 1000);
+
+        // Mini Sparkline Chart 1 (AUM Growth)
+        const miniCtx1 = document.getElementById('miniChart1').getContext('2d');
+        new Chart(miniCtx1, {
+            type: 'line',
+            data: {
+                labels: ['', '', '', '', '', '', ''],
+                datasets: [{
+                    data: [410, 415, 420, 418, 422, 425, 428.5],
+                    borderColor: '#2E7D32',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+
+        // Mini Sparkline Chart 2 (Performance)
+        const miniCtx2 = document.getElementById('miniChart2').getContext('2d');
+        new Chart(miniCtx2, {
+            type: 'line',
+            data: {
+                labels: ['', '', '', '', '', '', ''],
+                datasets: [{
+                    data: [3.2, 4.1, 4.8, 5.2, 5.5, 5.7, 5.8],
+                    borderColor: '#2E7D32',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+
+        // Allocation Donut Chart
+        const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+        new Chart(allocationCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Equities', 'Fixed Income', 'Cash'],
+                datasets: [{
+                    data: [62, 28, 10],
+                    backgroundColor: ['#000000', '#666666', '#CCCCCC'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `${context.label}: ${context.parsed}%`
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // Performance Line Chart
+        const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(performanceCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Portfolio',
+                    data: [0, 1.2, 2.5, 3.8, 4.2, 4.6, 5.1, 5.5, 5.8, null, null, null],
+                    borderColor: '#000000',
+                    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }, {
+                    label: 'Benchmark',
+                    data: [0, 0.8, 1.9, 2.8, 3.2, 3.5, 3.9, 4.2, 4.6, null, null, null],
+                    borderColor: '#999999',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (context) => `${context.dataset.label}: +${context.parsed.y}%`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 11 } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => `+${value}%`,
+                            font: { size: 11 }
+                        },
+                        grid: { color: '#f5f5f5' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

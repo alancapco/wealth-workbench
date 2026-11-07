@@ -1,0 +1,11 @@
+{
+  "name": "CapcoDemo",
+  "description": "RM Workbench integration for wealth management",
+  "scopes": [
+    "crm.objects.contacts.read",
+    "crm.objects.contacts.write",
+    "crm.schemas.contacts.read",
+    "crm.schemas.contacts.write"
+  ],
+  "public": false
+}

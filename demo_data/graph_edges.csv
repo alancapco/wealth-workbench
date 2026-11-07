@@ -1,0 +1,9 @@
+synthetic_marker,source_id,source_kind,as_of,ingested_at,confidence,mode,version_stamp,edge_id,edge_type,from_node_id,to_node_id,relation_meaning,source_doc_id
+SYNTHETIC DEMO DATA,gen:20261105:graph.graph_edge:ed_01,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,ed_01,settlor_of,nd_01,nd_03,Patriarch settled the family trust,doc_01
+SYNTHETIC DEMO DATA,gen:20261105:graph.graph_edge:ed_02,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,ed_02,beneficiary_of,nd_02,nd_03,Named beneficiary class,doc_03
+SYNTHETIC DEMO DATA,gen:20261105:graph.graph_edge:ed_03,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,ed_03,owns,nd_03,nd_04,Trust owns the holding company,doc_04
+SYNTHETIC DEMO DATA,gen:20261105:graph.graph_edge:ed_04,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,ed_04,holds,nd_04,nd_06,Holding company holds the custody account,doc_06
+SYNTHETIC DEMO DATA,gen:20261105:graph.graph_edge:ed_05,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,ed_05,advises,nd_05,nd_01,RM advisory relationship,doc_05
+SYNTHETIC DEMO DATA,gen:20261105:graph.graph_edge:ed_06,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,ed_06,successor_of,nd_02,nd_01,Documented succession intent,doc_02
+SYNTHETIC DEMO DATA,gen:20261105:graph.graph_edge:ed_07,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,ed_07,signatory_of,nd_01,nd_06,Account mandate signatory,doc_07
+SYNTHETIC DEMO DATA,gen:20261105:graph.graph_edge:ed_08,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,ed_08,beneficial_interest_in,nd_02,nd_04,Declared beneficial interest,doc_08

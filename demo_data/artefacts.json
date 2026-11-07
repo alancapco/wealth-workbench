@@ -1,0 +1,164 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "c2_state_sequence": [
+    "draft",
+    "pending_review",
+    "approved"
+  ],
+  "priority_list_versions": [
+    "v1",
+    "v2",
+    "v3"
+  ],
+  "meeting_brief_versions": [
+    "v1",
+    "v2"
+  ],
+  "artefacts": [
+    {
+      "artefact_id": "art_pl_v1",
+      "kind": "priority_list",
+      "version": "v1",
+      "state": "superseded",
+      "correlation_id": "",
+      "created_at": "2026-11-05T17:00:00+08:00",
+      "sections": [
+        "My Day priorities"
+      ],
+      "evidence_chips": [
+        "seeded · prior close"
+      ],
+      "final_content_hash": "sha256:plv1",
+      "synthetic_marker": "SYNTHETIC DEMO DATA"
+    },
+    {
+      "artefact_id": "art_pl_v2",
+      "kind": "priority_list",
+      "version": "v2",
+      "state": "superseded",
+      "correlation_id": "corr_demo_0001",
+      "created_at": "2026-11-06T09:58:20+08:00",
+      "sections": [
+        "My Day re-ranked · Wong 4->1"
+      ],
+      "evidence_chips": [
+        "re-rank · live signal 09:58:14"
+      ],
+      "final_content_hash": "sha256:plv2",
+      "synthetic_marker": "SYNTHETIC DEMO DATA"
+    },
+    {
+      "artefact_id": "art_pl_v3",
+      "kind": "priority_list",
+      "version": "v3",
+      "state": "approved",
+      "correlation_id": "corr_demo_0001",
+      "created_at": "2026-11-06T10:18:00+08:00",
+      "sections": [
+        "Tomorrow's priorities · approved preference reappears"
+      ],
+      "evidence_chips": [
+        "derived · approved 10:14:32"
+      ],
+      "final_content_hash": "sha256:plv3",
+      "synthetic_marker": "SYNTHETIC DEMO DATA"
+    },
+    {
+      "artefact_id": "art_brief_v1",
+      "kind": "meeting_brief",
+      "version": "v1",
+      "state": "approved",
+      "correlation_id": "corr_demo_0001",
+      "created_at": "2026-11-06T10:00:08+08:00",
+      "sections": [
+        "Portfolio",
+        "Client preference",
+        "Market",
+        "Agenda (PROPOSED)",
+        "Compliance"
+      ],
+      "evidence_chips": [
+        "Portfolio, as of prior close",
+        "Client preference, verified",
+        "Market · <source> · as-of 09:58:14"
+      ],
+      "final_content_hash": "sha256:brv1",
+      "synthetic_marker": "SYNTHETIC DEMO DATA"
+    },
+    {
+      "artefact_id": "art_brief_v2",
+      "kind": "meeting_brief",
+      "version": "v2",
+      "state": "approved",
+      "correlation_id": "corr_demo_0001",
+      "created_at": "2026-11-06T10:18:00+08:00",
+      "sections": [
+        "Portfolio",
+        "Client preference",
+        "Market",
+        "Agenda (PROPOSED)",
+        "Compliance"
+      ],
+      "evidence_chips": [
+        "Client preference, verified · approved 10:14:32",
+        "daughter to join"
+      ],
+      "final_content_hash": "sha256:brv2",
+      "synthetic_marker": "SYNTHETIC DEMO DATA"
+    },
+    {
+      "artefact_id": "art_review_v1",
+      "kind": "post_meeting_review",
+      "version": "v1",
+      "state": "approved",
+      "correlation_id": "corr_demo_0001",
+      "created_at": "2026-11-06T10:14:00+08:00",
+      "sections": [
+        "notes",
+        "CRM old->new",
+        "email draft",
+        "rebalancing proposal",
+        "ticket (execution disabled)",
+        "tomorrow's priorities"
+      ],
+      "evidence_chips": [
+        "ticket · suitability current · execution disabled",
+        "CRM old → new"
+      ],
+      "final_content_hash": "sha256:rev1",
+      "synthetic_marker": "SYNTHETIC DEMO DATA"
+    },
+    {
+      "artefact_id": "family_pack_mr_tan",
+      "kind": "family_pack",
+      "version": "v1",
+      "state": "approved",
+      "correlation_id": "corr_demo_0001",
+      "created_at": "2026-11-06T10:20:10+08:00",
+      "sections": [
+        "entitled nodes nd_01..nd_06"
+      ],
+      "evidence_chips": [
+        "ent_matrix_v1 · as-of 2026-11-06T10:20:10+08:00"
+      ],
+      "final_content_hash": "sha256:fpmt",
+      "synthetic_marker": "SYNTHETIC DEMO DATA"
+    },
+    {
+      "artefact_id": "family_pack_next_gen",
+      "kind": "family_pack",
+      "version": "v1",
+      "state": "approved",
+      "correlation_id": "corr_demo_0001",
+      "created_at": "2026-11-06T10:20:10+08:00",
+      "sections": [
+        "entitled nodes nd_01 nd_03 nd_04"
+      ],
+      "evidence_chips": [
+        "ent_matrix_v1 · as-of 2026-11-06T10:20:10+08:00"
+      ],
+      "final_content_hash": "sha256:fpng",
+      "synthetic_marker": "SYNTHETIC DEMO DATA"
+    }
+  ]
+}

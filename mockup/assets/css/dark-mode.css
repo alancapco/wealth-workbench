@@ -1,0 +1,539 @@
+/* RM Workbench MVP - Dark Mode Support */
+/* Dark theme following Capco professional aesthetic */
+
+/* Dark mode toggle state */
+[data-theme="dark"] {
+    /* Dark Mode Colors */
+    --surface-bg: #0A0A0A;
+    --surface-elevated: #1A1A1A;
+    --surface-hover: #2A2A2A;
+    --border-default: #3A3A3A;
+    --border-emphasis: #666666;
+    
+    /* Text Colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: #CCCCCC;
+    --text-tertiary: #999999;
+    --text-inverse: #000000;
+    
+    /* Brand remains black/white but inverted */
+    --brand-primary: #FFFFFF;
+}
+
+/* Body background */
+[data-theme="dark"] body {
+    background: var(--surface-bg);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   Header - Inverted for Dark Mode
+   ============================================ */
+
+[data-theme="dark"] .main-header {
+    background: var(--capco-white);
+    border-bottom: 1px solid var(--capco-gray-200);
+}
+
+[data-theme="dark"] .logo img {
+    filter: none; /* Capco logo stays black */
+}
+
+[data-theme="dark"] .product-name {
+    color: var(--capco-black);
+    border-left-color: var(--capco-gray-300);
+}
+
+[data-theme="dark"] .system-status {
+    background: var(--capco-gray-100);
+}
+
+[data-theme="dark"] .status-dot {
+    background: var(--capco-black);
+}
+
+[data-theme="dark"] .status-dot.live {
+    background: var(--capco-black);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .status-text,
+[data-theme="dark"] .status-time {
+    color: var(--capco-black);
+}
+
+[data-theme="dark"] .user-name {
+    color: var(--capco-black);
+}
+
+[data-theme="dark"] .user-role {
+    color: var(--capco-gray-600);
+}
+
+/* ============================================
+   Cards & Content
+   ============================================ */
+
+[data-theme="dark"] .client-card {
+    background: var(--surface-elevated);
+    border-color: var(--border-default);
+}
+
+[data-theme="dark"] .client-card:hover {
+    border-color: var(--capco-white);
+    box-shadow: 0 8px 24px rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .client-card.high-priority {
+    border-left-color: var(--capco-white);
+}
+
+[data-theme="dark"] .client-initials {
+    background: var(--capco-white);
+    color: var(--capco-black);
+}
+
+[data-theme="dark"] .priority-number {
+    border-color: var(--capco-white);
+    color: var(--capco-white);
+}
+
+[data-theme="dark"] .context-section {
+    border-top-color: var(--border-default);
+}
+
+[data-theme="dark"] .conversation-history li {
+    border-left-color: var(--border-default);
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+[data-theme="dark"] .btn-primary {
+    background: var(--capco-white);
+    color: var(--capco-black);
+}
+
+[data-theme="dark"] .btn-primary:hover {
+    background: var(--capco-gray-100);
+}
+
+[data-theme="dark"] .btn-outline {
+    border-color: var(--capco-white);
+    color: var(--capco-white);
+}
+
+[data-theme="dark"] .btn-outline:hover {
+    background: var(--capco-white);
+    color: var(--capco-black);
+}
+
+/* ============================================
+   Evidence Chips - Dark Mode with Maintained Contrast
+   ============================================ */
+
+[data-theme="dark"] .evidence-chip--live {
+    background: #1B5E20;
+    color: #E8F5E9;
+    border-color: #4CAF50;
+}
+
+[data-theme="dark"] .evidence-chip--replay {
+    background: #0D47A1;
+    color: #E3F2FD;
+    border-color: #2196F3;
+}
+
+[data-theme="dark"] .evidence-chip--seeded,
+[data-theme="dark"] .evidence-chip--manual,
+[data-theme="dark"] .evidence-chip--derived {
+    background: var(--capco-gray-700);
+    color: var(--capco-gray-100);
+    border-color: var(--capco-gray-500);
+}
+
+[data-theme="dark"] .evidence-chip--stale,
+[data-theme="dark"] .evidence-chip--unavailable {
+    background: #E65100;
+    color: #FFF3E0;
+    border-color: #FF9800;
+}
+
+/* ============================================
+   Source Drawer
+   ============================================ */
+
+[data-theme="dark"] .source-drawer {
+    background: var(--surface-elevated);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .source-drawer__header,
+[data-theme="dark"] .source-drawer__footer {
+    border-color: var(--border-default);
+}
+
+[data-theme="dark"] .source-drawer__close:hover {
+    background: var(--surface-hover);
+}
+
+[data-theme="dark"] .source-drawer__close:focus {
+    outline-color: var(--capco-white);
+}
+
+/* ============================================
+   Approval Bar
+   ============================================ */
+
+[data-theme="dark"] .approval-bar {
+    background: var(--surface-elevated);
+    border-color: var(--border-default);
+}
+
+[data-theme="dark"] .btn-approve {
+    background: var(--capco-white);
+    color: var(--capco-black);
+}
+
+[data-theme="dark"] .btn-approve:hover:not(:disabled) {
+    background: var(--capco-gray-100);
+}
+
+[data-theme="dark"] .btn-approve:focus {
+    outline-color: var(--capco-white);
+}
+
+[data-theme="dark"] .btn-approve:disabled {
+    background: var(--capco-gray-700);
+    color: var(--capco-gray-500);
+}
+
+/* ============================================
+   Diff Field
+   ============================================ */
+
+[data-theme="dark"] .diff-field {
+    background: var(--surface-elevated);
+    border-color: var(--border-default);
+}
+
+[data-theme="dark"] .diff-field__actions {
+    border-top-color: var(--border-default);
+}
+
+[data-theme="dark"] .diff-field__action {
+    border-color: var(--border-emphasis);
+}
+
+[data-theme="dark"] .diff-field__action--accept {
+    color: #4CAF50;
+    border-color: #4CAF50;
+}
+
+[data-theme="dark"] .diff-field__action--accept:hover {
+    background: #1B5E20;
+}
+
+[data-theme="dark"] .diff-field__action--edit:hover {
+    background: var(--surface-hover);
+}
+
+[data-theme="dark"] .diff-field__action--reject {
+    color: #EF5350;
+    border-color: #EF5350;
+}
+
+[data-theme="dark"] .diff-field__action--reject:hover {
+    background: #B71C1C;
+}
+
+/* ============================================
+   State Badges - Dark Mode
+   ============================================ */
+
+[data-theme="dark"] .state-badge--ready,
+[data-theme="dark"] .state-badge--verified,
+[data-theme="dark"] .state-badge--succeeded {
+    background: #1B5E20;
+    color: #E8F5E9;
+    border-color: #4CAF50;
+}
+
+[data-theme="dark"] .state-badge--stale,
+[data-theme="dark"] .state-badge--pending,
+[data-theme="dark"] .state-badge--warning {
+    background: #E65100;
+    color: #FFF3E0;
+    border-color: #FF9800;
+}
+
+[data-theme="dark"] .state-badge--blocked,
+[data-theme="dark"] .state-badge--failed,
+[data-theme="dark"] .state-badge--error {
+    background: #B71C1C;
+    color: #FFEBEE;
+    border-color: #EF5350;
+}
+
+[data-theme="dark"] .state-badge--info {
+    background: #0D47A1;
+    color: #E3F2FD;
+    border-color: #2196F3;
+}
+
+[data-theme="dark"] .state-badge--proposed,
+[data-theme="dark"] .state-badge--draft {
+    background: var(--capco-gray-700);
+    color: var(--capco-gray-100);
+    border-color: var(--capco-gray-500);
+}
+
+/* ============================================
+   Consent Banner - Dark Mode Inverted
+   ============================================ */
+
+[data-theme="dark"] .consent-banner {
+    background: var(--capco-white);
+    color: var(--capco-black);
+}
+
+[data-theme="dark"] .consent-banner__version {
+    color: var(--capco-gray-600);
+}
+
+[data-theme="dark"] .consent-banner__body {
+    color: var(--capco-gray-700);
+}
+
+[data-theme="dark"] .consent-banner__stub {
+    background: var(--capco-gray-100);
+    color: var(--capco-gray-700);
+}
+
+[data-theme="dark"] .consent-banner__button--accept {
+    background: var(--capco-black);
+    color: var(--capco-white);
+    border-color: var(--capco-black);
+}
+
+[data-theme="dark"] .consent-banner__button--accept:hover {
+    background: var(--capco-gray-900);
+}
+
+[data-theme="dark"] .consent-banner__button--decline {
+    color: var(--capco-black);
+    border-color: var(--capco-black);
+}
+
+[data-theme="dark"] .consent-banner__button--decline:hover {
+    background: var(--capco-gray-100);
+}
+
+[data-theme="dark"] .consent-banner__button:focus {
+    outline-color: var(--capco-black);
+}
+
+/* ============================================
+   Mode Chip - Dark Mode
+   ============================================ */
+
+[data-theme="dark"] .mode-chip--live {
+    background: #1B5E20;
+    color: #E8F5E9;
+    border-color: #4CAF50;
+}
+
+[data-theme="dark"] .mode-chip--replay {
+    background: #0D47A1;
+    color: #E3F2FD;
+    border-color: #2196F3;
+}
+
+/* ============================================
+   Health Bar - Inverted for Dark Mode
+   ============================================ */
+
+[data-theme="dark"] .health-bar {
+    background: var(--capco-white);
+    border-top-color: var(--capco-gray-200);
+}
+
+[data-theme="dark"] .health-bar__field {
+    color: var(--capco-gray-600);
+}
+
+[data-theme="dark"] .health-bar__field-value {
+    color: var(--capco-black);
+}
+
+[data-theme="dark"] .health-bar__separator {
+    background: var(--capco-gray-300);
+}
+
+[data-theme="dark"] .health-bar__synthetic-label {
+    background: var(--capco-gray-100);
+    color: var(--capco-black);
+    border-color: var(--capco-gray-300);
+}
+
+/* ============================================
+   Workflow Trace
+   ============================================ */
+
+[data-theme="dark"] .workflow-trace {
+    background: var(--surface-elevated);
+    border-color: var(--border-default);
+}
+
+[data-theme="dark"] .workflow-trace__stage--current {
+    background: var(--capco-white);
+    color: var(--capco-black);
+}
+
+[data-theme="dark"] .workflow-trace__correlation {
+    border-left-color: var(--border-default);
+}
+
+/* ============================================
+   Reason Code Card
+   ============================================ */
+
+[data-theme="dark"] .reason-code-card {
+    background: var(--surface-elevated);
+    border-left-color: var(--capco-white);
+}
+
+[data-theme="dark"] .reason-code-card__type {
+    background: var(--capco-white);
+    color: var(--capco-black);
+}
+
+/* ============================================
+   Status Banner
+   ============================================ */
+
+[data-theme="dark"] .status-banner {
+    background: var(--surface-elevated);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .status-banner__close:hover {
+    background: var(--surface-hover);
+}
+
+/* ============================================
+   Focus States - White in Dark Mode
+   ============================================ */
+
+[data-theme="dark"] .focus-visible:focus,
+[data-theme="dark"] button:focus,
+[data-theme="dark"] a:focus {
+    outline-color: var(--capco-white);
+}
+
+/* ============================================
+   Scrollbars - Dark Mode
+   ============================================ */
+
+[data-theme="dark"] ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--surface-bg);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--capco-gray-600);
+    border-radius: 6px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--capco-gray-500);
+}
+
+/* ============================================
+   Dark Mode Toggle Button
+   ============================================ */
+
+.theme-toggle {
+    position: relative;
+    width: 48px;
+    height: 24px;
+    background: var(--capco-gray-300);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background var(--transition-base);
+}
+
+.theme-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: var(--capco-white);
+    border-radius: 50%;
+    transition: transform var(--transition-base);
+}
+
+[data-theme="dark"] .theme-toggle {
+    background: var(--capco-gray-700);
+}
+
+[data-theme="dark"] .theme-toggle::after {
+    transform: translateX(24px);
+    background: var(--capco-black);
+}
+
+.theme-toggle:hover {
+    background: var(--capco-gray-400);
+}
+
+[data-theme="dark"] .theme-toggle:hover {
+    background: var(--capco-gray-600);
+}
+
+/* ============================================
+   Print Styles (Light Mode for Print)
+   ============================================ */
+
+@media print {
+    [data-theme="dark"] {
+        --surface-bg: #FFFFFF;
+        --surface-elevated: #F5F5F5;
+        --text-primary: #000000;
+        --text-secondary: #666666;
+    }
+    
+    [data-theme="dark"] .main-header {
+        background: #FFFFFF;
+        border-bottom-color: #E5E5E5;
+    }
+    
+    [data-theme="dark"] .health-bar {
+        background: #000000;
+        border-top-color: #000000;
+    }
+}
+
+/* ============================================
+   High Contrast Mode Support
+   ============================================ */
+
+@media (prefers-contrast: high) {
+    [data-theme="dark"] .evidence-chip,
+    [data-theme="dark"] .state-badge,
+    [data-theme="dark"] .mode-chip {
+        border-width: 2px;
+    }
+    
+    [data-theme="dark"] .btn-approve,
+    [data-theme="dark"] .btn-primary,
+    [data-theme="dark"] .btn-outline {
+        border-width: 3px;
+    }
+}

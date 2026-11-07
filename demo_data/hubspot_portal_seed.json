@@ -1,0 +1,268 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "portal": {
+    "label": "HUBSPOT FREE · DEMO SANDBOX PORTAL",
+    "posture": "REAL (SANDBOXED)",
+    "external_reference_only": true,
+    "no_new_postgres_table": true,
+    "synthetic_records_only": true,
+    "custom_properties_used": 8,
+    "custom_properties_cap": 10,
+    "pipelines": 1,
+    "seats": 2,
+    "contacts_under_any_published_free_cap": true,
+    "private_app_token": "<HUBSPOT_PRIVATE_APP_TOKEN>",
+    "token_out_of_band": true,
+    "no_real_credential": true,
+    "inbound_webhooks_used": false,
+    "field_mapping_version": "fmv_20261105_1",
+    "note": "Dedicated free sandbox portal · 100% synthetic records · no real person contacted"
+  },
+  "contacts": [
+    {
+      "id": "hs_ct_001",
+      "properties": {
+        "firstname": "Wong",
+        "lastname": "Mun",
+        "email": "wong@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "NEW",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_002",
+      "properties": {
+        "firstname": "Lim",
+        "lastname": "Fen",
+        "email": "lim@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "OPEN",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_003",
+      "properties": {
+        "firstname": "Tan",
+        "lastname": "Shyan",
+        "email": "tan@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "OPEN",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_004",
+      "properties": {
+        "firstname": "Ong",
+        "lastname": "Ting",
+        "email": "cl004@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "NEW",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_005",
+      "properties": {
+        "firstname": "Ng",
+        "lastname": "Ting",
+        "email": "cl005@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "OPEN",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_006",
+      "properties": {
+        "firstname": "Wong",
+        "lastname": "Lin",
+        "email": "cl006@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "OPEN",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_007",
+      "properties": {
+        "firstname": "Ng",
+        "lastname": "Hui",
+        "email": "cl007@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "NEW",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_008",
+      "properties": {
+        "firstname": "Chua",
+        "lastname": "Mun",
+        "email": "cl008@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "OPEN",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_009",
+      "properties": {
+        "firstname": "Ong",
+        "lastname": "Shan",
+        "email": "cl009@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "OPEN",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_010",
+      "properties": {
+        "firstname": "Ng",
+        "lastname": "Man",
+        "email": "cl010@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "NEW",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_011",
+      "properties": {
+        "firstname": "Au",
+        "lastname": "Sheng",
+        "email": "cl011@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "OPEN",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    },
+    {
+      "id": "hs_ct_012",
+      "properties": {
+        "firstname": "Goh",
+        "lastname": "Ho",
+        "email": "cl012@demo.invalid",
+        "phone": "<PHONE_PLACEHOLDER>",
+        "hs_lead_status": "OPEN",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA",
+        "demo_drift_flag": "within_tolerance"
+      },
+      "createdAt": "2026-09-01T09:00:00Z",
+      "updatedAt": "2026-11-05T09:00:00Z",
+      "archived": false
+    }
+  ],
+  "deals": [
+    {
+      "id": "hs_deal_001",
+      "properties": {
+        "dealname": "ASEAN equity sleeve review",
+        "pipeline": "demo_pipeline_01",
+        "dealstage": "review",
+        "amount": "250000",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA"
+      },
+      "associations": {
+        "contactIds": [
+          "hs_ct_001"
+        ]
+      },
+      "createdAt": "2026-10-01T09:00:00Z",
+      "archived": false
+    }
+  ],
+  "tasks": [
+    {
+      "id": "hs_task_001",
+      "properties": {
+        "hs_task_subject": "Synthetic post-Approve follow-up",
+        "hs_task_status": "NOT_STARTED",
+        "hs_timestamp": "2026-11-07T10:00:00+08:00",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA"
+      },
+      "associations": {
+        "contactIds": [
+          "hs_ct_001"
+        ]
+      }
+    }
+  ],
+  "notes": [
+    {
+      "id": "hs_note_001",
+      "properties": {
+        "hs_note_body": "Synthetic seeded interaction note · SYNTHETIC DEMO DATA",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA"
+      },
+      "associations": {
+        "contactIds": [
+          "hs_ct_001"
+        ]
+      }
+    }
+  ],
+  "meetings": [
+    {
+      "id": "hs_meeting_001",
+      "properties": {
+        "hs_meeting_title": "Wong 10:00 review (synthetic)",
+        "hs_meeting_start_time": "2026-11-06T10:00:00+08:00",
+        "hs_meeting_end_time": "2026-11-06T10:45:00+08:00",
+        "demo_synthetic_marker": "SYNTHETIC DEMO DATA"
+      },
+      "associations": {
+        "contactIds": [
+          "hs_ct_001"
+        ]
+      }
+    }
+  ]
+}

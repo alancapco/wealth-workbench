@@ -1,0 +1,223 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "note": "Two approved packs differ EXACTLY on the entitlement boundary; hidden/draft jsonb contains entitled-node content only; diff yields 0 cross-node facts.",
+  "matrix_version": "ent_matrix_v1",
+  "approval_token_ref": "appr_001",
+  "packs": [
+    {
+      "entitled_node_ids": [
+        "nd_01",
+        "nd_02",
+        "nd_03",
+        "nd_04",
+        "nd_05",
+        "nd_06"
+      ],
+      "visible_facts": [
+        {
+          "node_id": "nd_01",
+          "label": "Patriarch",
+          "text": "Synthetic summary for nd_01 · entitled node only"
+        },
+        {
+          "node_id": "nd_02",
+          "label": "Next-gen family member",
+          "text": "Synthetic summary for nd_02 · entitled node only"
+        },
+        {
+          "node_id": "nd_03",
+          "label": "Family trust",
+          "text": "Synthetic summary for nd_03 · entitled node only"
+        },
+        {
+          "node_id": "nd_04",
+          "label": "Holding company",
+          "text": "Synthetic summary for nd_04 · entitled node only"
+        },
+        {
+          "node_id": "nd_05",
+          "label": "Relationship manager",
+          "text": "Synthetic summary for nd_05 · entitled node only"
+        },
+        {
+          "node_id": "nd_06",
+          "label": "Custody account",
+          "text": "Synthetic summary for nd_06 · entitled node only"
+        }
+      ],
+      "visible_edges": [
+        {
+          "edge_id": "ed_01",
+          "edge_type": "settlor_of",
+          "from": "nd_01",
+          "to": "nd_03"
+        },
+        {
+          "edge_id": "ed_02",
+          "edge_type": "beneficiary_of",
+          "from": "nd_02",
+          "to": "nd_03"
+        },
+        {
+          "edge_id": "ed_03",
+          "edge_type": "owns",
+          "from": "nd_03",
+          "to": "nd_04"
+        },
+        {
+          "edge_id": "ed_04",
+          "edge_type": "holds",
+          "from": "nd_04",
+          "to": "nd_06"
+        },
+        {
+          "edge_id": "ed_05",
+          "edge_type": "advises",
+          "from": "nd_05",
+          "to": "nd_01"
+        },
+        {
+          "edge_id": "ed_06",
+          "edge_type": "successor_of",
+          "from": "nd_02",
+          "to": "nd_01"
+        },
+        {
+          "edge_id": "ed_07",
+          "edge_type": "signatory_of",
+          "from": "nd_01",
+          "to": "nd_06"
+        },
+        {
+          "edge_id": "ed_08",
+          "edge_type": "beneficial_interest_in",
+          "from": "nd_02",
+          "to": "nd_04"
+        }
+      ],
+      "doc_refs": [
+        "doc_01",
+        "doc_02",
+        "doc_03",
+        "doc_04",
+        "doc_05",
+        "doc_06",
+        "doc_07",
+        "doc_08"
+      ],
+      "hidden_jsonb": {
+        "internal_note": "Mr_Tan entitled view · all 6 synthetic nodes"
+      },
+      "draft_jsonb": {
+        "draft_note": "No cross-node content present"
+      },
+      "leakage_check": {
+        "cross_node_facts": 0,
+        "incl_hidden_draft_jsonb": 0
+      },
+      "matrix_version": "ent_matrix_v1",
+      "as_of": "2026-11-06T10:20:10+08:00",
+      "synthetic_marker": "SYNTHETIC DEMO DATA",
+      "state": "approved",
+      "approval_token_ref": "appr_001",
+      "correlation_id": "corr_demo_0001",
+      "disclaimer": "PROPOSED / AI-GENERATED · illustrative",
+      "pack_id": "family_pack_mr_tan",
+      "attendee_class": "Mr_Tan"
+    },
+    {
+      "entitled_node_ids": [
+        "nd_01",
+        "nd_03",
+        "nd_04"
+      ],
+      "visible_facts": [
+        {
+          "node_id": "nd_01",
+          "label": "Patriarch",
+          "text": "Synthetic summary for nd_01 · entitled node only"
+        },
+        {
+          "node_id": "nd_03",
+          "label": "Family trust",
+          "text": "Synthetic summary for nd_03 · entitled node only"
+        },
+        {
+          "node_id": "nd_04",
+          "label": "Holding company",
+          "text": "Synthetic summary for nd_04 · entitled node only"
+        }
+      ],
+      "visible_edges": [
+        {
+          "edge_id": "ed_01",
+          "edge_type": "settlor_of",
+          "from": "nd_01",
+          "to": "nd_03"
+        },
+        {
+          "edge_id": "ed_03",
+          "edge_type": "owns",
+          "from": "nd_03",
+          "to": "nd_04"
+        }
+      ],
+      "doc_refs": [
+        "doc_01",
+        "doc_03",
+        "doc_04"
+      ],
+      "hidden_jsonb": {
+        "internal_note": "Next_gen entitled view · nd_01 nd_03 nd_04 only"
+      },
+      "draft_jsonb": {
+        "draft_note": "No cross-node content present"
+      },
+      "leakage_check": {
+        "cross_node_facts": 0,
+        "incl_hidden_draft_jsonb": 0
+      },
+      "matrix_version": "ent_matrix_v1",
+      "as_of": "2026-11-06T10:20:10+08:00",
+      "synthetic_marker": "SYNTHETIC DEMO DATA",
+      "state": "approved",
+      "approval_token_ref": "appr_001",
+      "correlation_id": "corr_demo_0001",
+      "disclaimer": "PROPOSED / AI-GENERATED · illustrative",
+      "pack_id": "family_pack_next_gen",
+      "attendee_class": "Next_gen"
+    }
+  ],
+  "diff_result": {
+    "differing_fields": [
+      "entitled_node_ids",
+      "visible_facts",
+      "visible_edges",
+      "doc_refs",
+      "hidden_jsonb.internal_note"
+    ],
+    "diff_cross_node_facts_including_hidden_draft_jsonb": 0,
+    "suppressed_in_next_gen": {
+      "nodes": [
+        "nd_02",
+        "nd_05",
+        "nd_06"
+      ],
+      "edges": [
+        "ed_02",
+        "ed_04",
+        "ed_05",
+        "ed_06",
+        "ed_07",
+        "ed_08"
+      ],
+      "docs": [
+        "doc_02",
+        "doc_05",
+        "doc_06",
+        "doc_07",
+        "doc_08"
+      ]
+    }
+  }
+}

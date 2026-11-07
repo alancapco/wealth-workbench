@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RM Workbench — Capco Wealth Advisory Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --capco-black: #000000;
+            --capco-white: #FFFFFF;
+            --capco-gray-900: #0A0A0A;
+            --capco-gray-800: #1A1A1A;
+            --capco-gray-700: #2A2A2A;
+            --capco-gray-600: #3A3A3A;
+            --capco-gray-500: #666666;
+            --capco-gray-400: #999999;
+            --capco-gray-300: #CCCCCC;
+            --capco-gray-200: #E5E5E5;
+            --capco-gray-100: #F5F5F5;
+            --capco-gray-50: #FAFAFA;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--capco-black);
+            background: var(--capco-gray-50);
+        }
+
+        /* Header */
+        .main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: var(--capco-black);
+            border-bottom: 1px solid var(--capco-black);
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1920px;
+            margin: 0 auto;
+            height: 100%;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo img {
+            height: 28px;
+            width: auto;
+            filter: brightness(0) invert(1);
+        }
+
+        .product-name {
+            color: var(--capco-white);
+            font-weight: 300;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding-left: 1rem;
+            border-left: 1px solid var(--capco-gray-600);
+        }
+
+        .header-center {
+            display: flex;
+            justify-content: center;
+        }
+
+        .mode-chip {
+            padding: 0.5rem 1rem;
+            background: var(--capco-gray-900);
+            border-radius: 2px;
+            color: var(--capco-white);
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        .user-profile {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .user-name {
+            color: var(--capco-white);
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .user-role {
+            color: var(--capco-gray-400);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 64px;
+            margin-bottom: 48px;
+            padding: 3rem 2rem;
+            max-width: 1920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .date-display {
+            color: var(--capco-gray-500);
+            font-size: 1.125rem;
+            margin-bottom: 3rem;
+        }
+
+        /* Client Cards */
+        .client-card {
+            background: var(--capco-white);
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: all 0.25s ease;
+        }
+
+        .client-card:hover {
+            border-color: var(--capco-black);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .client-card.high-priority {
+            border-left: 4px solid var(--capco-black);
+        }
+
+        .card-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .client-identity {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .client-initials {
+            width: 64px;
+            height: 64px;
+            border-radius: 4px;
+            background: var(--capco-black);
+            color: var(--capco-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .client-info h3 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .client-aum {
+            color: var(--capco-gray-500);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .priority-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .priority-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 4px;
+            border: 2px solid var(--capco-black);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+
+        .priority-change {
+            font-size: 0.75rem;
+            color: var(--capco-gray-400);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Evidence Chips - Simplified */
+        .evidence-chip {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--capco-gray-100);
+            border: 1px solid var(--capco-gray-300);
+            border-radius: 2px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--capco-gray-700);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .evidence-chip:hover {
+            background: var(--capco-gray-200);
+            border-color: var(--capco-gray-500);
+        }
+
+        .evidence-chip.live {
+            background: #E8F5E9;
+            border-color: #4CAF50;
+            color: #1B5E20;
+        }
+
+        .evidence-chip.verified {
+            background: #E3F2FD;
+            border-color: #2196F3;
+            color: #0D47A1;
+        }
+
+        .evidence-chip.derived {
+            background: #FFF3E0;
+            border-color: #FF9800;
+            color: #E65100;
+        }
+
+        /* Reason Section */
+        .reason-section {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--capco-gray-50);
+            border-radius: 4px;
+            border-left: 4px solid #FF9800;
+        }
+
+        .reason-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .reason-badge {
+            padding: 0.25rem 0.75rem;
+            background: #FFF3E0;
+            color: #E65100;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-radius: 2px;
+        }
+
+        .reason-description {
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .evidence-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        /* Context Sections */
+        .card-context {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--capco-gray-200);
+        }
+
+        .context-section h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--capco-gray-500);
+            margin-bottom: 0.75rem;
+        }
+
+        .conversation-history {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .conversation-history li {
+            padding-left: 1rem;
+            border-left: 2px solid var(--capco-gray-200);
+        }
+
+        .conv-date {
+            font-size: 0.75rem;
+            color: var(--capco-gray-400);
+            font-weight: 500;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .conv-topic {
+            font-size: 0.875rem;
+            color: var(--capco-black);
+        }
+
+        .anticipated-needs {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .anticipated-needs li {
+            font-size: 0.875rem;
+            padding-left: 1rem;
+            position: relative;
+        }
+
+        .anticipated-needs li::before {
+            content: '—';
+            position: absolute;
+            left: 0;
+            color: var(--capco-gray-400);
+        }
+
+        /* Action Buttons */
+        .card-actions {
+            display: flex;
+            gap: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--capco-gray-200);
+            margin-top: 1.5rem;
+        }
+
+        button {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2px;
+        }
+
+        .btn-primary {
+            background: var(--capco-black);
+            color: var(--capco-white);
+        }
+
+        .btn-primary:hover {
+            background: var(--capco-gray-900);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--capco-black);
+            border: 1px solid var(--capco-black);
+        }
+
+        .btn-outline:hover {
+            background: var(--capco-black);
+            color: var(--capco-white);
+            transform: translateY(-1px);
+        }
+
+        /* Footer */
+        .system-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            background: var(--capco-black);
+            border-top: 1px solid var(--capco-black);
+            z-index: 1000;
+        }
+
+        .footer-content {
+            max-width: 1920px;
+            margin: 0 auto;
+            height: 100%;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .system-indicator {
+            color: var(--capco-white);
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .data-label {
+            padding: 0.25rem 0.75rem;
+            background: var(--capco-gray-900);
+            color: var(--capco-white);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-radius: 2px;
+        }
+
+        .disclaimer {
+            color: var(--capco-gray-500);
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 1024px) {
+            .card-context {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="logo">
+                    <img src="assets/images/capco_logo.png" alt="Capco" onerror="this.style.display='none'; this.nextElementSibling.textContent='CAPCO'; this.nextElementSibling.style.color='white'; this.nextElementSibling.style.fontSize='1.5rem'; this.nextElementSibling.style.fontWeight='700'; this.nextElementSibling.style.borderLeft='none'; this.nextElementSibling.style.paddingLeft='0';">
+                    <span class="product-name">Wealth Workbench</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="mode-chip">
+                    LIVE MARKET DATA · 09:58:14 SGT
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-profile">
+                    <span class="user-name">Sarah Chen</span>
+                    <span class="user-role">Relationship Manager</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <h1>My Day</h1>
+        <p class="date-display">Tuesday, 16 March 2026 · 09:58:32 SGT · 3 meetings today</p>
+
+        <!-- Live Market Event Banner -->
+        <div style="background: #E8F5E9; border-left: 4px solid #4CAF50; padding: 1.5rem; margin-bottom: 2rem; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.75rem; font-weight: 600; color: #1B5E20; text-transform: uppercase; letter-spacing: 0.05em;">MARKET EVENT</span>
+                <span class="evidence-chip live">LIVE · Reuters · 09:58:14 SGT</span>
+            </div>
+            <p style="font-size: 1rem; font-weight: 600; color: var(--capco-black);">
+                HSBC Holdings (0005.HK) +2.3% — Significant price movement detected
+            </p>
+        </div>
+
+        <!-- Client Card 1: Kenneth Wong (High Priority) -->
+        <article class="client-card high-priority">
+            <div class="card-main">
+                <div class="client-identity">
+                    <div class="client-initials">KW</div>
+                    <div class="client-info">
+                        <h3>Kenneth Wong</h3>
+                        <p class="client-aum">HKD 45.2M AUM</p>
+                    </div>
+                </div>
+
+                <div class="priority-indicator">
+                    <span class="priority-number">1</span>
+                    <span class="priority-change">↑ from 4</span>
+                </div>
+            </div>
+
+            <!-- Reason Section -->
+            <div class="reason-section">
+                <div class="reason-header">
+                    <span class="reason-badge">OPPORTUNITY — Rebalancing</span>
+                    <span style="font-size: 0.75rem; color: var(--capco-gray-500);">High Confidence</span>
+                </div>
+                <p class="reason-description">
+                    <strong>Portfolio drifted 6% from target allocation</strong> — HSBC Holdings position increased significantly following +2.3% market movement
+                </p>
+                <div class="evidence-list">
+                    <span class="evidence-chip verified">Portfolio (Prior close)</span>
+                    <span class="evidence-chip live">LIVE Market Data (09:58 SGT)</span>
+                    <span class="evidence-chip derived">Derived Signal (Rule-pack v1)</span>
+                </div>
+            </div>
+
+            <!-- Context -->
+            <div class="card-context">
+                <div class="context-section">
+                    <h4>Recent Conversations</h4>
+                    <ul class="conversation-history">
+                        <li>
+                            <span class="conv-date">15 Oct 2024</span>
+                            <span class="conv-topic">Discussed quarterly rebalancing preferences — prefers gradual adjustments</span>
+                        </li>
+                        <li>
+                            <span class="conv-date">22 Sep 2024</span>
+                            <span class="conv-topic">Expressed interest in Hong Kong tech sector exposure</span>
+                        </li>
+                        <li>
+                            <span class="conv-date">10 Aug 2024</span>
+                            <span class="conv-topic">Risk tolerance review — confirmed moderate growth strategy</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="context-section">
+                    <h4>Anticipated Needs</h4>
+                    <ul class="anticipated-needs">
+                        <li>Rebalancing discussion triggered by 6% portfolio drift</li>
+                        <li>Tech sector opportunities (mentioned interest 22 Sep)</li>
+                        <li>Q1 2026 performance review preparation</li>
+                    </ul>
+                </div>
+
+                <div class="context-section">
+                    <h4>Communication Style</h4>
+                    <p style="font-size: 0.875rem;">Values data-driven recommendations with detailed methodology. Prefers written summaries before meetings.</p>
+                </div>
+
+                <div class="context-section">
+                    <h4>Relationship Context</h4>
+                    <p style="font-size: 0.875rem;">Client since 2018 (7 years). Last meeting: 15 Oct 2024. Prefers email and phone contact.</p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card-actions">
+                <button class="btn-outline">View Full History</button>
+                <button class="btn-primary">Prepare Brief</button>
+            </div>
+        </article>
+
+        <!-- Client Card 2: Ahmad Rahman -->
+        <article class="client-card">
+            <div class="card-main">
+                <div class="client-identity">
+                    <div class="client-initials">AR</div>
+                    <div class="client-info">
+                        <h3>Ahmad Rahman</h3>
+                        <p class="client-aum">SGD 32.8M AUM</p>
+                    </div>
+                </div>
+
+                <div class="priority-indicator">
+                    <span class="priority-number">2</span>
+                </div>
+            </div>
+
+            <!-- Reason Section -->
+            <div class="reason-section" style="border-left-color: #2196F3;">
+                <div class="reason-header">
+                    <span class="reason-badge" style="background: #E3F2FD; color: #0D47A1;">SCHEDULED — Annual Review</span>
+                    <span style="font-size: 0.75rem; color: var(--capco-gray-500);">High Confidence</span>
+                </div>
+                <p class="reason-description">
+                    <strong>Annual review meeting today 13:00</strong> — Faith-based investing focus and annual zakat calculation
+                </p>
+                <div class="evidence-list">
+                    <span class="evidence-chip verified">Calendar (13:00 today)</span>
+                    <span class="evidence-chip verified">Shariah Preferences</span>
+                </div>
+            </div>
+
+            <!-- Context -->
+            <div class="card-context">
+                <div class="context-section">
+                    <h4>Recent Conversations</h4>
+                    <ul class="conversation-history">
+                        <li>
+                            <span class="conv-date">15 Sep 2024</span>
+                            <span class="conv-topic">Annual review scheduled — requested zakat calculation</span>
+                        </li>
+                        <li>
+                            <span class="conv-date">03 Aug 2024</span>
+                            <span class="conv-topic">Discussed sustainable sukuk opportunities</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="context-section">
+                    <h4>Anticipated Needs</h4>
+                    <ul class="anticipated-needs">
+                        <li>Annual zakat calculation with documentation</li>
+                        <li>Shariah compliance verification</li>
+                        <li>Sustainable sukuk opportunities</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button class="btn-outline">View Full History</button>
+                <button class="btn-primary">Prepare Brief</button>
+            </div>
+        </article>
+
+        <!-- Client Card 3: Tan Family Office -->
+        <article class="client-card">
+            <div class="card-main">
+                <div class="client-identity">
+                    <div class="client-initials">TF</div>
+                    <div class="client-info">
+                        <h3>Tan Family Office</h3>
+                        <p class="client-aum">SGD 120.5M AUM · 7 entities</p>
+                    </div>
+                </div>
+
+                <div class="priority-indicator">
+                    <span class="priority-number">3</span>
+                </div>
+            </div>
+
+            <!-- Reason Section -->
+            <div class="reason-section" style="border-left-color: #9C27B0;">
+                <div class="reason-header">
+                    <span class="reason-badge" style="background: #F3E5F5; color: #4A148C;">MULTI-GENERATIONAL — Quarterly Review</span>
+                    <span style="font-size: 0.75rem; color: var(--capco-gray-500);">High Confidence</span>
+                </div>
+                <p class="reason-description">
+                    <strong>Family review meeting 15:30</strong> — 4 family members attending, consolidated reporting across entities
+                </p>
+                <div class="evidence-list">
+                    <span class="evidence-chip verified">Calendar (15:30 today)</span>
+                    <span class="evidence-chip verified">7 Entity Structure</span>
+                </div>
+            </div>
+
+            <!-- Context -->
+            <div class="card-context">
+                <div class="context-section">
+                    <h4>Recent Conversations</h4>
+                    <ul class="conversation-history">
+                        <li>
+                            <span class="conv-date">08 Aug 2024</span>
+                            <span class="conv-topic">Succession planning discussion with patriarch and son</span>
+                        </li>
+                        <li>
+                            <span class="conv-date">15 May 2024</span>
+                            <span class="conv-topic">Requested consolidated reporting across all entities</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="context-section">
+                    <h4>Anticipated Needs</h4>
+                    <ul class="anticipated-needs">
+                        <li>Consolidated view across 7 entities</li>
+                        <li>Individual performance breakdowns</li>
+                        <li>Succession planning update</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button class="btn-outline">View Entity Graph</button>
+                <button class="btn-primary">Prepare Brief</button>
+            </div>
+        </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="system-footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <span class="system-indicator">System Ready</span>
+                <span class="data-label">SYNTHETIC DEMO DATA</span>
+            </div>
+            <div class="footer-right">
+                <span class="disclaimer">Demo environment • All data synthetic • Not for production use</span>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
+            <div class="market-event-banner" id="marketEventBanner">
+                <div class="event-icon">
+                    <i data-lucide="trending-up"></i>
+                </div>
+                <div class="event-content">
+                    <div class="event-title">Market Event Detected</div>
+                    <div class="event-detail">HSBC Holdings • Price: HKD 62.45 (+2.3%) • Source: Reuters • 10:14:18 SGT</div>
+                </div>
+                <button class="event-action" onclick="openMarketDrawer()">
+                    <span>View Signal Evidence</span>
+                    <i data-lucide="chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- Priority Clients Section -->
+            <div class="priority-section">
+                <div class="section-header">
+                    <h2>Priority Clients</h2>
+                    <div class="section-meta">
+                        <span class="source-chip" onclick="openSourceDrawer('ranking-v1')">
+                            <i data-lucide="shield-check"></i>
+                            Ranking v1.2 • 10:14:20 SGT
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Client Cards -->
+                <div class="client-grid">
+                    <!-- Client 1: Wong -->
+                    <div class="client-card priority-1 rank-changed" onclick="openClientWorkspace('wong')">
+                        <div class="card-header">
+                            <div class="client-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+                                <span>WK</span>
+                            </div>
+                            <div class="client-info">
+                                <h3>Kenneth Wong</h3>
+                                <p class="client-meta">Private Wealth • HKD 45.2M AUM</p>
+                            </div>
+                            <div class="rank-badge rank-up">
+                                <i data-lucide="arrow-up"></i>
+                                <span>4 → 1</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="reason-code risk">
+                                <i data-lucide="alert-triangle"></i>
+                                <span>Risk / Opportunity</span>
+                            </div>
+                            <p class="reason-detail">Portfolio drifted 6% from target allocation. HSBC Holdings position now 18% (target: 12%).</p>
+                            <div class="evidence-chips">
+                                <span class="source-chip small">
+                                    <i data-lucide="database"></i>
+                                    Portfolio • 10:14:18
+                                </span>
+                                <span class="source-chip small">
+                                    <i data-lucide="activity"></i>
+                                    Market Event • 10:14:18
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <span class="last-contact">Last contact: 15 Oct 2024</span>
+                            <button class="card-action">
+                                <span>Open Brief</span>
+                                <i data-lucide="arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Client 2: Rahman -->
+                    <div class="client-card priority-2" onclick="openClientWorkspace('rahman')">
+                        <div class="card-header">
+                            <div class="client-avatar" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+                                <span>AR</span>
+                            </div>
+                            <div class="client-info">
+                                <h3>Ahmad Rahman</h3>
+                                <p class="client-meta">Private Wealth • SGD 32.8M AUM</p>
+                            </div>
+                            <div class="rank-badge stable">
+                                <span>#2</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="reason-code retention">
+                                <i data-lucide="calendar"></i>
+                                <span>Scheduled Review</span>
+                            </div>
+                            <p class="reason-detail">Annual review scheduled today 13:00. Faith-based preferences and zakat summary prepared.</p>
+                            <div class="evidence-chips">
+                                <span class="source-chip small">
+                                    <i data-lucide="calendar-check"></i>
+                                    Calendar • 08:00
+                                </span>
+                                <span class="source-chip small faith">
+                                    <i data-lucide="moon"></i>
+                                    Shariah Preferences
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <span class="last-contact">Meeting today 13:00</span>
+                            <button class="card-action">
+                                <span>Open Brief</span>
+                                <i data-lucide="arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Client 3: Tan Family -->
+                    <div class="client-card priority-3" onclick="openFamilyGraph('tan')">
+                        <div class="card-header">
+                            <div class="client-avatar" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">
+                                <span>TF</span>
+                            </div>
+                            <div class="client-info">
+                                <h3>Tan Family Office</h3>
+                                <p class="client-meta">Family Office • SGD 120.5M AUM • 7 entities</p>
+                            </div>
+                            <div class="rank-badge stable">
+                                <span>#3</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="reason-code opportunity">
+                                <i data-lucide="users"></i>
+                                <span>Multi-Generational Review</span>
+                            </div>
+                            <p class="reason-detail">Quarterly family review 15:30. Consolidated view across 7 entities with node-level entitlements.</p>
+                            <div class="evidence-chips">
+                                <span class="source-chip small">
+                                    <i data-lucide="calendar-check"></i>
+                                    Calendar • 08:00
+                                </span>
+                                <span class="source-chip small">
+                                    <i data-lucide="git-branch"></i>
+                                    Entity Graph • 09:00
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <span class="last-contact">Meeting today 15:30</span>
+                            <button class="card-action">
+                                <span>View Entity Graph</span>
+                                <i data-lucide="arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCR-03: Client Workspace & Five-Section Brief -->
+        <section class="client-workspace hidden" id="clientWorkspace">
+            <!-- Will be populated dynamically -->
+        </section>
+
+        <!-- SCR-06: Unified Post-Meeting Review & Approve -->
+        <section class="review-workspace hidden" id="reviewWorkspace">
+            <!-- Will be populated dynamically -->
+        </section>
+
+        <!-- SCR-09: Family Entity Graph -->
+        <section class="entity-graph-workspace hidden" id="entityGraphWorkspace">
+            <!-- Will be populated dynamically -->
+        </section>
+    </main>
+
+    <!-- SCR-04: Live Market Event & Signal Evidence Drawer -->
+    <aside class="drawer hidden" id="marketDrawer">
+        <div class="drawer-header">
+            <h2>Market Event & Signal Evidence</h2>
+            <button class="drawer-close" onclick="closeDrawer('marketDrawer')">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="drawer-content">
+            <div class="signal-timeline">
+                <div class="timeline-item">
+                    <div class="timeline-marker live"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-time">10:14:18 SGT</div>
+                        <h3>Market Tick Received</h3>
+                        <div class="signal-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Instrument</span>
+                                <span class="detail-value">HSBC Holdings (0005.HK)</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Price</span>
+                                <span class="detail-value">HKD 62.45</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Change</span>
+                                <span class="detail-value positive">+1.40 (+2.3%)</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Source</span>
+                                <span class="detail-value">Reuters Market Data</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Feed As-Of</span>
+                                <span class="detail-value">10:14:17.342 SGT</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Ingest Lag</span>
+                                <span class="detail-value">0.8s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-marker system"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-time">10:14:19 SGT</div>
+                        <h3>Signal Detection</h3>
+                        <p>Portfolio drift threshold exceeded for client: Kenneth Wong</p>
+                        <div class="signal-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Rule Pack</span>
+                                <span class="detail-value">Risk Detection v1.2</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Signal Type</span>
+                                <span class="detail-value">Risk / Opportunity</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Threshold</span>
+                                <span class="detail-value">5% drift from target</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Actual Drift</span>
+                                <span class="detail-value alert">6.2% (HSBC: 18% vs target 12%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-marker system"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-time">10:14:20 SGT</div>
+                        <h3>Copilot Workflow Initiated</h3>
+                        <div class="signal-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Workflow ID</span>
+                                <span class="detail-value mono">WF-2024-001</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Correlation ID</span>
+                                <span class="detail-value mono">corr-20241106-101420-a7f3</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Intent</span>
+                                <span class="detail-value">Re-rank priorities → Refresh brief → Prepare rebalancing options</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-marker system"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-time">10:14:20 SGT</div>
+                        <h3>Priority Re-Ranking</h3>
+                        <p>Kenneth Wong moved from position 4 to 1</p>
+                        <div class="rank-change-visual">
+                            <div class="rank-before">
+                                <span class="rank-position">#4</span>
+                                <span class="rank-label">Previous</span>
+                            </div>
+                            <i data-lucide="arrow-right"></i>
+                            <div class="rank-after">
+                                <span class="rank-position highlight">#1</span>
+                                <span class="rank-label">Current</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- SCR-10: Demo Health / Status Bar -->
+    <footer class="health-bar" id="healthBar">
+        <div class="health-left">
+            <div class="health-indicator ready">
+                <i data-lucide="check-circle"></i>
+                <span>System Ready</span>
+            </div>
+            <div class="feed-status fresh">
+                <i data-lucide="activity"></i>
+                <span>Market Feed: Fresh (0.8s lag)</span>
+            </div>
+        </div>
+        <div class="health-right">
+            <span class="disclaimer">Demo environment • All data synthetic • Not for production use</span>
+        </div>
+    </footer>
+
+    <script src="assets/js/app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

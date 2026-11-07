@@ -1,0 +1,85 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "base_world": {
+    "seed": 20261105,
+    "generator_id": "RM-WB-DEMO-v1.3",
+    "world_as_of": "2026-11-05T17:00:00+08:00",
+    "base": "SGD / Singapore / SGT / English; minority HKD and USD",
+    "overlays": true,
+    "note": "S1..S4 (plus the opt-in S1-R whole-run variant) are seeded overlays on ONE base world — no second dataset; the three IF-A02 bindings are COMPLETE RUN VARIANTS, never mid-call switches (E-15 / 12_ §7.4)"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "S1",
+      "name": "Wong Drift (golden path)",
+      "trigger": "live tick 09:58:14 SGT · ins_syn_asean_eq_01 · 6% drift",
+      "adapter_binding_crm": "hubspot_free",
+      "adapter_binding_voice": "scripted_stub",
+      "posture": "REAL (SANDBOXED) + STUB · declared (scripted transcript)",
+      "note": "primary leadership journey · +00:00..+00:20 · appr_001 · corr_demo_0001 · golden-path run is vendor-independent scripted_stub (E-14 / E-15)",
+      "voice_chip": "STUB · declared (scripted transcript)"
+    },
+    {
+      "scenario_id": "S1-R",
+      "name": "Wong Drift (Retell opt-in whole-run variant)",
+      "trigger": "same live tick 09:58:14 SGT · ins_syn_asean_eq_01 · 6% drift",
+      "adapter_binding_crm": "hubspot_free",
+      "adapter_binding_voice": "retell_test",
+      "voice_chip": "SIMULATED (Retell test call · synthetic caller · 0 real dialled calls)",
+      "posture": "REAL (SANDBOXED) + SIMULATED (Retell test call)",
+      "note": "explicit opt-in whole-run variant · same journey · same corr_demo_0001 shape · Retell enabled per DI-22 · complete 16-utterance run, NOT a mid-call switch (E-15)"
+    },
+    {
+      "scenario_id": "S2",
+      "name": "Entitled news + faith-sensitive holding",
+      "trigger": "entitled news item + S2 synthetic market note",
+      "adapter_binding_crm": "hubspot_free",
+      "adapter_binding_voice": "retell_webhook_replay",
+      "posture": "REAL (SANDBOXED) + SIMULATED (replay)",
+      "note": "FR-25 flag-OFF pointer only"
+    },
+    {
+      "scenario_id": "S3",
+      "name": "Tan family graph + two attendee classes",
+      "trigger": "+00:20 range beat · 6 nodes / 8 edges",
+      "adapter_binding_crm": "local_stub",
+      "adapter_binding_voice": "scripted_stub",
+      "posture": "STUBBED (fully offline)",
+      "note": "fully offline run with 0 external calls · proves golden path offline"
+    },
+    {
+      "scenario_id": "S4",
+      "name": "Feed outage at T+3s",
+      "trigger": "feed.outage frame at T+3s · F1 stale age 47s",
+      "adapter_binding_crm": "local_stub",
+      "adapter_binding_voice": "scripted_stub",
+      "posture": "STUBBED (fully offline)",
+      "note": "no invented tick · announced REPLAY — recorded 09:58"
+    }
+  ],
+  "binding_contract": {
+    "rule": "one call = one binding",
+    "statement": "All 16 utterances of a given run carry the SAME adapter_binding; retell_test / retell_webhook_replay / scripted_stub are complete run variants, never mid-call switches (12_… §7.4 / 14_… E-15); every switch is an announced EV-A01 + C-4 BETWEEN-RUN operator switch",
+    "golden_path_run": "S1 = scripted_stub — 16/16 rows in transcript_utterances.csv",
+    "run_variants": [
+      {
+        "run": "S1",
+        "adapter_binding_voice": "scripted_stub",
+        "chip": "STUB · declared (scripted transcript)"
+      },
+      {
+        "run": "S1-R",
+        "adapter_binding_voice": "retell_test",
+        "chip": "SIMULATED (Retell test call · synthetic caller · 0 real dialled calls)"
+      },
+      {
+        "run": "S2",
+        "adapter_binding_voice": "retell_webhook_replay",
+        "chip": "STUB · declared (scripted transcript)"
+      }
+    ],
+    "chip_is_per_run": "12_… §9: the +00:10 chip is per-run and binding-dependent — one chip per run, never three chips inside one call",
+    "rehearsal_switches": "aud_12 / aud_13 are operator-initiated BETWEEN-RUN switches under corr_rehearsal_0001, NOT switches within corr_demo_0001",
+    "utterance_shape": "all three bindings emit the SAME 16-id utterance shape utt_01…utt_16"
+  }
+}

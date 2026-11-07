@@ -1,0 +1,2129 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "schema_version": "v1.3",
+  "manifest_version": "v1.3",
+  "frozen": true,
+  "csv_null_sentinel": "\\N",
+  "csv_envelope_columns": [
+    "synthetic_marker",
+    "source_id",
+    "source_kind",
+    "as_of",
+    "ingested_at",
+    "confidence",
+    "mode",
+    "version_stamp"
+  ],
+  "c1_envelope_non_null_on_every_fact_row": true,
+  "extension_set": [
+    {
+      "name": "timescaledb",
+      "purpose": "market.market_tick hypertable + tick_1m CA (G3/NFR-1)"
+    },
+    {
+      "name": "file_fdw",
+      "purpose": "flat-file <-> Postgres cross-view checksum (G5/FR-30)"
+    }
+  ],
+  "deferred_fks": [
+    "all child FKs validated at COMMIT"
+  ],
+  "logical_fks": [
+    "market_signal.tick_key -> market_tick.tick_key"
+  ],
+  "fk_rules": [
+    {
+      "child": "accounts.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    },
+    {
+      "child": "clients.csv",
+      "child_col": "rm_book_id",
+      "parent": "rm_books.csv",
+      "parent_col": "rm_book_id"
+    },
+    {
+      "child": "holdings.csv",
+      "child_col": "account_id",
+      "parent": "accounts.csv",
+      "parent_col": "account_id"
+    },
+    {
+      "child": "holdings.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    },
+    {
+      "child": "holdings.csv",
+      "child_col": "instrument_id",
+      "parent": "instruments.csv",
+      "parent_col": "instrument_id"
+    },
+    {
+      "child": "allocation_targets.csv",
+      "child_col": "account_id",
+      "parent": "accounts.csv",
+      "parent_col": "account_id"
+    },
+    {
+      "child": "market_ticks_live.csv",
+      "child_col": "instrument_id",
+      "parent": "instruments.csv",
+      "parent_col": "instrument_id"
+    },
+    {
+      "child": "market_ticks_replay.csv",
+      "child_col": "instrument_id",
+      "parent": "instruments.csv",
+      "parent_col": "instrument_id"
+    },
+    {
+      "child": "market_signals.csv",
+      "child_col": "tick_key",
+      "parent": "market_ticks_live.csv",
+      "parent_col": "tick_key"
+    },
+    {
+      "child": "news_items.csv",
+      "child_col": "instrument_id",
+      "parent": "instruments.csv",
+      "parent_col": "instrument_id"
+    },
+    {
+      "child": "memory_facts.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    },
+    {
+      "child": "graph_edges.csv",
+      "child_col": "from_node_id",
+      "parent": "graph_nodes.csv",
+      "parent_col": "node_id"
+    },
+    {
+      "child": "graph_edges.csv",
+      "child_col": "to_node_id",
+      "parent": "graph_nodes.csv",
+      "parent_col": "node_id"
+    },
+    {
+      "child": "graph_edges.csv",
+      "child_col": "source_doc_id",
+      "parent": "graph_source_docs.csv",
+      "parent_col": "doc_id"
+    },
+    {
+      "child": "graph_nodes.csv",
+      "child_col": "source_doc_id",
+      "parent": "graph_source_docs.csv",
+      "parent_col": "doc_id"
+    },
+    {
+      "child": "entitlement_matrix.csv",
+      "child_col": "node_id",
+      "parent": "graph_nodes.csv",
+      "parent_col": "node_id"
+    },
+    {
+      "child": "entitlement_decisions.csv",
+      "child_col": "requested_node_id",
+      "parent": "graph_nodes.csv",
+      "parent_col": "node_id"
+    },
+    {
+      "child": "crm_contacts.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    },
+    {
+      "child": "crm_interactions.csv",
+      "child_col": "contact_id",
+      "parent": "crm_contacts.csv",
+      "parent_col": "contact_id"
+    },
+    {
+      "child": "crm_tasks.csv",
+      "child_col": "contact_id",
+      "parent": "crm_contacts.csv",
+      "parent_col": "contact_id"
+    },
+    {
+      "child": "crm_opportunities.csv",
+      "child_col": "contact_id",
+      "parent": "crm_contacts.csv",
+      "parent_col": "contact_id"
+    },
+    {
+      "child": "crm_sync_log.csv",
+      "child_col": "mapping_id",
+      "parent": "crm_field_mapping.csv",
+      "parent_col": "mapping_id"
+    },
+    {
+      "child": "crm_old_new_preview.csv",
+      "child_col": "contact_id",
+      "parent": "crm_contacts.csv",
+      "parent_col": "contact_id"
+    },
+    {
+      "child": "bookings.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    },
+    {
+      "child": "bookings.csv",
+      "child_col": "evt_ref",
+      "parent": "meetings_calendar.csv",
+      "parent_col": "event_id"
+    },
+    {
+      "child": "meetings_calendar.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    },
+    {
+      "child": "meeting_attendees.csv",
+      "child_col": "event_id",
+      "parent": "meetings_calendar.csv",
+      "parent_col": "event_id"
+    },
+    {
+      "child": "transcript_utterances.csv",
+      "child_col": "event_id",
+      "parent": "meetings_calendar.csv",
+      "parent_col": "event_id"
+    },
+    {
+      "child": "extraction_items.csv",
+      "child_col": "utterance_id",
+      "parent": "transcript_utterances.csv",
+      "parent_col": "utterance_id"
+    },
+    {
+      "child": "email_messages.csv",
+      "child_col": "thread_id",
+      "parent": "email_threads.csv",
+      "parent_col": "thread_id"
+    },
+    {
+      "child": "email_threads.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    },
+    {
+      "child": "workflow_stages.csv",
+      "child_col": "workflow_id",
+      "parent": "workflow_instances.csv",
+      "parent_col": "workflow_id"
+    },
+    {
+      "child": "consent_state.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    },
+    {
+      "child": "suitability_state.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    },
+    {
+      "child": "interactions.csv",
+      "child_col": "client_id",
+      "parent": "clients.csv",
+      "parent_col": "client_id"
+    }
+  ],
+  "uuid_resolution": {
+    "rationale": "03 §4.5 / 03 line 854 freezes client.client.client_id as uuid; 12_… §4.10 deviation 1",
+    "logical_key": "client_id (text, projector-visible registry key, e.g. cl_wong_001) — used by all flat-file FKs",
+    "physical_columns": [
+      "clients.csv.client_id_uuid",
+      "crm_contacts.csv.client_id_uuid"
+    ],
+    "physical_fk": "crm.crm_contact.client_id_uuid -> client.client(client_id) DEFERRABLE INITIALLY DEFERRED",
+    "derivation": "splitmix64(20261105, '<client_id>'): mix each key byte into the seed via splitmix64, take a=that digest, b=splitmix64(a ^ 0xD1B54A32D192ED03), build a 128-bit int ((a<<64)|b), set version 4 bits (76..79) and RFC4122 variant bits (62..63), then format via uuid.UUID(int=...)",
+    "example": {
+      "client_id": "cl_wong_001",
+      "client_id_uuid": "0cabbbc6-0405-433a-a263-6fbaba4e5fa9"
+    },
+    "no_literal_text_to_uuid_fk": true,
+    "validation": "every client_id_uuid is a valid uuid, unique per client, and 1:1 between clients.csv and crm_contacts.csv"
+  },
+  "idempotency_rule": {
+    "literal_registry_rule": "approval_token + field_mapping_version",
+    "physical_form": "approval_token || ':' || field_mapping_version || ':' || mapping_id",
+    "field_mapping_version": "fmv_20261105_1",
+    "example": "appr_001:fmv_20261105_1:map_01",
+    "why": "one immutable appr_001 produces six accepted writes; without mapping_id all six collapse into one UNIQUE key (12_… §4.10 deviation 2)"
+  },
+  "manifest_addendum": "manifest_addendum_crm.json (architect-authored, Phase-4 sync; additive crm/vendor files NOT inside manifest v1.3)",
+  "load_order": [
+    {
+      "seq": "01",
+      "schema_table": "demo_meta.version_registry",
+      "path": "version_registry.csv"
+    },
+    {
+      "seq": "02",
+      "schema_table": "demo_meta.config_version",
+      "path": "config_versions.csv"
+    },
+    {
+      "seq": "03",
+      "schema_table": "demo_meta.scenario",
+      "path": "scenarios.json"
+    },
+    {
+      "seq": "04",
+      "schema_table": "market.instrument",
+      "path": "instruments.csv"
+    },
+    {
+      "seq": "05",
+      "schema_table": "client.client",
+      "path": "clients.csv"
+    },
+    {
+      "seq": "06",
+      "schema_table": "client.rm_book",
+      "path": "rm_books.csv"
+    },
+    {
+      "seq": "07",
+      "schema_table": "graph.graph_node",
+      "path": "graph_nodes.csv"
+    },
+    {
+      "seq": "08",
+      "schema_table": "graph.graph_edge",
+      "path": "graph_edges.csv"
+    },
+    {
+      "seq": "09",
+      "schema_table": "graph.source_doc",
+      "path": "graph_source_docs.csv"
+    },
+    {
+      "seq": "10",
+      "schema_table": "graph.entitlement_rule",
+      "path": "entitlement_matrix.csv"
+    },
+    {
+      "seq": "11",
+      "schema_table": "graph.entitlement_decision",
+      "path": "entitlement_decisions.csv"
+    },
+    {
+      "seq": "12",
+      "schema_table": "client.account",
+      "path": "accounts.csv"
+    },
+    {
+      "seq": "13",
+      "schema_table": "client.holding",
+      "path": "holdings.csv"
+    },
+    {
+      "seq": "14",
+      "schema_table": "client.allocation_target",
+      "path": "allocation_targets.csv"
+    },
+    {
+      "seq": "15",
+      "schema_table": "graph.memory_fact",
+      "path": "memory_facts.csv"
+    },
+    {
+      "seq": "16",
+      "schema_table": "client.interaction",
+      "path": "interactions.csv"
+    },
+    {
+      "seq": "17",
+      "schema_table": "client.consent_state",
+      "path": "consent_state.csv"
+    },
+    {
+      "seq": "18",
+      "schema_table": "client.suitability_state",
+      "path": "suitability_state.csv"
+    },
+    {
+      "seq": "19",
+      "schema_table": "client.product",
+      "path": "products.csv"
+    },
+    {
+      "seq": "20",
+      "schema_table": "crm.crm_contact",
+      "path": "crm_contacts.csv"
+    },
+    {
+      "seq": "21",
+      "schema_table": "crm.crm_interaction",
+      "path": "crm_interactions.csv"
+    },
+    {
+      "seq": "22",
+      "schema_table": "crm.crm_task",
+      "path": "crm_tasks.csv"
+    },
+    {
+      "seq": "23",
+      "schema_table": "crm.crm_opportunity",
+      "path": "crm_opportunities.csv"
+    },
+    {
+      "seq": "24",
+      "schema_table": "crm.crm_field_mapping",
+      "path": "crm_field_mapping.csv"
+    },
+    {
+      "seq": "25",
+      "schema_table": "crm.crm_sync_log",
+      "path": "crm_sync_log.csv"
+    },
+    {
+      "seq": "26",
+      "schema_table": "review.old_new_preview",
+      "path": "crm_old_new_preview.csv"
+    },
+    {
+      "seq": "27",
+      "schema_table": "market.news_item",
+      "path": "news_items.csv"
+    },
+    {
+      "seq": "28",
+      "schema_table": "market.market_tick (live)",
+      "path": "market_ticks_live.csv"
+    },
+    {
+      "seq": "29",
+      "schema_table": "market.market_tick (replay)",
+      "path": "market_ticks_replay.csv"
+    },
+    {
+      "seq": "30",
+      "schema_table": "market.market_signal",
+      "path": "market_signals.csv"
+    },
+    {
+      "seq": "31",
+      "schema_table": "demo_meta.feed_status",
+      "path": "feed_status.csv"
+    },
+    {
+      "seq": "32",
+      "schema_table": "artefact.artefact",
+      "path": "artefacts.json"
+    },
+    {
+      "seq": "33",
+      "schema_table": "artefact.artefact (family packs)",
+      "path": "family_packs.json"
+    },
+    {
+      "seq": "34",
+      "schema_table": "artefact.approval_token",
+      "path": "approval_tokens.json"
+    },
+    {
+      "seq": "35",
+      "schema_table": "workflow.workflow_instance",
+      "path": "workflow_instances.csv"
+    },
+    {
+      "seq": "36",
+      "schema_table": "workflow.workflow_stage",
+      "path": "workflow_stages.csv"
+    },
+    {
+      "seq": "37",
+      "schema_table": "audit.audit_event",
+      "path": "audit_events.csv"
+    },
+    {
+      "seq": "38",
+      "schema_table": "external.booking",
+      "path": "bookings.csv"
+    },
+    {
+      "seq": "39",
+      "schema_table": "external.calendar_event",
+      "path": "meetings_calendar.csv"
+    },
+    {
+      "seq": "40",
+      "schema_table": "external.meeting_attendee",
+      "path": "meeting_attendees.csv"
+    },
+    {
+      "seq": "41",
+      "schema_table": "external.transcript_utterance",
+      "path": "transcript_utterances.csv"
+    },
+    {
+      "seq": "42",
+      "schema_table": "artefact.extraction_item",
+      "path": "extraction_items.csv"
+    },
+    {
+      "seq": "43",
+      "schema_table": "external.email_thread",
+      "path": "email_threads.csv"
+    },
+    {
+      "seq": "44",
+      "schema_table": "artefact.demo_sink_message (messages)",
+      "path": "email_messages.csv"
+    },
+    {
+      "seq": "45",
+      "schema_table": "external.email_template",
+      "path": "email_templates.json"
+    },
+    {
+      "seq": "46",
+      "schema_table": "external.hubspot_portal",
+      "path": "hubspot_portal_seed.json"
+    },
+    {
+      "seq": "47",
+      "schema_table": "external.hubspot_api_exchange",
+      "path": "hubspot_api_exchange.json"
+    },
+    {
+      "seq": "48",
+      "schema_table": "external.retell_call",
+      "path": "retell_call.json"
+    },
+    {
+      "seq": "49",
+      "schema_table": "external.adapter_binding",
+      "path": "adapter_bindings.csv"
+    },
+    {
+      "seq": "50",
+      "schema_table": "external.vendor_health",
+      "path": "vendor_health.csv"
+    },
+    {
+      "seq": "51",
+      "schema_table": "artefact.demo_sink_message (sink totals)",
+      "path": "demo_sink_messages.csv"
+    }
+  ],
+  "canonical_filename_map": {
+    "authority": "14_… §5 E-16 / 12_… §10.2 Naming scope (clarification) / 03_… §7.4 / lead ruling E-16",
+    "convention": "<NN>_<schema>_<table>.<ext>",
+    "frozen_schemas": [
+      "demo_meta",
+      "market",
+      "client",
+      "graph",
+      "workflow",
+      "artefact",
+      "audit",
+      "staging"
+    ],
+    "scope": "the 51 files declared by the READ-ONLY manifest v1.3 (the 8 frozen schemas); file_fdw foreign tables and the G5 EXCEPT check are bound to those exact canonical paths",
+    "nn_derivation_rule": "NN is taken VERBATIM from the seq of the matching load_order[] entry already recorded in manifest_addendum_crm.json (mirrored in schema_contract.json.load_order[]) — that seq IS the FK-safe emission order fixed by 03 §7.4 / 12_ §10.2. NO number is invented: record schema and table, then look up seq. Parenthetical load_order qualifiers such as '(live)' / '(family packs)' are dropped from the canonical filename; the distinct NN disambiguates those pairs.",
+    "nn_source": "manifest_addendum_crm.json.load_order[].seq (51 entries, seq 01..51)",
+    "note_on_03_example": "03 §7.4's '04_client_client.csv' is an illustrative example of the naming convention; the recorded load_order[].seq is the authoritative NN source (E-16).",
+    "display_alias_note": "The sample pack's legible names (clients.csv, graph_nodes.csv, …) are DISPLAY ALIASES. clients.csv is NEITHER additive NOR a replacement — it is the legible display alias of the frozen client.client table. The future generator emits the canonical <NN>_<schema>_<table>.<ext> names; NO file is renamed and manifest v1.3 stays FROZEN / read_only / v1.3 / 51-file scope (E-16).",
+    "additive_note": "additive crm.* + vendor external-reference files use EXACTLY the names declared in manifest_addendum_crm.json.declared_files[] / related_external_reference_files[]",
+    "total_mapped": 51,
+    "frozen_schema_csv_count": 29,
+    "frozen_schema_json_count": 4,
+    "additive_file_count": 18,
+    "entries": [
+      {
+        "display_alias": "version_registry.csv",
+        "schema": "demo_meta",
+        "table": "version_registry",
+        "format": "csv",
+        "nn": "01",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "01_demo_meta_version_registry.csv"
+      },
+      {
+        "display_alias": "config_versions.csv",
+        "schema": "demo_meta",
+        "table": "config_version",
+        "format": "csv",
+        "nn": "02",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "02_demo_meta_config_version.csv"
+      },
+      {
+        "display_alias": "instruments.csv",
+        "schema": "market",
+        "table": "instrument",
+        "format": "csv",
+        "nn": "04",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "04_market_instrument.csv"
+      },
+      {
+        "display_alias": "clients.csv",
+        "schema": "client",
+        "table": "client",
+        "format": "csv",
+        "nn": "05",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "05_client_client.csv"
+      },
+      {
+        "display_alias": "rm_books.csv",
+        "schema": "client",
+        "table": "rm_book",
+        "format": "csv",
+        "nn": "06",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "06_client_rm_book.csv"
+      },
+      {
+        "display_alias": "graph_nodes.csv",
+        "schema": "graph",
+        "table": "graph_node",
+        "format": "csv",
+        "nn": "07",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "07_graph_graph_node.csv"
+      },
+      {
+        "display_alias": "graph_edges.csv",
+        "schema": "graph",
+        "table": "graph_edge",
+        "format": "csv",
+        "nn": "08",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "08_graph_graph_edge.csv"
+      },
+      {
+        "display_alias": "graph_source_docs.csv",
+        "schema": "graph",
+        "table": "source_doc",
+        "format": "csv",
+        "nn": "09",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "09_graph_source_doc.csv"
+      },
+      {
+        "display_alias": "entitlement_matrix.csv",
+        "schema": "graph",
+        "table": "entitlement_rule",
+        "format": "csv",
+        "nn": "10",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "10_graph_entitlement_rule.csv"
+      },
+      {
+        "display_alias": "entitlement_decisions.csv",
+        "schema": "graph",
+        "table": "entitlement_decision",
+        "format": "csv",
+        "nn": "11",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "11_graph_entitlement_decision.csv"
+      },
+      {
+        "display_alias": "accounts.csv",
+        "schema": "client",
+        "table": "account",
+        "format": "csv",
+        "nn": "12",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "12_client_account.csv"
+      },
+      {
+        "display_alias": "holdings.csv",
+        "schema": "client",
+        "table": "holding",
+        "format": "csv",
+        "nn": "13",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "13_client_holding.csv"
+      },
+      {
+        "display_alias": "allocation_targets.csv",
+        "schema": "client",
+        "table": "allocation_target",
+        "format": "csv",
+        "nn": "14",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "14_client_allocation_target.csv"
+      },
+      {
+        "display_alias": "memory_facts.csv",
+        "schema": "graph",
+        "table": "memory_fact",
+        "format": "csv",
+        "nn": "15",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "15_graph_memory_fact.csv"
+      },
+      {
+        "display_alias": "interactions.csv",
+        "schema": "client",
+        "table": "interaction",
+        "format": "csv",
+        "nn": "16",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "16_client_interaction.csv"
+      },
+      {
+        "display_alias": "consent_state.csv",
+        "schema": "client",
+        "table": "consent_state",
+        "format": "csv",
+        "nn": "17",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "17_client_consent_state.csv"
+      },
+      {
+        "display_alias": "suitability_state.csv",
+        "schema": "client",
+        "table": "suitability_state",
+        "format": "csv",
+        "nn": "18",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "18_client_suitability_state.csv"
+      },
+      {
+        "display_alias": "products.csv",
+        "schema": "client",
+        "table": "product",
+        "format": "csv",
+        "nn": "19",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "19_client_product.csv"
+      },
+      {
+        "display_alias": "news_items.csv",
+        "schema": "market",
+        "table": "news_item",
+        "format": "csv",
+        "nn": "27",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "27_market_news_item.csv"
+      },
+      {
+        "display_alias": "market_ticks_live.csv",
+        "schema": "market",
+        "table": "market_tick",
+        "format": "csv",
+        "nn": "28",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "28_market_market_tick.csv"
+      },
+      {
+        "display_alias": "market_ticks_replay.csv",
+        "schema": "market",
+        "table": "market_tick",
+        "format": "csv",
+        "nn": "29",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "29_market_market_tick.csv"
+      },
+      {
+        "display_alias": "market_signals.csv",
+        "schema": "market",
+        "table": "market_signal",
+        "format": "csv",
+        "nn": "30",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "30_market_market_signal.csv"
+      },
+      {
+        "display_alias": "feed_status.csv",
+        "schema": "demo_meta",
+        "table": "feed_status",
+        "format": "csv",
+        "nn": "31",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "31_demo_meta_feed_status.csv"
+      },
+      {
+        "display_alias": "workflow_instances.csv",
+        "schema": "workflow",
+        "table": "workflow_instance",
+        "format": "csv",
+        "nn": "35",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "35_workflow_workflow_instance.csv"
+      },
+      {
+        "display_alias": "workflow_stages.csv",
+        "schema": "workflow",
+        "table": "workflow_stage",
+        "format": "csv",
+        "nn": "36",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "36_workflow_workflow_stage.csv"
+      },
+      {
+        "display_alias": "audit_events.csv",
+        "schema": "audit",
+        "table": "audit_event",
+        "format": "csv",
+        "nn": "37",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "37_audit_audit_event.csv"
+      },
+      {
+        "display_alias": "extraction_items.csv",
+        "schema": "artefact",
+        "table": "extraction_item",
+        "format": "csv",
+        "nn": "42",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "42_artefact_extraction_item.csv"
+      },
+      {
+        "display_alias": "email_messages.csv",
+        "schema": "artefact",
+        "table": "demo_sink_message",
+        "format": "csv",
+        "nn": "44",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "44_artefact_demo_sink_message.csv"
+      },
+      {
+        "display_alias": "demo_sink_messages.csv",
+        "schema": "artefact",
+        "table": "demo_sink_message",
+        "format": "csv",
+        "nn": "51",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "51_artefact_demo_sink_message.csv"
+      }
+    ],
+    "frozen_schema_json": [
+      {
+        "display_alias": "scenarios.json",
+        "schema": "demo_meta",
+        "table": "scenario",
+        "format": "json",
+        "nn": "03",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "03_demo_meta_scenario.json"
+      },
+      {
+        "display_alias": "artefacts.json",
+        "schema": "artefact",
+        "table": "artefact",
+        "format": "json",
+        "nn": "32",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "32_artefact_artefact.json"
+      },
+      {
+        "display_alias": "family_packs.json",
+        "schema": "artefact",
+        "table": "artefact",
+        "format": "json",
+        "nn": "33",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "33_artefact_artefact.json"
+      },
+      {
+        "display_alias": "approval_tokens.json",
+        "schema": "artefact",
+        "table": "approval_token",
+        "format": "json",
+        "nn": "34",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "34_artefact_approval_token.json"
+      }
+    ],
+    "additive_files": [
+      {
+        "display_alias": "crm_contacts.csv",
+        "schema": "crm",
+        "table": "crm_contact",
+        "format": "csv",
+        "nn": "20",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "crm_contacts.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "crm_interactions.csv",
+        "schema": "crm",
+        "table": "crm_interaction",
+        "format": "csv",
+        "nn": "21",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "crm_interactions.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "crm_tasks.csv",
+        "schema": "crm",
+        "table": "crm_task",
+        "format": "csv",
+        "nn": "22",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "crm_tasks.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "crm_opportunities.csv",
+        "schema": "crm",
+        "table": "crm_opportunity",
+        "format": "csv",
+        "nn": "23",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "crm_opportunities.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "crm_field_mapping.csv",
+        "schema": "crm",
+        "table": "crm_field_mapping",
+        "format": "csv",
+        "nn": "24",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "crm_field_mapping.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "crm_sync_log.csv",
+        "schema": "crm",
+        "table": "crm_sync_log",
+        "format": "csv",
+        "nn": "25",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "crm_sync_log.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "crm_old_new_preview.csv",
+        "schema": "review",
+        "table": "old_new_preview",
+        "format": "csv",
+        "nn": "26",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "crm_old_new_preview.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "bookings.csv",
+        "schema": "external",
+        "table": "booking",
+        "format": "csv",
+        "nn": "38",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "bookings.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "meetings_calendar.csv",
+        "schema": "external",
+        "table": "calendar_event",
+        "format": "csv",
+        "nn": "39",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "meetings_calendar.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "meeting_attendees.csv",
+        "schema": "external",
+        "table": "meeting_attendee",
+        "format": "csv",
+        "nn": "40",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "meeting_attendees.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "transcript_utterances.csv",
+        "schema": "external",
+        "table": "transcript_utterance",
+        "format": "csv",
+        "nn": "41",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "transcript_utterances.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "email_threads.csv",
+        "schema": "external",
+        "table": "email_thread",
+        "format": "csv",
+        "nn": "43",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "email_threads.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "email_templates.json",
+        "schema": "external",
+        "table": "email_template",
+        "format": "json",
+        "nn": "45",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "email_templates.json",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "hubspot_portal_seed.json",
+        "schema": "external",
+        "table": "hubspot_portal",
+        "format": "json",
+        "nn": "46",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "hubspot_portal_seed.json",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "hubspot_api_exchange.json",
+        "schema": "external",
+        "table": "hubspot_api_exchange",
+        "format": "json",
+        "nn": "47",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "hubspot_api_exchange.json",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "retell_call.json",
+        "schema": "external",
+        "table": "retell_call",
+        "format": "json",
+        "nn": "48",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "retell_call.json",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "adapter_bindings.csv",
+        "schema": "external",
+        "table": "adapter_binding",
+        "format": "csv",
+        "nn": "49",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "adapter_bindings.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      },
+      {
+        "display_alias": "vendor_health.csv",
+        "schema": "external",
+        "table": "vendor_health",
+        "format": "csv",
+        "nn": "50",
+        "nn_source": "manifest_addendum_crm.json.load_order[].seq / schema_contract.json.load_order[].seq",
+        "canonical_filename": "vendor_health.csv",
+        "rule": "additive crm / vendor / external-reference file — uses exactly the name declared in manifest_addendum_crm.json (no <NN>_ prefix)"
+      }
+    ]
+  },
+  "tables": [
+    {
+      "name": "client.account",
+      "path": "accounts.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "account_id",
+        "client_id",
+        "account_type",
+        "currency",
+        "booking_centre_code",
+        "opened_date",
+        "status"
+      ],
+      "row_count": 65
+    },
+    {
+      "name": "external.adapter_binding",
+      "path": "adapter_bindings.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "adapter_id",
+        "adapter_name",
+        "binding",
+        "default_flag",
+        "posture",
+        "announced_switch_required",
+        "c4_event_required",
+        "hard_blocked_actions",
+        "critical_path"
+      ],
+      "row_count": 6
+    },
+    {
+      "name": "client.allocation_target",
+      "path": "allocation_targets.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "target_id",
+        "account_id",
+        "asset_class",
+        "target_weight",
+        "current_weight",
+        "drift_pp",
+        "rule_pack_version"
+      ],
+      "row_count": 325
+    },
+    {
+      "name": "audit.audit_event",
+      "path": "audit_events.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "event_id",
+        "event_seq",
+        "event_type",
+        "actor_id",
+        "actor_role",
+        "correlation_id",
+        "artefact_ref",
+        "from_state",
+        "to_state",
+        "detail",
+        "event_at",
+        "c4_ref",
+        "prev_hash",
+        "row_hash"
+      ],
+      "row_count": 18
+    },
+    {
+      "name": "external.booking",
+      "path": "bookings.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "booking_id",
+        "client_id",
+        "client_ref",
+        "evt_ref",
+        "start_sgt",
+        "end_sgt",
+        "channel",
+        "status",
+        "attendee_refs",
+        "source",
+        "reading",
+        "notes"
+      ],
+      "row_count": 6
+    },
+    {
+      "name": "client.client",
+      "path": "clients.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "client_id",
+        "client_id_uuid",
+        "display_name",
+        "segment",
+        "wealth_tier",
+        "jurisdiction",
+        "base_currency",
+        "aum_sgd",
+        "dnc_flag",
+        "marketing_consent",
+        "shariah_sensitive",
+        "rm_book_id",
+        "external_crm_id",
+        "contact_email",
+        "name_note"
+      ],
+      "row_count": 42
+    },
+    {
+      "name": "demo_meta.config_version",
+      "path": "config_versions.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "config_id",
+        "config_key",
+        "config_value",
+        "version",
+        "as_of",
+        "actor",
+        "change_reason"
+      ],
+      "row_count": 20
+    },
+    {
+      "name": "client.consent_state",
+      "path": "consent_state.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "consent_id",
+        "client_id",
+        "session_id",
+        "state",
+        "method",
+        "recorded_at",
+        "note"
+      ],
+      "row_count": 4
+    },
+    {
+      "name": "crm.crm_contact",
+      "path": "crm_contacts.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "contact_id",
+        "client_id",
+        "client_id_uuid",
+        "hubspot_object_id",
+        "display_name",
+        "email",
+        "segment",
+        "base_currency",
+        "rm_id",
+        "next_meeting_preference",
+        "preferred_contact_channel",
+        "risk_profile",
+        "next_review_date",
+        "last_meeting_summary",
+        "family_attendee_preference",
+        "task_owner",
+        "email_consent",
+        "hubspot_object",
+        "projection_of",
+        "adapter_label"
+      ],
+      "row_count": 42
+    },
+    {
+      "name": "crm.crm_field_mapping",
+      "path": "crm_field_mapping.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "mapping_id",
+        "source_field",
+        "hubspot_property",
+        "hubspot_object",
+        "object_type",
+        "writable",
+        "custom_property_slot",
+        "transform",
+        "version",
+        "idempotency_key",
+        "physical_idempotency_key",
+        "idempotency_rule",
+        "local_projection_table",
+        "adapter_label"
+      ],
+      "row_count": 8
+    },
+    {
+      "name": "crm.crm_interaction",
+      "path": "crm_interactions.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "interaction_id",
+        "contact_id",
+        "kind",
+        "subject",
+        "occurred_at",
+        "direction",
+        "hubspot_activity_id",
+        "adapter_label"
+      ],
+      "row_count": 12
+    },
+    {
+      "name": "review.old_new_preview",
+      "path": "crm_old_new_preview.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "preview_id",
+        "contact_id",
+        "mapping_id",
+        "hubspot_property",
+        "old_value",
+        "new_value",
+        "evidence_ref",
+        "evidence_offset",
+        "disposition",
+        "http_status",
+        "write_authorized_at",
+        "approval_token",
+        "field_mapping_version",
+        "idempotency_key"
+      ],
+      "row_count": 8
+    },
+    {
+      "name": "crm.crm_opportunity",
+      "path": "crm_opportunities.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "opportunity_id",
+        "contact_id",
+        "name",
+        "stage",
+        "value_sgd",
+        "pipeline_id",
+        "execution_note",
+        "hubspot_deal_id",
+        "adapter_label"
+      ],
+      "row_count": 5
+    },
+    {
+      "name": "crm.crm_sync_log",
+      "path": "crm_sync_log.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "sync_id",
+        "mapping_id",
+        "contact_id",
+        "approval_token",
+        "field_mapping_version",
+        "idempotency_key",
+        "adapter_binding",
+        "old_value",
+        "new_value",
+        "disposition",
+        "state",
+        "http_status",
+        "retry_after_ms",
+        "attempt_no",
+        "error_code",
+        "request_payload_ref",
+        "verification_get_ref",
+        "attempted_at",
+        "notes"
+      ],
+      "row_count": 8
+    },
+    {
+      "name": "crm.crm_task",
+      "path": "crm_tasks.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "task_id",
+        "contact_id",
+        "subject",
+        "status",
+        "due_at",
+        "owner_rm",
+        "hubspot_task_id",
+        "adapter_label"
+      ],
+      "row_count": 6
+    },
+    {
+      "name": "artefact.demo_sink_message",
+      "path": "demo_sink_messages.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "sink_id",
+        "channel",
+        "message_ref",
+        "state",
+        "egress_count",
+        "send_count",
+        "trade_count",
+        "real_dialled_calls",
+        "real_client_facing_sends",
+        "real_pii_count",
+        "is_send",
+        "chip_text",
+        "as_of"
+      ],
+      "row_count": 3
+    },
+    {
+      "name": "artefact.demo_sink_message",
+      "path": "email_messages.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "message_id",
+        "thread_id",
+        "from_addr",
+        "to_addr",
+        "subject",
+        "body_preview",
+        "direction",
+        "state",
+        "demo_sink_label",
+        "template_id",
+        "disclosure_version",
+        "created_at"
+      ],
+      "row_count": 4
+    },
+    {
+      "name": "external.email_thread",
+      "path": "email_threads.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "thread_id",
+        "client_id",
+        "subject",
+        "related_event_id",
+        "state",
+        "as_of"
+      ],
+      "row_count": 4
+    },
+    {
+      "name": "graph.entitlement_decision",
+      "path": "entitlement_decisions.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "decision_id",
+        "attendee_class",
+        "requested_node_id",
+        "decision",
+        "reason",
+        "matrix_version",
+        "correlation_id",
+        "c4_event_id",
+        "decided_at"
+      ],
+      "row_count": 6
+    },
+    {
+      "name": "graph.entitlement_rule",
+      "path": "entitlement_matrix.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "matrix_row_id",
+        "matrix_version",
+        "attendee_class",
+        "node_id",
+        "entitled",
+        "decided_by",
+        "as_of"
+      ],
+      "row_count": 12
+    },
+    {
+      "name": "artefact.extraction_item",
+      "path": "extraction_items.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "extraction_id",
+        "utterance_id",
+        "evidence_offset",
+        "item_type",
+        "content",
+        "owner",
+        "due_date",
+        "state",
+        "confidence_value",
+        "correlation_id"
+      ],
+      "row_count": 6
+    },
+    {
+      "name": "demo_meta.feed_status",
+      "path": "feed_status.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "status_id",
+        "observed_at",
+        "feed_state",
+        "last_tick_key",
+        "last_tick_as_of",
+        "age_seconds",
+        "warn_threshold_seconds",
+        "stale_threshold_seconds",
+        "announced_mode",
+        "chip_text"
+      ],
+      "row_count": 2
+    },
+    {
+      "name": "graph.graph_edge",
+      "path": "graph_edges.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "edge_id",
+        "edge_type",
+        "from_node_id",
+        "to_node_id",
+        "relation_meaning",
+        "source_doc_id"
+      ],
+      "row_count": 8
+    },
+    {
+      "name": "graph.graph_node",
+      "path": "graph_nodes.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "node_id",
+        "node_class",
+        "label",
+        "synthetic_name",
+        "key_attributes",
+        "household_ref",
+        "source_doc_id",
+        "shariah_preference_flag",
+        "external_project_ref",
+        "notes"
+      ],
+      "row_count": 6
+    },
+    {
+      "name": "graph.source_doc",
+      "path": "graph_source_docs.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "doc_id",
+        "doc_type",
+        "title",
+        "excerpt",
+        "reviewed_by",
+        "as_of",
+        "linked_node_ids",
+        "linked_edge_ids",
+        "notes"
+      ],
+      "row_count": 8
+    },
+    {
+      "name": "client.holding",
+      "path": "holdings.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "holding_id",
+        "account_id",
+        "client_id",
+        "instrument_id",
+        "asset_class",
+        "quantity",
+        "prior_close_price",
+        "market_value",
+        "currency",
+        "cost_basis",
+        "target_weight",
+        "actual_weight",
+        "note"
+      ],
+      "row_count": 342
+    },
+    {
+      "name": "market.instrument",
+      "path": "instruments.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "instrument_id",
+        "symbol",
+        "name",
+        "asset_class",
+        "currency",
+        "unit",
+        "licence_tag",
+        "source_symbol_map_version",
+        "synthetic_issuer"
+      ],
+      "row_count": 48
+    },
+    {
+      "name": "client.interaction",
+      "path": "interactions.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "interaction_id",
+        "client_id",
+        "interaction_type",
+        "occurred_at",
+        "subject",
+        "channel",
+        "notes"
+      ],
+      "row_count": 14
+    },
+    {
+      "name": "market.market_signal",
+      "path": "market_signals.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "signal_id",
+        "signal_type",
+        "client_id",
+        "account_id",
+        "instrument_id",
+        "tick_key",
+        "drift_before_pp",
+        "drift_after_pp",
+        "threshold_pp",
+        "rule_pack_version",
+        "drift_metric",
+        "computation",
+        "correlation_id",
+        "chip_text",
+        "raised_at"
+      ],
+      "row_count": 1
+    },
+    {
+      "name": "market.market_tick",
+      "path": "market_ticks_live.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "tick_key",
+        "instrument_id",
+        "symbol",
+        "price",
+        "currency",
+        "price_before",
+        "price_change_pct",
+        "event_ts",
+        "feed_as_of",
+        "licence_tag",
+        "source_attribution",
+        "correlation_id",
+        "event_label"
+      ],
+      "row_count": 1
+    },
+    {
+      "name": "market.market_tick",
+      "path": "market_ticks_replay.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "tick_key",
+        "instrument_id",
+        "symbol",
+        "price",
+        "currency",
+        "feed_as_of",
+        "frame_seq",
+        "replay_label",
+        "licence_tag"
+      ],
+      "row_count": 120
+    },
+    {
+      "name": "external.meeting_attendee",
+      "path": "meeting_attendees.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "attendee_id",
+        "event_id",
+        "display_name",
+        "client_id",
+        "role",
+        "entitlement_class",
+        "ambiguity_flag",
+        "resolution"
+      ],
+      "row_count": 14
+    },
+    {
+      "name": "external.calendar_event",
+      "path": "meetings_calendar.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "event_id",
+        "ics_uid",
+        "subject",
+        "organiser",
+        "start_sgt",
+        "end_sgt",
+        "timezone",
+        "location",
+        "status",
+        "booking_id",
+        "client_id",
+        "ics_dtstart",
+        "ics_dtend",
+        "ics_dtstamp",
+        "attendee_refs",
+        "as_of"
+      ],
+      "row_count": 6
+    },
+    {
+      "name": "graph.memory_fact",
+      "path": "memory_facts.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "fact_id",
+        "client_id",
+        "fact_type",
+        "subject",
+        "content",
+        "confidence_value",
+        "evidence_ref",
+        "evidence_offset",
+        "state",
+        "review_flag",
+        "supersedes_fact_id",
+        "correlation_id",
+        "external_project_ref"
+      ],
+      "row_count": 19
+    },
+    {
+      "name": "market.news_item",
+      "path": "news_items.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "news_id",
+        "instrument_id",
+        "headline",
+        "source_id",
+        "licence_tag",
+        "attachable_client_id",
+        "excluded_from_brief",
+        "attribution",
+        "as_of"
+      ],
+      "row_count": 8
+    },
+    {
+      "name": "client.product",
+      "path": "products.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "product_id",
+        "name",
+        "asset_class",
+        "currency",
+        "risk_rating",
+        "shariah_screened_placeholder",
+        "version"
+      ],
+      "row_count": 24
+    },
+    {
+      "name": "client.rm_book",
+      "path": "rm_books.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "rm_book_id",
+        "rm_id",
+        "display_name",
+        "book_name",
+        "segment_focus",
+        "seat_count_free_tier"
+      ],
+      "row_count": 1
+    },
+    {
+      "name": "client.suitability_state",
+      "path": "suitability_state.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "suitability_id",
+        "client_id",
+        "state",
+        "as_of",
+        "review_due",
+        "note"
+      ],
+      "row_count": 6
+    },
+    {
+      "name": "external.transcript_utterance",
+      "path": "transcript_utterances.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "utterance_id",
+        "event_id",
+        "adapter_binding",
+        "speaker_label",
+        "speaker_role",
+        "timestamp_offset",
+        "text",
+        "confidence_value",
+        "stub_declaration",
+        "source_chip"
+      ],
+      "row_count": 16
+    },
+    {
+      "name": "external.vendor_health",
+      "path": "vendor_health.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "health_id",
+        "vendor",
+        "adapter_id",
+        "binding",
+        "checked_at",
+        "reachable",
+        "quota_remaining",
+        "daily_quota_remaining",
+        "credits_remaining",
+        "status",
+        "age_seconds",
+        "fallback_binding",
+        "notes"
+      ],
+      "row_count": 6
+    },
+    {
+      "name": "demo_meta.version_registry",
+      "path": "version_registry.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "registry_id",
+        "artefact",
+        "version",
+        "status",
+        "registered_at",
+        "notes"
+      ],
+      "row_count": 10
+    },
+    {
+      "name": "workflow.workflow_instance",
+      "path": "workflow_instances.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "workflow_id",
+        "correlation_id",
+        "workflow_type",
+        "status",
+        "current_stage",
+        "started_at",
+        "closed_at",
+        "context_refs"
+      ],
+      "row_count": 1
+    },
+    {
+      "name": "workflow.workflow_stage",
+      "path": "workflow_stages.csv",
+      "columns": [
+        "synthetic_marker",
+        "source_id",
+        "source_kind",
+        "as_of",
+        "ingested_at",
+        "confidence",
+        "mode",
+        "version_stamp",
+        "stage_id",
+        "workflow_id",
+        "correlation_id",
+        "stage_seq",
+        "stage_name",
+        "input_ref",
+        "output_ref",
+        "entered_at",
+        "context_refs"
+      ],
+      "row_count": 6
+    }
+  ],
+  "no_new_postgres_tables_from_vendor_adapters": true,
+  "crm_schema_tables_exactly": [
+    "crm.crm_contact",
+    "crm.crm_interaction",
+    "crm.crm_task",
+    "crm.crm_opportunity",
+    "crm.crm_field_mapping",
+    "crm.crm_sync_log"
+  ]
+}

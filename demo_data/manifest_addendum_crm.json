@@ -1,0 +1,519 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "addendum_id": "manifest_addendum_crm_v1",
+  "authority": "12_Demo_Data_and_Systems_Architecture_Enhancement.md §10.2 / §12.1; 14_Vendor_Adapter_Ruling_HubSpot_Retell.md §6.3",
+  "architect_authored": true,
+  "manifest_version_not_bumped": true,
+  "manifest_v1_3_read_only": true,
+  "manifest_v1_3_version": "v1.3",
+  "phase4_sync": true,
+  "no_new_postgres_tables_from_vendor_adapters": true,
+  "explicitly_not_inside_manifest_v1_3": true,
+  "crm_schema_tables_exactly": [
+    "crm.crm_contact",
+    "crm.crm_interaction",
+    "crm.crm_task",
+    "crm.crm_opportunity",
+    "crm.crm_field_mapping",
+    "crm.crm_sync_log"
+  ],
+  "dataset_checksum": "sha256:acc91f0c0038c03726c0314823e1082c7cc65722d950ef9e8dc8ff6d5b86669c",
+  "dataset_checksum_derivation": "sha256(concat(sorted per-file sha256 hex hashes of the 51 DATA files in checksums.sha256)); the 52nd checksums.sha256 line (this addendum) is a control-file verification line excluded from dataset_checksum to avoid self-reference",
+  "crm_field_mapping_version": "fmv_20261105_1",
+  "idempotency_key_physical_form": "approval_token || ':' || field_mapping_version || ':' || mapping_id",
+  "idempotency_key_example": "appr_001:fmv_20261105_1:map_01",
+  "declared_files": [
+    {
+      "path": "crm_contacts.csv",
+      "format": "csv",
+      "table": "crm.crm_contact",
+      "row_count": 42,
+      "checksum": "sha256:681aaa9d4cadfda4f419384f62e824ed2137b46576f889e30523450bbc5f654e"
+    },
+    {
+      "path": "crm_interactions.csv",
+      "format": "csv",
+      "table": "crm.crm_interaction",
+      "row_count": 12,
+      "checksum": "sha256:7ea4bd139b7183690c4ed3022f1d5ca6aa5cf6103eac1eb25a734de070ac3b30"
+    },
+    {
+      "path": "crm_tasks.csv",
+      "format": "csv",
+      "table": "crm.crm_task",
+      "row_count": 6,
+      "checksum": "sha256:16d4067574a9bd7ec6264acf4988797c1c16fe3386ce5df320dafaad53450873"
+    },
+    {
+      "path": "crm_opportunities.csv",
+      "format": "csv",
+      "table": "crm.crm_opportunity",
+      "row_count": 5,
+      "checksum": "sha256:08e8b0129e0db8abbd298ad75dbeae0bf41953a472306626cb5549dea1811fd6"
+    },
+    {
+      "path": "crm_field_mapping.csv",
+      "format": "csv",
+      "table": "crm.crm_field_mapping",
+      "row_count": 8,
+      "checksum": "sha256:c8024683b615d64d5aacc78aeccea6b3efa589f00ae05add179a80eacbbeaf03"
+    },
+    {
+      "path": "crm_sync_log.csv",
+      "format": "csv",
+      "table": "crm.crm_sync_log",
+      "row_count": 8,
+      "checksum": "sha256:82d07e96843724267898cfddc3d848ef7c31938adbb247740af64bb4115510ad"
+    },
+    {
+      "path": "crm_old_new_preview.csv",
+      "format": "csv",
+      "table": "review.old_new_preview",
+      "row_count": 8,
+      "checksum": "sha256:f4c4e0db794f118c1aedf748936b07959032bd9f458aa0f69ca94223eeb76cbf"
+    },
+    {
+      "path": "hubspot_portal_seed.json",
+      "format": "json",
+      "table": "external.hubspot_portal",
+      "row_count": 16,
+      "checksum": "sha256:4d5da3f5a06821e1c9b085a76c2eeaaa0c54b0d4d3e8854b05a34b0cc3c078c0"
+    },
+    {
+      "path": "hubspot_api_exchange.json",
+      "format": "json",
+      "table": "external.hubspot_api_exchange",
+      "row_count": 5,
+      "checksum": "sha256:f16a144957cefab6721516f70e1765d79dec9bd1955e4d2e9251a977ead59169"
+    },
+    {
+      "path": "retell_call.json",
+      "format": "json",
+      "table": "external.retell_call",
+      "row_count": 16,
+      "checksum": "sha256:9c127b247f23d714661cd056dcd52518526e6b791d21fc5f4d2ec9e1bb5521a2"
+    },
+    {
+      "path": "adapter_bindings.csv",
+      "format": "csv",
+      "table": "external.adapter_binding",
+      "row_count": 6,
+      "checksum": "sha256:f5e4e26e0c65f7a288729cf68a7e79af871f9b7e47e48e514b9f8e71c72c7659"
+    },
+    {
+      "path": "vendor_health.csv",
+      "format": "csv",
+      "table": "external.vendor_health",
+      "row_count": 6,
+      "checksum": "sha256:127a657372d961f33e8841f19c6d05715af6e94f238943e86a2492b35aed673a"
+    },
+    {
+      "path": "transcript_utterances.csv",
+      "format": "csv",
+      "table": "external.transcript_utterance",
+      "row_count": 16,
+      "checksum": "sha256:119030fd7c19ef1e3a5b0dcfeb50d9b75ffbe87a2c7f6867e6829208a7896125"
+    },
+    {
+      "path": "config_versions.csv",
+      "format": "csv",
+      "table": "demo_meta.config_version",
+      "row_count": 20,
+      "checksum": "sha256:b28c7f6532583ff43dd2ad61660eb8470405bb042e4b90f1c50aff984c25e92a"
+    },
+    {
+      "path": "demo_sink_messages.csv",
+      "format": "csv",
+      "table": "artefact.demo_sink_message",
+      "row_count": 3,
+      "checksum": "sha256:dd203f2ec91258d225694f8162a9d6d3874058266e65e36fda3864d66e93f76b"
+    },
+    {
+      "path": "scenarios.json",
+      "format": "json",
+      "table": "demo_meta.scenario",
+      "row_count": 5,
+      "checksum": "sha256:08bb6da076e6793dff72559d263b81bf85f006bc975dc3eab5fc1b0aa715e48b"
+    },
+    {
+      "path": "manifest_addendum_crm.json",
+      "format": "json",
+      "table": "demo_meta.manifest_addendum_crm",
+      "row_count": 17,
+      "checksum": "n/a (self-reference — verified by the 52nd checksums.sha256 line)"
+    }
+  ],
+  "related_external_reference_files": [
+    {
+      "path": "bookings.csv",
+      "format": "csv",
+      "table": "external.booking",
+      "row_count": 6,
+      "checksum": "sha256:0146fbb473e1709609bc1e19fb1d8b0f20130c910e86c30db6b820ec435b36d2",
+      "note": "also declared in the frozen manifest v1.3; cross-referenced here for the §10.2 load order"
+    },
+    {
+      "path": "meetings_calendar.csv",
+      "format": "csv",
+      "table": "external.calendar_event",
+      "row_count": 6,
+      "checksum": "sha256:5c949584f4d1faeee423a93f417e8391cf922b82f06a41a9ea3aa3da7699a02b",
+      "note": "also declared in the frozen manifest v1.3; cross-referenced here for the §10.2 load order"
+    },
+    {
+      "path": "meeting_attendees.csv",
+      "format": "csv",
+      "table": "external.meeting_attendee",
+      "row_count": 14,
+      "checksum": "sha256:a0b059579601acca117109efc8f266b7e4e8c2bf4a7a66c6e69590f7d4d7ee35",
+      "note": "also declared in the frozen manifest v1.3; cross-referenced here for the §10.2 load order"
+    },
+    {
+      "path": "extraction_items.csv",
+      "format": "csv",
+      "table": "artefact.extraction_item",
+      "row_count": 6,
+      "checksum": "sha256:332ffdec92dfadf2461eb74a15b0b475ddbb20a899466eb30cbbac4a459e4671",
+      "note": "also declared in the frozen manifest v1.3; cross-referenced here for the §10.2 load order"
+    },
+    {
+      "path": "email_threads.csv",
+      "format": "csv",
+      "table": "external.email_thread",
+      "row_count": 4,
+      "checksum": "sha256:979a1b5cd8f296370c061321dd84fe0053f108d39a3732e295ec53c3ad6871e1",
+      "note": "also declared in the frozen manifest v1.3; cross-referenced here for the §10.2 load order"
+    },
+    {
+      "path": "email_messages.csv",
+      "format": "csv",
+      "table": "artefact.demo_sink_message",
+      "row_count": 4,
+      "checksum": "sha256:314f064905ba444e47b16de69b3e4cb528bd712a7888e69f593fc7f39acdd8b4",
+      "note": "also declared in the frozen manifest v1.3; cross-referenced here for the §10.2 load order"
+    },
+    {
+      "path": "email_templates.json",
+      "format": "json",
+      "table": "external.email_template",
+      "row_count": 3,
+      "checksum": "sha256:68230d5f2e06a1bd2f1f80817d24847756771a10839fd02a3b04f2a2053b2945",
+      "note": "also declared in the frozen manifest v1.3; cross-referenced here for the §10.2 load order"
+    }
+  ],
+  "load_order": [
+    {
+      "seq": "01",
+      "logical": "01_demo_meta_version_registry",
+      "schema_table": "demo_meta.version_registry",
+      "path": "version_registry.csv"
+    },
+    {
+      "seq": "02",
+      "logical": "02_demo_meta_config_version",
+      "schema_table": "demo_meta.config_version",
+      "path": "config_versions.csv"
+    },
+    {
+      "seq": "03",
+      "logical": "03_demo_meta_scenario",
+      "schema_table": "demo_meta.scenario",
+      "path": "scenarios.json"
+    },
+    {
+      "seq": "04",
+      "logical": "04_market_instrument",
+      "schema_table": "market.instrument",
+      "path": "instruments.csv"
+    },
+    {
+      "seq": "05",
+      "logical": "05_client_client",
+      "schema_table": "client.client",
+      "path": "clients.csv"
+    },
+    {
+      "seq": "06",
+      "logical": "06_client_rm_book",
+      "schema_table": "client.rm_book",
+      "path": "rm_books.csv"
+    },
+    {
+      "seq": "07",
+      "logical": "07_graph_graph_node",
+      "schema_table": "graph.graph_node",
+      "path": "graph_nodes.csv"
+    },
+    {
+      "seq": "08",
+      "logical": "08_graph_graph_edge",
+      "schema_table": "graph.graph_edge",
+      "path": "graph_edges.csv"
+    },
+    {
+      "seq": "09",
+      "logical": "09_graph_source_doc",
+      "schema_table": "graph.source_doc",
+      "path": "graph_source_docs.csv"
+    },
+    {
+      "seq": "10",
+      "logical": "10_graph_entitlement_rule",
+      "schema_table": "graph.entitlement_rule",
+      "path": "entitlement_matrix.csv"
+    },
+    {
+      "seq": "11",
+      "logical": "11_graph_entitlement_decision",
+      "schema_table": "graph.entitlement_decision",
+      "path": "entitlement_decisions.csv"
+    },
+    {
+      "seq": "12",
+      "logical": "12_client_account",
+      "schema_table": "client.account",
+      "path": "accounts.csv"
+    },
+    {
+      "seq": "13",
+      "logical": "13_client_holding",
+      "schema_table": "client.holding",
+      "path": "holdings.csv"
+    },
+    {
+      "seq": "14",
+      "logical": "14_client_allocation_target",
+      "schema_table": "client.allocation_target",
+      "path": "allocation_targets.csv"
+    },
+    {
+      "seq": "15",
+      "logical": "15_graph_memory_fact",
+      "schema_table": "graph.memory_fact",
+      "path": "memory_facts.csv"
+    },
+    {
+      "seq": "16",
+      "logical": "16_client_interaction",
+      "schema_table": "client.interaction",
+      "path": "interactions.csv"
+    },
+    {
+      "seq": "17",
+      "logical": "17_client_consent_state",
+      "schema_table": "client.consent_state",
+      "path": "consent_state.csv"
+    },
+    {
+      "seq": "18",
+      "logical": "18_client_suitability_state",
+      "schema_table": "client.suitability_state",
+      "path": "suitability_state.csv"
+    },
+    {
+      "seq": "19",
+      "logical": "19_client_product",
+      "schema_table": "client.product",
+      "path": "products.csv"
+    },
+    {
+      "seq": "20",
+      "logical": "20_crm_crm_contact",
+      "schema_table": "crm.crm_contact",
+      "path": "crm_contacts.csv"
+    },
+    {
+      "seq": "21",
+      "logical": "21_crm_crm_interaction",
+      "schema_table": "crm.crm_interaction",
+      "path": "crm_interactions.csv"
+    },
+    {
+      "seq": "22",
+      "logical": "22_crm_crm_task",
+      "schema_table": "crm.crm_task",
+      "path": "crm_tasks.csv"
+    },
+    {
+      "seq": "23",
+      "logical": "23_crm_crm_opportunity",
+      "schema_table": "crm.crm_opportunity",
+      "path": "crm_opportunities.csv"
+    },
+    {
+      "seq": "24",
+      "logical": "24_crm_crm_field_mapping",
+      "schema_table": "crm.crm_field_mapping",
+      "path": "crm_field_mapping.csv"
+    },
+    {
+      "seq": "25",
+      "logical": "25_crm_crm_sync_log",
+      "schema_table": "crm.crm_sync_log",
+      "path": "crm_sync_log.csv"
+    },
+    {
+      "seq": "26",
+      "logical": "26_review_old_new_preview",
+      "schema_table": "review.old_new_preview",
+      "path": "crm_old_new_preview.csv"
+    },
+    {
+      "seq": "27",
+      "logical": "27_market_news_item",
+      "schema_table": "market.news_item",
+      "path": "news_items.csv"
+    },
+    {
+      "seq": "28",
+      "logical": "28_market_market_tick (live)",
+      "schema_table": "market.market_tick (live)",
+      "path": "market_ticks_live.csv"
+    },
+    {
+      "seq": "29",
+      "logical": "29_market_market_tick (replay)",
+      "schema_table": "market.market_tick (replay)",
+      "path": "market_ticks_replay.csv"
+    },
+    {
+      "seq": "30",
+      "logical": "30_market_market_signal",
+      "schema_table": "market.market_signal",
+      "path": "market_signals.csv"
+    },
+    {
+      "seq": "31",
+      "logical": "31_demo_meta_feed_status",
+      "schema_table": "demo_meta.feed_status",
+      "path": "feed_status.csv"
+    },
+    {
+      "seq": "32",
+      "logical": "32_artefact_artefact",
+      "schema_table": "artefact.artefact",
+      "path": "artefacts.json"
+    },
+    {
+      "seq": "33",
+      "logical": "33_artefact_artefact (family packs)",
+      "schema_table": "artefact.artefact (family packs)",
+      "path": "family_packs.json"
+    },
+    {
+      "seq": "34",
+      "logical": "34_artefact_approval_token",
+      "schema_table": "artefact.approval_token",
+      "path": "approval_tokens.json"
+    },
+    {
+      "seq": "35",
+      "logical": "35_workflow_workflow_instance",
+      "schema_table": "workflow.workflow_instance",
+      "path": "workflow_instances.csv"
+    },
+    {
+      "seq": "36",
+      "logical": "36_workflow_workflow_stage",
+      "schema_table": "workflow.workflow_stage",
+      "path": "workflow_stages.csv"
+    },
+    {
+      "seq": "37",
+      "logical": "37_audit_audit_event",
+      "schema_table": "audit.audit_event",
+      "path": "audit_events.csv"
+    },
+    {
+      "seq": "38",
+      "logical": "38_external_booking",
+      "schema_table": "external.booking",
+      "path": "bookings.csv"
+    },
+    {
+      "seq": "39",
+      "logical": "39_external_calendar_event",
+      "schema_table": "external.calendar_event",
+      "path": "meetings_calendar.csv"
+    },
+    {
+      "seq": "40",
+      "logical": "40_external_meeting_attendee",
+      "schema_table": "external.meeting_attendee",
+      "path": "meeting_attendees.csv"
+    },
+    {
+      "seq": "41",
+      "logical": "41_external_transcript_utterance",
+      "schema_table": "external.transcript_utterance",
+      "path": "transcript_utterances.csv"
+    },
+    {
+      "seq": "42",
+      "logical": "42_artefact_extraction_item",
+      "schema_table": "artefact.extraction_item",
+      "path": "extraction_items.csv"
+    },
+    {
+      "seq": "43",
+      "logical": "43_external_email_thread",
+      "schema_table": "external.email_thread",
+      "path": "email_threads.csv"
+    },
+    {
+      "seq": "44",
+      "logical": "44_artefact_demo_sink_message (messages)",
+      "schema_table": "artefact.demo_sink_message (messages)",
+      "path": "email_messages.csv"
+    },
+    {
+      "seq": "45",
+      "logical": "45_external_email_template",
+      "schema_table": "external.email_template",
+      "path": "email_templates.json"
+    },
+    {
+      "seq": "46",
+      "logical": "46_external_hubspot_portal",
+      "schema_table": "external.hubspot_portal",
+      "path": "hubspot_portal_seed.json"
+    },
+    {
+      "seq": "47",
+      "logical": "47_external_hubspot_api_exchange",
+      "schema_table": "external.hubspot_api_exchange",
+      "path": "hubspot_api_exchange.json"
+    },
+    {
+      "seq": "48",
+      "logical": "48_external_retell_call",
+      "schema_table": "external.retell_call",
+      "path": "retell_call.json"
+    },
+    {
+      "seq": "49",
+      "logical": "49_external_adapter_binding",
+      "schema_table": "external.adapter_binding",
+      "path": "adapter_bindings.csv"
+    },
+    {
+      "seq": "50",
+      "logical": "50_external_vendor_health",
+      "schema_table": "external.vendor_health",
+      "path": "vendor_health.csv"
+    },
+    {
+      "seq": "51",
+      "logical": "51_artefact_demo_sink_message (sink totals)",
+      "schema_table": "artefact.demo_sink_message (sink totals)",
+      "path": "demo_sink_messages.csv"
+    }
+  ],
+  "notes": [
+    "manifest v1.3 is FROZEN / read_only / version v1.3 with its 51-file frozen scope unchanged; this addendum is the 52nd file",
+    "The 6 crm.* tables are CRM ADAPTER · LOCAL PROJECTION; crm_old_new_preview.csv is a review-surface artefact, not a 7th table",
+    "HubSpot Free / Retell AI are EXTERNAL references; 8 schemas / 40 tables frozen (E-7)",
+    "Beat chips and DI-18…25 stand-in mapping: see 13_Demo_Seed_Pack.md; this addendum creates no new Postgres table",
+    "E-15 one call = one binding: all 16 transcript_utterances.csv rows are scripted_stub; retell_test (S1-R) / retell_webhook_replay (S2) are COMPLETE RUN VARIANTS; aud_12 / aud_13 are BETWEEN-RUN rehearsal switches under corr_rehearsal_0001 (12_ §7.4 / §9). E-16: schema_contract.json.canonical_filename_map records the frozen <NN>_<schema>_<table>.<ext> emission names for the 8 frozen schemas; no file is renamed."
+  ]
+}

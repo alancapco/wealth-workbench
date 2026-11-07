@@ -1,0 +1,2 @@
+synthetic_marker,source_id,source_kind,as_of,ingested_at,confidence,mode,version_stamp,workflow_id,correlation_id,workflow_type,status,current_stage,started_at,closed_at,context_refs
+SYNTHETIC DEMO DATA,gen:20261105:workflow.workflow_instance:wf_0001,derived,2026-11-06T09:58:14+08:00,2026-11-06T09:58:14+08:00,1.000,live,schema v1.3,wf_0001,corr_demo_0001,golden_path,completed,re_rank,2026-11-06T09:58:14+08:00,2026-11-06T10:18:00+08:00,mf_001;mf_002;mf_011

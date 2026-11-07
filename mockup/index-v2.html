@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" data-type="software">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RM Workbench — Capco Wealth Advisory Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/capco-design.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Main Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="logo">
+                    <img src="assets/images/capco_logo.png" alt="Capco" width="100" height="36">
+                    <span class="product-name">Wealth Workbench</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="system-status">
+                    <span class="status-dot live"></span>
+                    <span class="status-text">Live Market Data</span>
+                    <span class="status-time" id="systemTime">10:14:32 SGT</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-profile">
+                    <span class="user-name">Sarah Chen</span>
+                    <span class="user-role">Relationship Manager</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Client Dashboard -->
+        <section class="dashboard" id="dashboard">
+            <div class="dashboard-header">
+                <h1>Client Portfolio</h1>
+                <p class="date-display">Wednesday, 6 November 2024</p>
+            </div>
+
+            <!-- Priority Clients -->
+            <div class="priority-clients">
+                <h2>Priority Attention</h2>
+
+                <!-- Client: Kenneth Wong -->
+                <article class="client-card high-priority" onclick="openClientDetail('wong')">
+                    <div class="card-main">
+                        <div class="client-identity">
+                            <div class="client-initials">KW</div>
+                            <div class="client-info">
+                                <h3>Kenneth Wong</h3>
+                                <p class="client-aum">HKD 45.2M AUM</p>
+                            </div>
+                        </div>
+
+                        <div class="priority-indicator">
+                            <span class="priority-number">1</span>
+                            <span class="priority-change">↑ from 4</span>
+                        </div>
+                    </div>
+
+                    <div class="card-context">
+                        <div class="context-section">
+                            <h4>Market Event</h4>
+                            <p>HSBC Holdings +2.3% — Portfolio drift 6% from target allocation</p>
+                            <span class="context-meta">Detected 10:14:18 • Reuters</span>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Recent Conversations</h4>
+                            <ul class="conversation-history">
+                                <li>
+                                    <span class="conv-date">15 Oct 2024</span>
+                                    <span class="conv-topic">Discussed quarterly rebalancing preferences</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">22 Sep 2024</span>
+                                    <span class="conv-topic">Expressed interest in Hong Kong tech sector exposure</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">10 Aug 2024</span>
+                                    <span class="conv-topic">Risk tolerance review — confirmed moderate growth strategy</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Anticipated Needs</h4>
+                            <ul class="anticipated-needs">
+                                <li>Rebalancing discussion triggered by market movement</li>
+                                <li>Tech sector opportunities (mentioned interest previously)</li>
+                                <li>Q4 portfolio review preparation</li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Client Sentiment</h4>
+                            <p>Last interaction: Positive. Appreciated proactive market updates. Values data-driven recommendations.</p>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        <button class="btn-outline">View Full History</button>
+                        <button class="btn-primary">Prepare Brief</button>
+                    </div>
+                </article>
+
+                <!-- Client: Ahmad Rahman -->
+                <article class="client-card" onclick="openClientDetail('rahman')">
+                    <div class="card-main">
+                        <div class="client-identity">
+                            <div class="client-initials">AR</div>
+                            <div class="client-info">
+                                <h3>Ahmad Rahman</h3>
+                                <p class="client-aum">SGD 32.8M AUM</p>
+                            </div>
+                        </div>
+
+                        <div class="priority-indicator">
+                            <span class="priority-number">2</span>
+                        </div>
+                    </div>
+
+                    <div class="card-context">
+                        <div class="context-section">
+                            <h4>Scheduled Meeting</h4>
+                            <p>Annual review today 13:00 • Faith-based investing focus</p>
+                            <span class="context-meta">Calendar • 08:00</span>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Recent Conversations</h4>
+                            <ul class="conversation-history">
+                                <li>
+                                    <span class="conv-date">15 Sep 2024</span>
+                                    <span class="conv-topic">Annual review scheduled — requested zakat calculation review</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">03 Aug 2024</span>
+                                    <span class="conv-topic">Discussed sustainable sukuk opportunities</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">12 Jun 2024</span>
+                                    <span class="conv-topic">Family beneficiary update — added second child</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Anticipated Needs</h4>
+                            <ul class="anticipated-needs">
+                                <li>Zakat estimate for Ramadan 1446 (client requested)</li>
+                                <li>Shariah compliance verification (annual review)</li>
+                                <li>New sustainable sukuk products (expressed interest)</li>
+                                <li>Beneficiary confirmation (recent family change)</li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Client Sentiment</h4>
+                            <p>Last interaction: Engaged. Values transparency in Islamic investing. Prefers detailed methodology explanations.</p>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        <button class="btn-outline">View Full History</button>
+                        <button class="btn-primary">Prepare Brief</button>
+                    </div>
+                </article>
+
+                <!-- Client: Tan Family -->
+                <article class="client-card" onclick="openClientDetail('tan')">
+                    <div class="card-main">
+                        <div class="client-identity">
+                            <div class="client-initials">TF</div>
+                            <div class="client-info">
+                                <h3>Tan Family Office</h3>
+                                <p class="client-aum">SGD 120.5M AUM • 7 entities</p>
+                            </div>
+                        </div>
+
+                        <div class="priority-indicator">
+                            <span class="priority-number">3</span>
+                        </div>
+                    </div>
+
+                    <div class="card-context">
+                        <div class="context-section">
+                            <h4>Multi-Generational Review</h4>
+                            <p>Quarterly family review 15:30 • 4 family members attending</p>
+                            <span class="context-meta">Calendar • 08:00</span>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Recent Conversations</h4>
+                            <ul class="conversation-history">
+                                <li>
+                                    <span class="conv-date">08 Aug 2024</span>
+                                    <span class="conv-topic">Succession planning discussion — patriarch, son, daughter-in-law attended</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">15 May 2024</span>
+                                    <span class="conv-topic">Consolidated reporting requested across all entities</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">02 Mar 2024</span>
+                                    <span class="conv-topic">New entity established for grandson's education fund</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Anticipated Needs</h4>
+                            <ul class="anticipated-needs">
+                                <li>Consolidated view across 7 entities (previously requested)</li>
+                                <li>Individual performance breakdowns per entity</li>
+                                <li>Succession planning update (ongoing conversation)</li>
+                                <li>Education fund performance review (new entity)</li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Family Dynamics</h4>
+                            <p>Last interaction: Collaborative. Patriarch values input from next generation. Different risk appetites across family members require careful navigation.</p>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        <button class="btn-outline">View Entity Graph</button>
+                        <button class="btn-primary">Prepare Brief</button>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Client Detail View -->
+        <section class="client-detail hidden" id="clientDetail">
+            <!-- Will be populated dynamically -->
+        </section>
+    </main>
+
+    <!-- System Footer -->
+    <footer class="system-footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <span class="system-indicator">System Ready</span>
+                <span class="data-label">SYNTHETIC DEMO DATA</span>
+            </div>
+            <div class="footer-right">
+                <span class="disclaimer">Demo environment • All data synthetic • Not for production use</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/js/capco-app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

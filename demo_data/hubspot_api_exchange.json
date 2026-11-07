@@ -1,0 +1,88 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "token_placeholder": "<HUBSPOT_PRIVATE_APP_TOKEN>",
+  "token_out_of_band": true,
+  "no_real_credential": true,
+  "no_realistic_looking_token": true,
+  "base_url": "https://api.hubapi.com",
+  "auth_header": "Bearer <HUBSPOT_PRIVATE_APP_TOKEN>",
+  "idempotency_key": "appr_001:fmv_20261105_1:map_01",
+  "field_mapping_version": "fmv_20261105_1",
+  "idempotency_key_derivation": "approval_token || ':' || field_mapping_version || ':' || mapping_id = appr_001:fmv_20261105_1:map_01 (12_… §4.10 deviation 2; the literal registry rule approval_token + field_mapping_version is restated in crm_field_mapping.csv)",
+  "patch_request": {
+    "method": "PATCH",
+    "path": "/crm/v3/objects/contacts/hs_ct_001",
+    "headers": {
+      "Authorization": "Bearer <HUBSPOT_PRIVATE_APP_TOKEN>",
+      "Content-Type": "application/json",
+      "Idempotency-Key": "appr_001:fmv_20261105_1:map_01"
+    },
+    "body": {
+      "properties": {
+        "next_meeting_preference": "Quarterly review with daughter present",
+        "preferred_contact_channel": "email",
+        "next_review_date": "2026-12-04",
+        "family_attendee_preference": "Daughter to join"
+      }
+    },
+    "note": "post-Approve write to sandbox portal (synthetic records) · NOT a client-facing send"
+  },
+  "patch_response": {
+    "status": 200,
+    "body": {
+      "id": "hs_ct_001",
+      "properties": {
+        "next_meeting_preference": {
+          "value": "Quarterly review with daughter present"
+        },
+        "next_review_date": {
+          "value": "2026-12-04"
+        },
+        "demo_synthetic_marker": {
+          "value": "SYNTHETIC DEMO DATA"
+        }
+      },
+      "updatedAt": "2026-11-06T02:14:33Z"
+    }
+  },
+  "get_verification": {
+    "method": "GET",
+    "path": "/crm/v3/objects/contacts/hs_ct_001?properties=next_meeting_preference,next_review_date",
+    "headers": {
+      "Authorization": "Bearer <HUBSPOT_PRIVATE_APP_TOKEN>"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "id": "hs_ct_001",
+        "properties": {
+          "next_meeting_preference": "Quarterly review with daughter present",
+          "next_review_date": "2026-12-04"
+        }
+      }
+    },
+    "read_after_write_match": true,
+    "note": "read-after-write GET verification replaces inbound webhooks (E-13)"
+  },
+  "rate_limit_429": {
+    "method": "PATCH",
+    "path": "/crm/v3/objects/contacts/hs_ct_001",
+    "response": {
+      "status": 429,
+      "headers": {
+        "Retry-After": "3"
+      },
+      "body": {
+        "status": "error",
+        "message": "Request limit reached",
+        "correlationId": "SYNTHETIC-429"
+      }
+    },
+    "handling": "respect Retry-After (3000ms) · backoff · no duplicate write · idempotency_key unchanged",
+    "crm_sync_log_ref": "sync_07"
+  },
+  "scope_failure": {
+    "status": 401,
+    "handling": "announced switch to local_stub (X-A1) · C-4 event"
+  }
+}

@@ -1,0 +1,2 @@
+synthetic_marker,source_id,source_kind,as_of,ingested_at,confidence,mode,version_stamp,rm_book_id,rm_id,display_name,book_name,segment_focus,seat_count_free_tier
+SYNTHETIC DEMO DATA,gen:20261105:client.rm_book:rb_001,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,rb_001,rm_sarah,Sarah (RM),Sarah Private Book,HNWI + mass-affluent,2

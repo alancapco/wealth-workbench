@@ -1,0 +1,486 @@
+{
+  "synthetic_marker": "SYNTHETIC DEMO DATA",
+  "manifest_version": "v1.3",
+  "schema_version": "v1.3",
+  "frozen": true,
+  "read_only": true,
+  "scope": "declares every file under demo_data/ (51 data files in files[] + 5 control artefacts in control_artifacts[]); the companion guide ../13_Demo_Seed_Pack.md sits outside the hashed dataset",
+  "seed": "20261105",
+  "generator_id": "RM-WB-DEMO-v1.3",
+  "seed_algorithm": "splitmix64-namespaced",
+  "generator_mode": "seed",
+  "world_as_of": "2026-11-05T17:00:00+08:00",
+  "pg_version": "16.x",
+  "extension_set": [
+    {
+      "name": "timescaledb",
+      "purpose": "market.market_tick hypertable + tick_1m CA (G3/NFR-1)"
+    },
+    {
+      "name": "file_fdw",
+      "purpose": "flat-file <-> Postgres cross-view checksum (G5/FR-30)"
+    }
+  ],
+  "dataset_checksum": "sha256:acc91f0c0038c03726c0314823e1082c7cc65722d950ef9e8dc8ff6d5b86669c",
+  "dataset_checksum_derivation": "sha256 of the concatenation of per-file sha256 hex hashes of the 51 DATA files, sorted by filename (state explicitly)",
+  "verdict": "VERIFIED",
+  "offending_record": null,
+  "honesty_posture": [
+    "REAL",
+    "REAL (SANDBOXED)",
+    "SIMULATED",
+    "STUBBED",
+    "EXTERNAL",
+    "HARD-BLOCKED"
+  ],
+  "three_zero_counters": {
+    "real_dialled_calls": 0,
+    "real_client_facing_sends": 0,
+    "real_pii": 0
+  },
+  "no_new_postgres_tables_from_vendor_adapters": true,
+  "files": [
+    {
+      "path": "accounts.csv",
+      "format": "csv",
+      "table": "client.account",
+      "row_count": 65,
+      "checksum": "sha256:10edf160acf5ad7c48c50a290ea57fe0d0f0c503a30c5c01aa514663a378e9ee",
+      "fdw_twin": "staging.f_accounts"
+    },
+    {
+      "path": "adapter_bindings.csv",
+      "format": "csv",
+      "table": "external.adapter_binding",
+      "row_count": 6,
+      "checksum": "sha256:f5e4e26e0c65f7a288729cf68a7e79af871f9b7e47e48e514b9f8e71c72c7659",
+      "fdw_twin": "staging.f_adapter_bindings"
+    },
+    {
+      "path": "allocation_targets.csv",
+      "format": "csv",
+      "table": "client.allocation_target",
+      "row_count": 325,
+      "checksum": "sha256:410ba8f0a2d97998d43543e79fda7757cc0a6943f81b3588054fc2365c3d2b80",
+      "fdw_twin": "staging.f_allocation_targets"
+    },
+    {
+      "path": "approval_tokens.json",
+      "format": "json",
+      "table": "artefact.approval_token",
+      "row_count": 1,
+      "checksum": "sha256:2bb5f4586eac5840d71af44ee3b6d2415441b244a68ce5586cc92b2663ab53d4",
+      "fdw_twin": "staging.f_approval_tokens"
+    },
+    {
+      "path": "artefacts.json",
+      "format": "json",
+      "table": "artefact.artefact",
+      "row_count": 8,
+      "checksum": "sha256:91616da27dc6b9b2f463aa028c09779ce92e0e85aba8546a41f649884430b37e",
+      "fdw_twin": "staging.f_artefacts"
+    },
+    {
+      "path": "audit_events.csv",
+      "format": "csv",
+      "table": "audit.audit_event",
+      "row_count": 18,
+      "checksum": "sha256:3a31cb03a0935291eb6b0621edd6185ae532d54aea887fc993bcbd1c2acebac6",
+      "fdw_twin": "staging.f_audit_events"
+    },
+    {
+      "path": "bookings.csv",
+      "format": "csv",
+      "table": "external.booking",
+      "row_count": 6,
+      "checksum": "sha256:0146fbb473e1709609bc1e19fb1d8b0f20130c910e86c30db6b820ec435b36d2",
+      "fdw_twin": "staging.f_bookings"
+    },
+    {
+      "path": "clients.csv",
+      "format": "csv",
+      "table": "client.client",
+      "row_count": 42,
+      "checksum": "sha256:a385dc011896199dc2709532e91c5d69d1408f58a1c18e3298391991a5c0f7a1",
+      "fdw_twin": "staging.f_clients"
+    },
+    {
+      "path": "config_versions.csv",
+      "format": "csv",
+      "table": "demo_meta.config_version",
+      "row_count": 20,
+      "checksum": "sha256:b28c7f6532583ff43dd2ad61660eb8470405bb042e4b90f1c50aff984c25e92a",
+      "fdw_twin": "staging.f_config_versions"
+    },
+    {
+      "path": "consent_state.csv",
+      "format": "csv",
+      "table": "client.consent_state",
+      "row_count": 4,
+      "checksum": "sha256:127058aa61da1fc4e9fe76eec8215997ead27ca274f198bf95563a49010d31d4",
+      "fdw_twin": "staging.f_consent_state"
+    },
+    {
+      "path": "crm_contacts.csv",
+      "format": "csv",
+      "table": "crm.crm_contact",
+      "row_count": 42,
+      "checksum": "sha256:681aaa9d4cadfda4f419384f62e824ed2137b46576f889e30523450bbc5f654e",
+      "fdw_twin": "staging.f_crm_contacts"
+    },
+    {
+      "path": "crm_field_mapping.csv",
+      "format": "csv",
+      "table": "crm.crm_field_mapping",
+      "row_count": 8,
+      "checksum": "sha256:c8024683b615d64d5aacc78aeccea6b3efa589f00ae05add179a80eacbbeaf03",
+      "fdw_twin": "staging.f_crm_field_mapping"
+    },
+    {
+      "path": "crm_interactions.csv",
+      "format": "csv",
+      "table": "crm.crm_interaction",
+      "row_count": 12,
+      "checksum": "sha256:7ea4bd139b7183690c4ed3022f1d5ca6aa5cf6103eac1eb25a734de070ac3b30",
+      "fdw_twin": "staging.f_crm_interactions"
+    },
+    {
+      "path": "crm_old_new_preview.csv",
+      "format": "csv",
+      "table": "review.old_new_preview",
+      "row_count": 8,
+      "checksum": "sha256:f4c4e0db794f118c1aedf748936b07959032bd9f458aa0f69ca94223eeb76cbf",
+      "fdw_twin": "staging.f_crm_old_new_preview"
+    },
+    {
+      "path": "crm_opportunities.csv",
+      "format": "csv",
+      "table": "crm.crm_opportunity",
+      "row_count": 5,
+      "checksum": "sha256:08e8b0129e0db8abbd298ad75dbeae0bf41953a472306626cb5549dea1811fd6",
+      "fdw_twin": "staging.f_crm_opportunities"
+    },
+    {
+      "path": "crm_sync_log.csv",
+      "format": "csv",
+      "table": "crm.crm_sync_log",
+      "row_count": 8,
+      "checksum": "sha256:82d07e96843724267898cfddc3d848ef7c31938adbb247740af64bb4115510ad",
+      "fdw_twin": "staging.f_crm_sync_log"
+    },
+    {
+      "path": "crm_tasks.csv",
+      "format": "csv",
+      "table": "crm.crm_task",
+      "row_count": 6,
+      "checksum": "sha256:16d4067574a9bd7ec6264acf4988797c1c16fe3386ce5df320dafaad53450873",
+      "fdw_twin": "staging.f_crm_tasks"
+    },
+    {
+      "path": "demo_sink_messages.csv",
+      "format": "csv",
+      "table": "artefact.demo_sink_message",
+      "row_count": 3,
+      "checksum": "sha256:dd203f2ec91258d225694f8162a9d6d3874058266e65e36fda3864d66e93f76b",
+      "fdw_twin": "staging.f_demo_sink_messages"
+    },
+    {
+      "path": "email_messages.csv",
+      "format": "csv",
+      "table": "artefact.demo_sink_message",
+      "row_count": 4,
+      "checksum": "sha256:314f064905ba444e47b16de69b3e4cb528bd712a7888e69f593fc7f39acdd8b4",
+      "fdw_twin": "staging.f_email_messages"
+    },
+    {
+      "path": "email_templates.json",
+      "format": "json",
+      "table": "external.email_template",
+      "row_count": 3,
+      "checksum": "sha256:68230d5f2e06a1bd2f1f80817d24847756771a10839fd02a3b04f2a2053b2945",
+      "fdw_twin": "staging.f_email_templates"
+    },
+    {
+      "path": "email_threads.csv",
+      "format": "csv",
+      "table": "external.email_thread",
+      "row_count": 4,
+      "checksum": "sha256:979a1b5cd8f296370c061321dd84fe0053f108d39a3732e295ec53c3ad6871e1",
+      "fdw_twin": "staging.f_email_threads"
+    },
+    {
+      "path": "entitlement_decisions.csv",
+      "format": "csv",
+      "table": "graph.entitlement_decision",
+      "row_count": 6,
+      "checksum": "sha256:950c1f6a6b5903972dbf6f32ad51e26379eb9e9aae93e628f9575af4d512aa22",
+      "fdw_twin": "staging.f_entitlement_decisions"
+    },
+    {
+      "path": "entitlement_matrix.csv",
+      "format": "csv",
+      "table": "graph.entitlement_rule",
+      "row_count": 12,
+      "checksum": "sha256:cde866609696ce53ca38c3f2f00dc8c302614b9baebf9658d09914312491c296",
+      "fdw_twin": "staging.f_entitlement_matrix"
+    },
+    {
+      "path": "extraction_items.csv",
+      "format": "csv",
+      "table": "artefact.extraction_item",
+      "row_count": 6,
+      "checksum": "sha256:332ffdec92dfadf2461eb74a15b0b475ddbb20a899466eb30cbbac4a459e4671",
+      "fdw_twin": "staging.f_extraction_items"
+    },
+    {
+      "path": "family_packs.json",
+      "format": "json",
+      "table": "artefact.artefact",
+      "row_count": 2,
+      "checksum": "sha256:f2ec8b3d653d460ad6238f0e20afd924538ed5d874a6340be0bd5636580f4078",
+      "fdw_twin": "staging.f_family_packs"
+    },
+    {
+      "path": "feed_status.csv",
+      "format": "csv",
+      "table": "demo_meta.feed_status",
+      "row_count": 2,
+      "checksum": "sha256:1f1922b00312aaf7f5931664f24a6fde0b9585c5f7b9d6855218d863853a93c7",
+      "fdw_twin": "staging.f_feed_status"
+    },
+    {
+      "path": "graph_edges.csv",
+      "format": "csv",
+      "table": "graph.graph_edge",
+      "row_count": 8,
+      "checksum": "sha256:e96944f7123abb168a81d51f8f6fd51ea8a0ce04be29ff268a85e3aa2ad305a6",
+      "fdw_twin": "staging.f_graph_edges"
+    },
+    {
+      "path": "graph_nodes.csv",
+      "format": "csv",
+      "table": "graph.graph_node",
+      "row_count": 6,
+      "checksum": "sha256:051c92cf36169157fb4aaf5a2d0d2a0d5d28ae6554054f4fc131295c72ce8362",
+      "fdw_twin": "staging.f_graph_nodes"
+    },
+    {
+      "path": "graph_source_docs.csv",
+      "format": "csv",
+      "table": "graph.source_doc",
+      "row_count": 8,
+      "checksum": "sha256:f6d4a4393e94237a38f244bbdcad88de1ace67c9a53b3619a9346355cea5bf39",
+      "fdw_twin": "staging.f_graph_source_docs"
+    },
+    {
+      "path": "holdings.csv",
+      "format": "csv",
+      "table": "client.holding",
+      "row_count": 342,
+      "checksum": "sha256:041bb1bc30bfca1382f75605aa1ee16443d45b2ed577f624891393fb59fdf692",
+      "fdw_twin": "staging.f_holdings"
+    },
+    {
+      "path": "hubspot_api_exchange.json",
+      "format": "json",
+      "table": "external.hubspot_api_exchange",
+      "row_count": 5,
+      "checksum": "sha256:f16a144957cefab6721516f70e1765d79dec9bd1955e4d2e9251a977ead59169",
+      "fdw_twin": "staging.f_hubspot_api_exchange"
+    },
+    {
+      "path": "hubspot_portal_seed.json",
+      "format": "json",
+      "table": "external.hubspot_portal",
+      "row_count": 16,
+      "checksum": "sha256:4d5da3f5a06821e1c9b085a76c2eeaaa0c54b0d4d3e8854b05a34b0cc3c078c0",
+      "fdw_twin": "staging.f_hubspot_portal_seed"
+    },
+    {
+      "path": "instruments.csv",
+      "format": "csv",
+      "table": "market.instrument",
+      "row_count": 48,
+      "checksum": "sha256:4a4b71e8ae45ab6df9accbc0c44f7f879ef5d93a21fc9bae0fe345cd5713e746",
+      "fdw_twin": "staging.f_instruments"
+    },
+    {
+      "path": "interactions.csv",
+      "format": "csv",
+      "table": "client.interaction",
+      "row_count": 14,
+      "checksum": "sha256:efb6cc95c787a4a156efc468d7b0d543f285eb39e262313d7d6daddc88cc2e96",
+      "fdw_twin": "staging.f_interactions"
+    },
+    {
+      "path": "market_signals.csv",
+      "format": "csv",
+      "table": "market.market_signal",
+      "row_count": 1,
+      "checksum": "sha256:4fcb86990ed4220a6d7858cbe9d1976e3fd0eb1bb3839492cc07f94bc5e22578",
+      "fdw_twin": "staging.f_market_signals"
+    },
+    {
+      "path": "market_ticks_live.csv",
+      "format": "csv",
+      "table": "market.market_tick",
+      "row_count": 1,
+      "checksum": "sha256:d10fc03bf20be212f47e4185ea355ad63c7135db4f83418a637a531c2b602d0e",
+      "fdw_twin": "staging.f_market_ticks_live"
+    },
+    {
+      "path": "market_ticks_replay.csv",
+      "format": "csv",
+      "table": "market.market_tick",
+      "row_count": 120,
+      "checksum": "sha256:d9bc9c5228e3398f39887f3570fd2a9c9fe89f905b2a095bec747c8e904c519b",
+      "fdw_twin": "staging.f_market_ticks_replay"
+    },
+    {
+      "path": "meeting_attendees.csv",
+      "format": "csv",
+      "table": "external.meeting_attendee",
+      "row_count": 14,
+      "checksum": "sha256:a0b059579601acca117109efc8f266b7e4e8c2bf4a7a66c6e69590f7d4d7ee35",
+      "fdw_twin": "staging.f_meeting_attendees"
+    },
+    {
+      "path": "meetings_calendar.csv",
+      "format": "csv",
+      "table": "external.calendar_event",
+      "row_count": 6,
+      "checksum": "sha256:5c949584f4d1faeee423a93f417e8391cf922b82f06a41a9ea3aa3da7699a02b",
+      "fdw_twin": "staging.f_meetings_calendar"
+    },
+    {
+      "path": "memory_facts.csv",
+      "format": "csv",
+      "table": "graph.memory_fact",
+      "row_count": 19,
+      "checksum": "sha256:b0e15d717496cbc1d862a8e06f76dc28813b0f8ffbb168c62a7924d3adf04eff",
+      "fdw_twin": "staging.f_memory_facts"
+    },
+    {
+      "path": "news_items.csv",
+      "format": "csv",
+      "table": "market.news_item",
+      "row_count": 8,
+      "checksum": "sha256:17ebf131f04afe904d524f1408e2f91ee692c789de5d29a7caf493325ec02662",
+      "fdw_twin": "staging.f_news_items"
+    },
+    {
+      "path": "products.csv",
+      "format": "csv",
+      "table": "client.product",
+      "row_count": 24,
+      "checksum": "sha256:811ca1d1a6b65cd23a9ff8022cd17a97ad49d87da355ce03ebbf5171d6bf25a2",
+      "fdw_twin": "staging.f_products"
+    },
+    {
+      "path": "retell_call.json",
+      "format": "json",
+      "table": "external.retell_call",
+      "row_count": 16,
+      "checksum": "sha256:9c127b247f23d714661cd056dcd52518526e6b791d21fc5f4d2ec9e1bb5521a2",
+      "fdw_twin": "staging.f_retell_call"
+    },
+    {
+      "path": "rm_books.csv",
+      "format": "csv",
+      "table": "client.rm_book",
+      "row_count": 1,
+      "checksum": "sha256:68431b3dfd318d9c58c00aa7c2dd3f1be69720b0eb040dca02326b908d5bff96",
+      "fdw_twin": "staging.f_rm_books"
+    },
+    {
+      "path": "scenarios.json",
+      "format": "json",
+      "table": "demo_meta.scenario",
+      "row_count": 5,
+      "checksum": "sha256:08bb6da076e6793dff72559d263b81bf85f006bc975dc3eab5fc1b0aa715e48b",
+      "fdw_twin": "staging.f_scenarios"
+    },
+    {
+      "path": "suitability_state.csv",
+      "format": "csv",
+      "table": "client.suitability_state",
+      "row_count": 6,
+      "checksum": "sha256:536266814a08733ffb40239ebfa7f1581183b34f49f2291cb5c7d56e6708e768",
+      "fdw_twin": "staging.f_suitability_state"
+    },
+    {
+      "path": "transcript_utterances.csv",
+      "format": "csv",
+      "table": "external.transcript_utterance",
+      "row_count": 16,
+      "checksum": "sha256:119030fd7c19ef1e3a5b0dcfeb50d9b75ffbe87a2c7f6867e6829208a7896125",
+      "fdw_twin": "staging.f_transcript_utterances"
+    },
+    {
+      "path": "vendor_health.csv",
+      "format": "csv",
+      "table": "external.vendor_health",
+      "row_count": 6,
+      "checksum": "sha256:127a657372d961f33e8841f19c6d05715af6e94f238943e86a2492b35aed673a",
+      "fdw_twin": "staging.f_vendor_health"
+    },
+    {
+      "path": "version_registry.csv",
+      "format": "csv",
+      "table": "demo_meta.version_registry",
+      "row_count": 10,
+      "checksum": "sha256:f92a501900a184fe9cb94ff352f30e31937bcd75f5688ea346e3951950316773",
+      "fdw_twin": "staging.f_version_registry"
+    },
+    {
+      "path": "workflow_instances.csv",
+      "format": "csv",
+      "table": "workflow.workflow_instance",
+      "row_count": 1,
+      "checksum": "sha256:e5e782804c328e9c71f0fb535973f1604c08e3930c09971e2803c819023592f7",
+      "fdw_twin": "staging.f_workflow_instances"
+    },
+    {
+      "path": "workflow_stages.csv",
+      "format": "csv",
+      "table": "workflow.workflow_stage",
+      "row_count": 6,
+      "checksum": "sha256:ad4abcdcdd03ec18c134f8e2cdfb5b15abf341fd237234ca525902e33ace84a2",
+      "fdw_twin": "staging.f_workflow_stages"
+    }
+  ],
+  "control_artifacts": [
+    {
+      "path": "README.md",
+      "checksum": "sha256:9d987dbd5c0857f97ee37962db34116966d5329aaf1154ce2391fcc5b9303d51",
+      "row_count": "n/a (documentation)"
+    },
+    {
+      "path": "checksums.sha256",
+      "checksum": "sha256:22e17cf9f0f582252259b2f4b51b063d9e952a9ab30de71140ebb2a635c00e76",
+      "row_count": 52
+    },
+    {
+      "path": "schema_contract.json",
+      "checksum": "sha256:6187d4a92d02099bfebb358f13618e37625b8816536a4b441d9ec03f205a9edf",
+      "row_count": 35
+    },
+    {
+      "path": "integrity_report.json",
+      "checksum": "sha256:16bc0220bee1f1b91defdf3b3ff7954e4823dce80d027f4092e004d6cc2f9a27",
+      "row_count": 34
+    },
+    {
+      "path": "manifest_v1.3.json",
+      "checksum": "n/a (self-reference — manifest is read-only)",
+      "row_count": "n/a"
+    }
+  ],
+  "notes": [
+    "market_ticks_replay.csv is a representative 120-frame excerpt; full_stream_row_count = 1200 is generator-emitted (NOT padded here)",
+    "HubSpot Free / Retell AI are EXTERNAL REFERENCES — no new Postgres table, 40-table freeze intact, manifest v1.3 NOT bumped",
+    "The 6 crm.* tables are CRM ADAPTER · LOCAL PROJECTION; crm_old_new_preview.csv is a review-surface artefact, not a Postgres table",
+    "These files are the SPECIFIED OUTPUT SHAPE of a future generator — not a running generator, not a production migration",
+    "The additive crm/vendor external-reference files are declared in manifest_addendum_crm.json (architect-authored, Phase-4 sync), NOT inside this frozen manifest; that addendum is the 52nd checksums.sha256 line"
+  ]
+}

@@ -1,0 +1,5 @@
+synthetic_marker,source_id,source_kind,as_of,ingested_at,confidence,mode,version_stamp,thread_id,client_id,subject,related_event_id,state,as_of
+SYNTHETIC DEMO DATA,gen:20261105:external.email_thread:thr_01,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,thr_01,cl_wong_001,Q3 review notes,evt_01,draft,2026-11-05T17:00:00+08:00
+SYNTHETIC DEMO DATA,gen:20261105:external.email_thread:thr_02,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,thr_02,cl_wong_001,Follow-up after 6 Nov review,evt_01,draft,2026-11-05T17:00:00+08:00
+SYNTHETIC DEMO DATA,gen:20261105:external.email_thread:thr_03,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,thr_03,cl_tan_003,Family pack distribution,evt_03,draft,2026-11-05T17:00:00+08:00
+SYNTHETIC DEMO DATA,gen:20261105:external.email_thread:thr_04,seeded,2026-11-05T17:00:00+08:00,2026-11-05T17:00:00+08:00,1.000,seed,schema v1.3,thr_04,cl_lim_002,Consent wording (illustrative),evt_02,draft,2026-11-05T17:00:00+08:00

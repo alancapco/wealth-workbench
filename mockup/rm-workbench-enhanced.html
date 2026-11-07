@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RM Workbench MVP — Enhanced Design | Capco</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Capco Brand Colors */
+            --capco-black: #000000;
+            --capco-white: #FFFFFF;
+            --capco-gray-900: #0A0A0A;
+            --capco-gray-800: #1A1A1A;
+            --capco-gray-700: #2A2A2A;
+            --capco-gray-600: #3A3A3A;
+            --capco-gray-500: #666666;
+            --capco-gray-400: #999999;
+            --capco-gray-300: #CCCCCC;
+            --capco-gray-200: #E5E5E5;
+            --capco-gray-100: #F5F5F5;
+            --capco-gray-50: #FAFAFA;
+
+            /* Semantic State Colors */
+            --color-success: #2E7D32;
+            --color-warning: #F57C00;
+            --color-error: #C62828;
+            --color-info: #1565C0;
+
+            /* Spacing System */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-6: 24px;
+            --space-8: 32px;
+            --space-12: 48px;
+            --space-16: 64px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--capco-black);
+            background: var(--capco-gray-50);
+        }
+
+        /* SCR-01: Persistent Header */
+        .main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: var(--capco-black);
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1920px;
+            margin: 0 auto;
+            height: 100%;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-text {
+            color: var(--capco-white);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .product-name {
+            color: var(--capco-white);
+            font-weight: 300;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding-left: 1rem;
+            border-left: 1px solid var(--capco-gray-600);
+        }
+
+        .header-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .mode-chip {
+            padding: 0.5rem 1rem;
+            background: var(--color-success);
+            color: white;
+            border-radius: 2px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .workflow-trace {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            color: var(--capco-gray-500);
+        }
+
+        .workflow-stage {
+            color: var(--capco-gray-500);
+            transition: color 0.3s;
+        }
+
+        .workflow-stage.active {
+            color: var(--capco-white);
+            font-weight: 600;
+        }
+
+        .user-profile {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .user-name {
+            color: var(--capco-white);
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .user-role {
+            color: var(--capco-gray-400);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 72px;
+            margin-bottom: 56px;
+            min-height: calc(100vh - 128px);
+        }
+
+        .screen {
+            display: none;
+            padding: 3rem 2rem;
+            max-width: 1920px;
+            margin: 0 auto;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .date-display {
+            color: var(--capco-gray-500);
+            font-size: 1.125rem;
+            margin-bottom: 3rem;
+        }
+
+        /* Dashboard KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .kpi-card {
+            background: white;
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .kpi-card:hover {
+            border-color: var(--capco-gray-400);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--capco-gray-500);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 300;
+            color: var(--capco-black);
+            margin-bottom: 0.25rem;
+        }
+
+        .kpi-subtitle {
+            font-size: 0.875rem;
+            color: var(--capco-gray-600);
+        }
+
+        .kpi-change {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        .kpi-change.positive { color: var(--color-success); }
+        .kpi-change.negative { color: var(--color-error); }
+
+        /* Client Cards with Full Context */
+        .client-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .client-card {
+            background: white;
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .client-card:hover {
+            border-color: var(--capco-black);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+
+        .client-card.high-priority {
+            border-left: 4px solid var(--capco-black);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--capco-gray-200);
+        }
+
+        .client-identity {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .client-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 4px;
+            background: var(--capco-black);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .client-info h3 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .client-meta {
+            font-size: 0.875rem;
+            color: var(--capco-gray-500);
+            font-weight: 500;
+        }
+
+        .priority-badge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .priority-number {
+            width: 48px;
+            height: 48px;
+            border: 2px solid var(--capco-black);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+
+        .priority-change {
+            font-size: 0.7rem;
+            color: var(--capco-gray-400);
+            text-transform: uppercase;
+        }
+
+        /* Reason Section - Key Insight */
+        .reason-section {
+            background: #FFF3E0;
+            border-left: 4px solid var(--color-warning);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+
+        .reason-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .reason-title {
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+
+        .reason-badge {
+            padding: 0.25rem 0.75rem;
+            background: var(--color-warning);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-radius: 2px;
+        }
+
+        .reason-description {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+        }
+
+        .evidence-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        /* Evidence Chips - Provenance First-Class */
+        .evidence-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid transparent;
+        }
+
+        .evidence-chip:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .evidence-chip.live {
+            background: #E8F5E9;
+            border-color: var(--color-success);
+            color: #1B5E20;
+        }
+
+        .evidence-chip.portfolio {
+            background: #E3F2FD;
+            border-color: var(--color-info);
+            color: #0D47A1;
+        }
+
+        .evidence-chip.derived {
+            background: #FFF3E0;
+            border-color: var(--color-warning);
+            color: #E65100;
+        }
+
+        .evidence-chip.manual {
+            background: var(--capco-gray-100);
+            border-color: var(--capco-gray-400);
+            color: var(--capco-gray-700);
+        }
+
+        /* Context Grid - Rich RM Information */
+        .context-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--capco-gray-200);
+        }
+
+        .context-section h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--capco-gray-500);
+            margin-bottom: 0.75rem;
+        }
+
+        .conversation-history {
+            list-style: none;
+        }
+
+        .conversation-history li {
+            padding: 0.5rem 0 0.5rem 1rem;
+            border-left: 2px solid var(--capco-gray-200);
+            margin-bottom: 0.75rem;
+        }
+
+        .conv-date {
+            font-size: 0.75rem;
+            color: var(--capco-gray-400);
+            font-weight: 500;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .conv-topic {
+            font-size: 0.875rem;
+            color: var(--capco-black);
+            line-height: 1.5;
+        }
+
+        .anticipated-list {
+            list-style: none;
+        }
+
+        .anticipated-list li {
+            font-size: 0.875rem;
+            padding-left: 1rem;
+            position: relative;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .anticipated-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--color-warning);
+            font-weight: 600;
+        }
+
+        .client-profile {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: var(--capco-gray-700);
+        }
+
+        .context-meta {
+            font-size: 0.75rem;
+            color: var(--capco-gray-400);
+            margin-top: 0.5rem;
+        }
+
+        /* Card Actions */
+        .card-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--capco-gray-200);
+        }
+
+        /* Buttons */
+        button {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2px;
+        }
+
+        .btn-primary {
+            background: var(--capco-black);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--capco-gray-800);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--capco-black);
+            border: 1px solid var(--capco-black);
+        }
+
+        .btn-outline:hover {
+            background: var(--capco-black);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            color: white;
+            font-size: 1rem;
+            padding: 1rem 2rem;
+        }
+
+        .btn-success:hover {
+            background: #1B5E20;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        }
+
+        /* Brief Screen */
+        .brief-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .brief-section {
+            background: white;
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .brief-section h3 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--capco-gray-600);
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-content {
+            font-size: 0.9375rem;
+            line-height: 1.7;
+            color: var(--capco-black);
+            margin-bottom: 0.75rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9375rem;
+            border: 1px solid var(--capco-gray-300);
+            border-radius: 4px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        /* Approval Bar - Gate UI */
+        .approval-bar {
+            position: sticky;
+            bottom: 56px;
+            background: white;
+            border-top: 2px solid var(--capco-black);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .approval-info {
+            flex: 1;
+        }
+
+        .approval-info h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .approval-info p {
+            font-size: 0.875rem;
+            color: var(--capco-gray-500);
+        }
+
+        /* Consent Banner */
+        .consent-banner {
+            background: white;
+            border: 2px solid var(--capco-black);
+            border-radius: 4px;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 4rem auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .consent-banner h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .consent-content {
+            background: var(--capco-gray-50);
+            padding: 1.5rem;
+            border-left: 4px solid var(--capco-gray-600);
+            margin: 1.5rem 0;
+            font-size: 0.9375rem;
+            line-height: 1.7;
+        }
+
+        .consent-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        /* Review Grid - Six Blocks */
+        .review-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .review-block {
+            background: white;
+            border: 1px solid var(--capco-gray-200);
+            border-radius: 4px;
+            padding: 1.5rem;
+        }
+
+        .review-block.full-width {
+            grid-column: span 2;
+        }
+
+        .review-block h3 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--capco-gray-600);
+            margin-bottom: 1rem;
+        }
+
+        .review-item {
+            padding: 0.75rem;
+            background: var(--capco-gray-50);
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .crm-diff {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--capco-gray-50);
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+        }
+
+        .old-value {
+            text-decoration: line-through;
+            color: var(--capco-gray-500);
+        }
+
+        .new-value {
+            font-weight: 600;
+            color: var(--color-success);
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 88px;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            background: var(--capco-black);
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 2000;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-success {
+            background: var(--color-success);
+        }
+
+        /* Footer - SCR-10: Health Bar */
+        .system-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: var(--capco-black);
+            z-index: 1000;
+        }
+
+        .footer-content {
+            max-width: 1920px;
+            margin: 0 auto;
+            height: 100%;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .footer-indicator {
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .footer-badge {
+            padding: 0.25rem 0.75rem;
+            background: var(--capco-gray-900);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-radius: 2px;
+        }
+
+        .footer-disclaimer {
+            color: var(--capco-gray-500);
+            font-size: 0.75rem;
+        }
+
+        /* End Card */
+        .end-card {
+            text-align: center;
+            padding: 6rem 2rem;
+        }
+
+        .end-card h1 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--capco-gray-600);
+            margin: 1rem 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1440px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .context-grid, .review-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- SCR-01: Persistent Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="logo">
+                    <img src="assets/images/capco_logo.png" alt="Capco" style="height: 36px; width: auto;">
+                    <span class="product-name">RM Workbench MVP</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="mode-chip">● LIVE · Market Data · <span class="clock-time">09:58:14 SGT</span></div>
+                <div class="workflow-trace">
+                    <span class="workflow-stage active" data-stage="rank.clients">rank.clients</span> →
+                    <span class="workflow-stage" data-stage="brief.generate">brief.generate</span> →
+                    <span class="workflow-stage" data-stage="meeting.capture">meeting.capture</span> →
+                    <span class="workflow-stage" data-stage="review.approve">review.approve</span>
+                    <span style="margin-left: 1rem; color: var(--capco-gray-400);">corr_id: 8f21a4b2</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-profile">
+                    <span class="user-name">Sarah Chen</span>
+                    <span class="user-role">Relationship Manager</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- SCR-02: My Day - Enhanced with Full Context -->
+        <section id="my-day" class="screen active">
+            <h1>My Day</h1>
+            <p class="date-display">Tuesday, 16 March 2026 · <span class="clock-time">09:58:32 SGT</span></p>
+
+            <!-- KPI Dashboard -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">Total AUM Under Management</div>
+                    <div class="kpi-value">$428.5M</div>
+                    <div class="kpi-subtitle">Across 45 clients</div>
+                    <div class="kpi-change positive">↑ $12.3M this month (+2.9%)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Today's Meetings</div>
+                    <div class="kpi-value">3</div>
+                    <div class="kpi-subtitle">Next at 10:00 AM</div>
+                    <div class="kpi-change">Kenneth Wong · Rebalancing</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Open Actions</div>
+                    <div class="kpi-value">7</div>
+                    <div class="kpi-subtitle">Requiring attention</div>
+                    <div class="kpi-change negative">2 overdue</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Portfolio Performance</div>
+                    <div class="kpi-value">+5.8%</div>
+                    <div class="kpi-subtitle">YTD weighted average</div>
+                    <div class="kpi-change positive">↑ Benchmark +1.2%</div>
+                </div>
+            </div>
+
+            <h2 style="margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--capco-gray-200);">Priority Clients — Ranked by Opportunity, Risk & Retention</h2>
+
+            <!-- Client Card 1: Kenneth Wong - High Priority -->
+            <div class="client-cards">
+                <div class="client-card high-priority" onclick="navigateTo('client-brief')">
+                    <div class="card-header">
+                        <div class="client-identity">
+                            <div class="client-avatar">KW</div>
+                            <div class="client-info">
+                                <h3>Kenneth Wong</h3>
+                                <div class="client-meta">HKD 45.2M AUM · Private Wealth · Hong Kong</div>
+                            </div>
+                        </div>
+                        <div class="priority-badge">
+                            <div class="priority-number">1</div>
+                            <div class="priority-change">↑ from 4</div>
+                        </div>
+                    </div>
+
+                    <!-- Reason Code - WHY ranked #1 -->
+                    <div class="reason-section">
+                        <div class="reason-header">
+                            <div class="reason-title">Portfolio drift triggered by live market event</div>
+                            <div class="reason-badge">OPPORTUNITY</div>
+                        </div>
+                        <div class="reason-description">
+                            HSBC Holdings +2.3% increased position to 7.2% (was 5.8%). Portfolio drift: 6 percentage points from target allocation. Rebalancing discussion recommended based on stated preferences.
+                        </div>
+                        <div class="evidence-chips">
+                            <span class="evidence-chip live">● LIVE · Reuters · 09:58:14 SGT</span>
+                            <span class="evidence-chip portfolio">◈ Portfolio · Prior close</span>
+                            <span class="evidence-chip derived">ƒ Derived · rule-pack v1.2 · 09:58:18</span>
+                        </div>
+                    </div>
+
+                    <!-- Context Grid - Rich Information for RM -->
+                    <div class="context-grid">
+                        <div class="context-section">
+                            <h4>Recent Conversations</h4>
+                            <ul class="conversation-history">
+                                <li>
+                                    <span class="conv-date">15 Oct 2024</span>
+                                    <span class="conv-topic">Discussed quarterly rebalancing preferences — prefers gradual execution to minimize tax impact</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">22 Sep 2024</span>
+                                    <span class="conv-topic">Expressed interest in Hong Kong tech sector opportunities, specifically fintech</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">10 Aug 2024</span>
+                                    <span class="conv-topic">Annual review completed — updated risk tolerance to moderate-growth</span>
+                                </li>
+                            </ul>
+                            <span class="evidence-chip manual" style="font-size: 0.7rem;">✎ D5 Client Memory · Last sync 09:57</span>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Anticipated Needs</h4>
+                            <ul class="anticipated-list">
+                                <li>Rebalancing discussion triggered by HSBC market movement</li>
+                                <li>Tech sector opportunities aligned to expressed interest (22 Sep)</li>
+                                <li>Consolidated quarterly statement (requested last meeting)</li>
+                            </ul>
+                            <span class="evidence-chip derived" style="font-size: 0.7rem; margin-top: 0.5rem;">ƒ Copilot Brief · Generated 09:58:22</span>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Client Profile & Preferences</h4>
+                            <div class="client-profile">
+                                Values data-driven recommendations with detailed methodology. Prefers conservative-growth strategy with gradual portfolio adjustments. Responsive to proactive outreach on market opportunities.
+                            </div>
+                            <div class="context-meta">Risk Profile: Moderate · Last Updated: 10 Aug 2024</div>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Family & Relationship Context</h4>
+                            <div class="client-profile">
+                                Individual account. Mentioned daughter should join next meeting (noted 15 Oct). Decision-maker: Self. Preferred communication: Email + in-person quarterly.
+                            </div>
+                            <div class="context-meta">Meeting Frequency: Quarterly · Last Meeting: 15 Oct 2024</div>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        <button class="btn-primary" onclick="event.stopPropagation(); navigateTo('client-brief');">Open Brief & Prepare</button>
+                        <button class="btn-outline" onclick="event.stopPropagation();">View Full History</button>
+                        <button class="btn-outline" onclick="event.stopPropagation();">Schedule Meeting</button>
+                    </div>
+                </div>
+
+                <!-- Client Card 2: Ahmad Rahman -->
+                <div class="client-card">
+                    <div class="card-header">
+                        <div class="client-identity">
+                            <div class="client-avatar">AR</div>
+                            <div class="client-info">
+                                <h3>Ahmad Rahman</h3>
+                                <div class="client-meta">SGD 32.8M AUM · Faith-Based Investing · Singapore</div>
+                            </div>
+                        </div>
+                        <div class="priority-badge">
+                            <div class="priority-number">2</div>
+                            <div class="priority-change">unchanged</div>
+                        </div>
+                    </div>
+
+                    <div class="reason-section">
+                        <div class="reason-header">
+                            <div class="reason-title">Annual review — Shariah compliance & zakat calculation</div>
+                            <div class="reason-badge">SCHEDULED</div>
+                        </div>
+                        <div class="reason-description">
+                            Annual faith-based portfolio review scheduled for 1:00 PM today. Zakat calculation prepared using last full lunar year (hawl). Screening methodology documentation ready for client review.
+                        </div>
+                        <div class="evidence-chips">
+                            <span class="evidence-chip portfolio">◈ Portfolio · Prior close</span>
+                            <span class="evidence-chip derived">ƒ Zakat estimate · v2.1 · 09:45:03</span>
+                            <span class="evidence-chip manual">✎ Calendar · Sync 09:30</span>
+                        </div>
+                    </div>
+
+                    <div class="context-grid">
+                        <div class="context-section">
+                            <h4>Recent Conversations</h4>
+                            <ul class="conversation-history">
+                                <li>
+                                    <span class="conv-date">16 Mar 2025 (Last year)</span>
+                                    <span class="conv-topic">Annual zakat calculation — appreciated detailed methodology breakdown</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">10 Dec 2024</span>
+                                    <span class="conv-topic">Requested Shariah-compliant ESG options for fixed income allocation</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">15 Sep 2024</span>
+                                    <span class="conv-topic">Quarterly review — satisfied with screening process transparency</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Anticipated Needs</h4>
+                            <ul class="anticipated-list">
+                                <li>Zakat calculation for current hawl period</li>
+                                <li>Review of Shariah screening methodology</li>
+                                <li>ESG-aligned Shariah-compliant fixed income options</li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Faith-Based Preferences</h4>
+                            <div class="client-profile">
+                                Strict Shariah compliance required. Values transparency in screening methodology. Prefers annual zakat documentation with detailed calculation breakdown. Conservative approach to purification.
+                            </div>
+                            <div class="context-meta">Shariah Standard: AAOIFI · Last Screen: Prior close</div>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Communication Preferences</h4>
+                            <div class="client-profile">
+                                Prefers in-person meetings for annual reviews. Appreciates written documentation before meetings. Responsive to recommendations backed by religious scholarship citations.
+                            </div>
+                            <div class="context-meta">Preferred Language: English · Meeting: Annual + Quarterly</div>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        <button class="btn-primary" onclick="event.stopPropagation();">Open Brief & Prepare</button>
+                        <button class="btn-outline" onclick="event.stopPropagation();">View Zakat Calculation</button>
+                    </div>
+                </div>
+
+                <!-- Client Card 3: Tan Family Office -->
+                <div class="client-card">
+                    <div class="card-header">
+                        <div class="client-identity">
+                            <div class="client-avatar">TF</div>
+                            <div class="client-info">
+                                <h3>Tan Family Office</h3>
+                                <div class="client-meta">SGD 120.5M AUM · 7 entities · Multi-generational · Singapore</div>
+                            </div>
+                        </div>
+                        <div class="priority-badge">
+                            <div class="priority-number">3</div>
+                            <div class="priority-change">unchanged</div>
+                        </div>
+                    </div>
+
+                    <div class="reason-section">
+                        <div class="reason-header">
+                            <div class="reason-title">Quarterly family review — 4 members attending, consolidated reporting</div>
+                            <div class="reason-badge">SCHEDULED</div>
+                        </div>
+                        <div class="reason-description">
+                            Multi-generational family meeting at 3:30 PM. Patriarch + 3 family members attending. Consolidated view prepared across 7 entities. Node-level entitlements enforced for Gen 2 & 3 views.
+                        </div>
+                        <div class="evidence-chips">
+                            <span class="evidence-chip portfolio">◈ Entity Graph · 7 nodes · 09:52</span>
+                            <span class="evidence-chip derived">ƒ Consolidated Report · v3.1 · 09:55</span>
+                            <span class="evidence-chip manual">✎ Meeting Pack · 4 versions</span>
+                        </div>
+                    </div>
+
+                    <div class="context-grid">
+                        <div class="context-section">
+                            <h4>Recent Family Conversations</h4>
+                            <ul class="conversation-history">
+                                <li>
+                                    <span class="conv-date">15 Dec 2024</span>
+                                    <span class="conv-topic">Succession planning discussion — Gen 2 expressing interest in increased involvement</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">20 Sep 2024</span>
+                                    <span class="conv-topic">Quarterly review — approved consolidated reporting format across entities</span>
+                                </li>
+                                <li>
+                                    <span class="conv-date">15 Jun 2024</span>
+                                    <span class="conv-topic">New entity setup for Gen 3 education trust</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Anticipated Needs</h4>
+                            <ul class="anticipated-list">
+                                <li>Consolidated performance across 7 entities</li>
+                                <li>Succession planning update (Gen 2 interest noted)</li>
+                                <li>Entity-specific views with proper entitlements</li>
+                                <li>Capital allocation discussion for new opportunities</li>
+                            </ul>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Family Structure & Dynamics</h4>
+                            <div class="client-profile">
+                                Patriarch (primary decision-maker) + Gen 2 (3 children, increasing involvement) + Gen 3 (education trusts). Complex entity structure requires consolidated + individual reporting. Values transparency and education.
+                            </div>
+                            <div class="context-meta">Entities: 7 active · Entitlements: Node-level enforced</div>
+                        </div>
+
+                        <div class="context-section">
+                            <h4>Meeting Protocol</h4>
+                            <div class="client-profile">
+                                Quarterly family meetings with 3-4 family members. Patriarch reviews consolidated view. Gen 2 receives entity-specific information per entitlement. Gen 3 receives education-related reporting only.
+                            </div>
+                            <div class="context-meta">Attendees: 4 confirmed · Meeting Duration: 90 min typical</div>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        <button class="btn-primary" onclick="event.stopPropagation();">Open Family Brief</button>
+                        <button class="btn-outline" onclick="event.stopPropagation();">View Entity Graph</button>
+                        <button class="btn-outline" onclick="event.stopPropagation();">Review Meeting Packs (4)</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCR-03: Client Brief (Gate 1) -->
+        <section id="client-brief" class="screen">
+            <div class="brief-header">
+                <div>
+                    <h1>Client Brief: Kenneth Wong</h1>
+                    <p style="color: var(--capco-gray-500); margin-top: 0.5rem;">HKD 45.2M AUM · Brief Generated v3 · Pending Review & Approval</p>
+                </div>
+                <button class="btn-outline" onclick="navigateTo('my-day')">← Back to My Day</button>
+            </div>
+
+            <div class="brief-section">
+                <h3>
+                    <span>1. Portfolio Overview</span>
+                    <span class="evidence-chip portfolio">◈ Portfolio · Prior close · 16 Mar 09:00</span>
+                </h3>
+                <div class="section-content">
+                    <p><strong>Total AUM:</strong> HKD 45.2M</p>
+                    <p><strong>Current Allocation:</strong> Equities 68% (target 62%), Fixed Income 26% (target 30%), Cash 6% (target 8%)</p>
+                    <p><strong>Top Holdings:</strong> HSBC Holdings 7.2%, Tencent 6.1%, AIA Group 5.8%</p>
+                    <p><strong>YTD Performance:</strong> +6.2% (Benchmark: +4.8%)</p>
+                </div>
+            </div>
+
+            <div class="brief-section">
+                <h3>
+                    <span>2. Material Changes & Risk Alerts</span>
+                    <span class="evidence-chip live">● LIVE · Market Data · 09:58:14 SGT</span>
+                </h3>
+                <div class="section-content">
+                    <p><strong>HSBC Holdings +2.3%</strong> on strong Q3 earnings report released 09:45 SGT today. Position increased to 7.2% (was 5.8% at prior close).</p>
+                    <p><strong>Portfolio Drift:</strong> 6 percentage points from target allocation. Equities now 6pp over target, creating rebalancing opportunity.</p>
+                    <p><strong>Recommendation:</strong> Discuss rebalancing options aligned to client's stated preference for gradual execution (noted 15 Oct 2024).</p>
+                </div>
+                <div class="evidence-chips">
+                    <span class="evidence-chip live">● LIVE · Reuters · 09:58:14</span>
+                    <span class="evidence-chip derived">ƒ Drift Analysis · rule-pack v1.2 · 09:58:18</span>
+                </div>
+            </div>
+
+            <div class="brief-section">
+                <h3>
+                    <span>3. Recent Interactions & Context</span>
+                    <span class="evidence-chip manual">✎ D5 Client Memory · Last sync 09:57</span>
+                </h3>
+                <div class="section-content">
+                    <p><strong>Last Meeting:</strong> 15 Oct 2024 — Discussed quarterly rebalancing preferences</p>
+                    <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                        <li>Client prefers gradual execution to minimize tax impact</li>
+                        <li>Mentioned daughter should join next meeting</li>
+                        <li>Requested consolidated quarterly statement</li>
+                    </ul>
+                    <p><strong>Open Action:</strong> Send consolidated statement (due today)</p>
+                    <p><strong>Communication Pattern:</strong> Responsive to proactive market-driven outreach</p>
+                </div>
+            </div>
+
+            <div class="brief-section">
+                <h3>
+                    <span>4. Market News & Context</span>
+                    <span class="evidence-chip live">● LIVE · Reuters · 09:58:14</span>
+                </h3>
+                <div class="section-content">
+                    <p><strong>HSBC Holdings:</strong> Strong Q3 earnings beat expectations. Guidance upgraded for FY2026. Analysts raising price targets.</p>
+                    <p><strong>Hong Kong Tech Sector:</strong> Rally on policy support. Relevant to client's expressed interest (22 Sep 2024).</p>
+                    <p><strong>Hang Seng Index:</strong> +1.8% today on broad-based buying.</p>
+                </div>
+            </div>
+
+            <div class="brief-section">
+                <h3>
+                    <span>5. Proposed Agenda (Editable)</span>
+                    <span style="font-size: 0.7rem; font-weight: 400; text-transform: none; color: var(--capco-gray-400);">Edit before approval</span>
+                </h3>
+                <textarea rows="5" style="width: 100%;">1. Discuss rebalancing options aligned to stated preferences
+   - Gradual execution to minimize tax impact
+   - Timeline: Over 2-3 weeks vs. immediate execution
+
+2. Review Hong Kong tech sector opportunities
+   - Fintech exposure options (mentioned 22 Sep interest)
+   - Risk-adjusted allocation recommendations
+
+3. Family planning
+   - Daughter participation in future meetings
+   - Estate planning review (if time permits)
+
+4. Consolidated quarterly statement delivery</textarea>
+            </div>
+
+            <!-- Gate 1: Approval Bar -->
+            <div class="approval-bar">
+                <div class="approval-info">
+                    <h3>Gate 1: Approve Brief Before Meeting</h3>
+                    <p>Review all five sections and proposed agenda. Edits are saved automatically. Approval generates C-3 approval token.</p>
+                </div>
+                <button class="btn-success" onclick="approveBrief()">Approve Brief as Sarah (RM)</button>
+            </div>
+        </section>
+
+        <!-- SCR-07: Consent Banner (Gate 2) -->
+        <section id="consent-banner" class="screen">
+            <div class="consent-banner">
+                <h2>Gate 2: Meeting Consent — Recording Authorization</h2>
+
+                <div class="consent-content">
+                    <p><strong>Meeting:</strong> Kenneth Wong · 10:00 AM · 16 March 2026</p>
+                    <p><strong>Relationship Manager:</strong> Sarah Chen</p>
+
+                    <p style="margin-top: 1.5rem;">This meeting will be recorded and transcribed to capture:</p>
+                    <ul style="margin: 1rem 0 1rem 1.5rem; line-height: 1.8;">
+                        <li>Client preferences and instructions</li>
+                        <li>Action items and commitments</li>
+                        <li>Family relationship updates</li>
+                        <li>Investment decisions and rationale</li>
+                    </ul>
+
+                    <p style="margin-top: 1.5rem;"><strong>You may decline or withdraw consent at any time.</strong> If declined, manual notes will be taken instead. Recording quality and extraction accuracy may vary.</p>
+
+                    <p style="margin-top: 1.5rem; font-size: 0.875rem; color: var(--capco-gray-600); padding: 1rem; background: white; border-radius: 4px;">
+                        <strong>Demo Stub Declaration:</strong> This demo uses scripted transcript injection. No real audio capture or ASR transcription is performed. The consent gate and recording state are demonstration features only.
+                    </p>
+
+                    <p style="margin-top: 1rem; font-size: 0.8125rem; color: var(--capco-gray-500);">
+                        Consent Language Version 1.2 · Last Updated: 01 Jan 2026 · Method + Timestamp recorded in C-4 audit log
+                    </p>
+                </div>
+
+                <div class="consent-actions">
+                    <button class="btn-outline" onclick="declineConsent()">Decline Recording</button>
+                    <button class="btn-success" onclick="acceptConsent()">Accept & Start Recording</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCR-06: Meeting Review (Gate 3 - Centerpiece) -->
+        <section id="meeting-review" class="screen">
+            <h1>Gate 3: Unified Post-Meeting Review</h1>
+            <p style="color: var(--capco-gray-500); margin-bottom: 2rem;">Meeting: Kenneth Wong · 10:00 AM · All outcomes assembled · Pending single decisive approval</p>
+
+            <div class="review-grid">
+                <!-- Block 1: Notes & Extracted Items -->
+                <div class="review-block">
+                    <h3>1. Notes & Extracted Preferences</h3>
+                    <div class="review-item">
+                        <strong>Family preference noted:</strong> Daughter to join next meeting
+                        <div style="margin-top: 0.5rem;">
+                            <span class="evidence-chip derived" style="font-size: 0.7rem;">ƒ Transcript · 10:06:32 · confidence 0.94</span>
+                        </div>
+                    </div>
+                    <div class="review-item">
+                        <strong>Action commitment:</strong> Send consolidated quarterly statement by Friday
+                        <div style="margin-top: 0.5rem;">
+                            <span class="evidence-chip derived" style="font-size: 0.7rem;">ƒ Transcript · 10:08:15 · confidence 0.97</span>
+                        </div>
+                    </div>
+                    <div class="review-item">
+                        <strong>Preference updated:</strong> Interested in ESG-screened tech exposure
+                        <div style="margin-top: 0.5rem;">
+                            <span class="evidence-chip derived" style="font-size: 0.7rem;">ƒ Transcript · 10:14:22 · confidence 0.91</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Block 2: CRM Updates (Old → New) -->
+                <div class="review-block">
+                    <h3>2. CRM Updates (Old → New)</h3>
+                    <div class="crm-diff">
+                        <span class="old-value">Next review: 10 Apr 2026</span>
+                        <span>→</span>
+                        <span class="new-value">Next review: 20 Mar 2026</span>
+                    </div>
+                    <div class="crm-diff">
+                        <span class="old-value">Family: None recorded</span>
+                        <span>→</span>
+                        <span class="new-value">Family: Daughter to join meetings</span>
+                    </div>
+                    <div class="crm-diff">
+                        <span class="old-value">Preferences: Conservative growth</span>
+                        <span>→</span>
+                        <span class="new-value">Preferences: + ESG tech interest</span>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--capco-gray-500); margin-top: 0.75rem;">
+                        CRM sync status: Ready · Idempotent write · Visible sync confirmation after approval
+                    </p>
+                </div>
+
+                <!-- Block 3: Follow-up Email Draft -->
+                <div class="review-block">
+                    <h3>3. Follow-up Email (Editable)</h3>
+                    <textarea rows="8" style="width: 100%;">Dear Mr Wong,
+
+Thank you for our productive meeting today. As discussed:
+
+1. I'll prepare rebalancing options with gradual execution timeline (2-3 weeks) and send for your review by Thursday
+2. Consolidated quarterly statement will be delivered by Friday as requested
+3. I'm researching ESG-screened Hong Kong tech opportunities and will share recommendations next week
+4. Please let me know your daughter's availability for our next meeting on 20 March
+
+Best regards,
+Sarah Chen
+Relationship Manager</textarea>
+                    <p style="font-size: 0.75rem; color: var(--capco-gray-500); margin-top: 0.75rem;">
+                        <strong>DEMO SINK — not delivered</strong> · Draft saved · Approval required before send
+                    </p>
+                </div>
+
+                <!-- Block 4: Rebalancing Proposal -->
+                <div class="review-block">
+                    <h3>4. Rebalancing Proposal</h3>
+                    <div class="review-item">
+                        <strong>Recommendation:</strong> Reduce equities from 68% to 62% target
+                        <p style="margin-top: 0.5rem; font-size: 0.875rem;">Gradual execution over 2-3 weeks. HSBC position from 7.2% to ~6%. Reinvest proceeds into fixed income to reach 30% target.</p>
+                        <div style="margin-top: 0.5rem;">
+                            <span class="evidence-chip derived" style="font-size: 0.7rem;">ƒ Rebalancing Model · v2.3 · 10:16:44</span>
+                        </div>
+                    </div>
+                    <div class="review-item">
+                        <strong>Client Response:</strong> Approved in principle, wants detailed execution plan
+                        <p style="margin-top: 0.5rem; font-size: 0.875rem;">Prepare 2-3 week execution timeline for client review by Thursday.</p>
+                    </div>
+                </div>
+
+                <!-- Block 5: Tomorrow's Re-Ranked Priority List -->
+                <div class="review-block full-width">
+                    <h3>5. Tomorrow's Re-Ranked Priority List (Loop Closure)</h3>
+                    <div class="review-item">
+                        <strong>Wong remains #1</strong> — Rebalancing execution plan due Thursday. Daughter contact for next meeting (20 Mar). ESG tech research in progress.
+                        <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                            <span class="evidence-chip derived" style="font-size: 0.7rem;">ƒ Re-rank preview · correlation_id: 8f21a4b2</span>
+                            <span class="evidence-chip manual" style="font-size: 0.7rem;">✎ D5 Memory updated with preferences</span>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.875rem; color: var(--capco-gray-600); margin-top: 1rem; line-height: 1.6;">
+                        <strong>Loop Closure:</strong> Meeting outcomes feed back into ranking system. Client preferences update D5 memory. Next brief generation will incorporate today's discussion. This demonstrates the closed-loop workflow: <em>meeting outcomes → ranking → briefs → preferences propagate.</em>
+                    </p>
+                </div>
+
+                <!-- Block 6: Audit Trail Preview -->
+                <div class="review-block full-width">
+                    <h3>6. Audit Trail Preview (C-4 Events)</h3>
+                    <div style="background: var(--capco-gray-50); padding: 1rem; border-radius: 4px; font-family: 'SF Mono', monospace; font-size: 0.8125rem; line-height: 1.8;">
+                        <div>10:00:15 · gate2.consent.accept · Kenneth Wong · method: verbal · recorded</div>
+                        <div>10:18:32 · meeting.capture.complete · 18m 17s · 3 preferences extracted</div>
+                        <div>10:19:05 · review.assemble · 6 blocks generated · pending approval</div>
+                        <div style="color: var(--capco-gray-400);">10:19:__ · <strong>gate3.review.approve</strong> · [PENDING YOUR APPROVAL]</div>
+                        <div style="color: var(--capco-gray-400);">10:19:__ · crm.write.execute · 3 field updates · [BLOCKED UNTIL APPROVAL]</div>
+                        <div style="color: var(--capco-gray-400);">10:19:__ · d5.memory.update · 3 preferences · [BLOCKED UNTIL APPROVAL]</div>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--capco-gray-500); margin-top: 0.75rem;">
+                        All events immutable · Append-only C-4 log · Full audit trail · Correlation ID: 8f21a4b2
+                    </p>
+                </div>
+            </div>
+
+            <!-- Gate 3: Single Decisive Approval -->
+            <div class="approval-bar">
+                <div class="approval-info">
+                    <h3>Gate 3: Approve All Meeting Outcomes — Single Decisive Tap</h3>
+                    <p>Review all six blocks. Edit any content above. This one approval commits CRM writes, email draft, D5 memory updates, and closes the loop. C-3 approval token will be generated with your identity and timestamp.</p>
+                </div>
+                <button class="btn-success" onclick="approveReview()">Approve All as Sarah (RM)</button>
+            </div>
+        </section>
+
+        <!-- SCR-14: End Card -->
+        <section id="end-card" class="screen">
+            <div class="end-card">
+                <h1>Workflow Complete</h1>
+                <p class="tagline">"AI orchestrates the workflow.<br>You orchestrate the relationship."</p>
+                <p class="tagline" style="margin-top: 2rem; font-size: 1.25rem;">Human-approved. Always.</p>
+                <div style="margin-top: 3rem; padding: 2rem; background: white; border: 1px solid var(--capco-gray-200); border-radius: 4px; max-width: 800px; margin-left: auto; margin-right: auto; text-align: left;">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem;">Loop Closed Successfully</h3>
+                    <ul style="line-height: 1.8; color: var(--capco-gray-700);">
+                        <li>✓ Live market event (HSBC +2.3%) triggered workflow</li>
+                        <li>✓ Priority list re-ranked (Wong 4 → 1)</li>
+                        <li>✓ Five-section brief generated with provenance</li>
+                        <li>✓ Gate 1: Brief approved by RM</li>
+                        <li>✓ Gate 2: Client consent captured</li>
+                        <li>✓ Meeting preferences extracted</li>
+                        <li>✓ Gate 3: All outcomes approved</li>
+                        <li>✓ D5 memory updated, tomorrow's brief ready</li>
+                    </ul>
+                </div>
+                <button class="btn-primary" onclick="navigateTo('my-day')" style="margin-top: 3rem; padding: 1rem 3rem;">Return to My Day</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- SCR-10: Persistent Footer / Health Bar -->
+    <footer class="system-footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <span class="footer-indicator">● System Ready</span>
+                <span class="footer-badge">LIVE MODE</span>
+                <span class="footer-badge">SYNTHETIC DEMO DATA</span>
+                <span class="footer-indicator" style="font-size: 0.7rem;">Feed: Reuters · Age: 3s · Correlation: 8f21a4b2</span>
+            </div>
+            <div class="footer-right">
+                <span class="footer-disclaimer">Demo Environment · All data synthetic · Not for production use · Zero client PII</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navigation between screens
+        function navigateTo(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+
+            // Update workflow stage
+            const stageMap = {
+                'my-day': 'rank.clients',
+                'client-brief': 'brief.generate',
+                'consent-banner': 'meeting.capture',
+                'meeting-review': 'review.approve'
+            };
+            document.querySelectorAll('.workflow-stage').forEach(s => s.classList.remove('active'));
+            const stage = stageMap[screenId];
+            if (stage) {
+                document.querySelector(`[data-stage="${stage}"]`)?.classList.add('active');
+            }
+
+            window.scrollTo(0, 0);
+        }
+
+        // Gate 1: Approve Brief
+        function approveBrief() {
+            showToast('✓ Brief approved successfully — Gate 1 passed', 'success');
+            setTimeout(() => {
+                showToast('Proceeding to meeting consent...', 'success');
+            }, 1500);
+            setTimeout(() => navigateTo('consent-banner'), 2500);
+        }
+
+        // Gate 2: Accept Consent
+        function acceptConsent() {
+            showToast('✓ Consent accepted — Recording started — Gate 2 passed', 'success');
+            setTimeout(() => {
+                showToast('Meeting in progress... (demo: skipping to review)', 'success');
+            }, 1500);
+            setTimeout(() => navigateTo('meeting-review'), 3000);
+        }
+
+        // Gate 2: Decline Consent
+        function declineConsent() {
+            showToast('⚠ Consent declined — Manual notes will be used instead', 'success');
+            setTimeout(() => {
+                showToast('Proceeding with manual note-taking mode...', 'success');
+            }, 1500);
+            setTimeout(() => navigateTo('meeting-review'), 3000);
+        }
+
+        // Gate 3: Approve All Review
+        function approveReview() {
+            showToast('✓ All outcomes approved — Gate 3 passed — C-3 token generated', 'success');
+            setTimeout(() => {
+                showToast('✓ CRM updates committed', 'success');
+            }, 1500);
+            setTimeout(() => {
+                showToast('✓ D5 memory updated with preferences', 'success');
+            }, 2500);
+            setTimeout(() => {
+                showToast('✓ Loop closed — Tomorrow\'s priorities updated', 'success');
+            }, 3500);
+            setTimeout(() => navigateTo('end-card'), 5000);
+        }
+
+        // Toast notification system
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // Live clock update
+        setInterval(() => {
+            const now = new Date();
+            const sgt = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
+            const time = sgt.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            document.querySelectorAll('.clock-time').forEach(el => el.textContent = time + ' SGT');
+        }, 1000);
+    </script>
+</body>
+</html>
