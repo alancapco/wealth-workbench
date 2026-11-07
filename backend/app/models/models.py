@@ -12,6 +12,7 @@ class Client(Base):
     __tablename__ = "clients"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(Text, nullable=True)  # Additive for multi-tenant architecture
     external_id = Column(String, unique=True, index=True)
     name = Column(String, nullable=False)
     email = Column(String)

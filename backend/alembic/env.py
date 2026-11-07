@@ -64,9 +64,14 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Run migrations in async mode using asyncpg."""
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    # Get the database URL and ensure it uses asyncpg for async operations
+    db_url = config.get_main_option("sqlalchemy.url")
+    if db_url and not db_url.startswith("postgresql+asyncpg"):
+        db_url = db_url.replace("postgresql://", "postgresql+asyncpg://")
+    
+    from sqlalchemy.ext.asyncio import create_async_engine
+    connectable = create_async_engine(
+        db_url,
         poolclass=pool.NullPool,
     )
 

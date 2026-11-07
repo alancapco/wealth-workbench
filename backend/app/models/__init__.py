@@ -73,6 +73,13 @@ from app.models.shariah import (
     ShariahEvidence,
 )
 
+# Family pilot (default OFF, DEC-06/DEC-07 gated)
+from app.models.family import (
+    FamilyRelationship,
+    HouseholdGroup,
+    HouseholdMembership,
+)
+
 __all__ = [
     "Base",
     # Legacy
@@ -131,4 +138,8 @@ __all__ = [
     # Shariah pilot
     "ShariahEvidence",
     "ShariahEstimate",
+    # Family pilot
+    "FamilyRelationship",
+    "HouseholdGroup",
+    "HouseholdMembership",
 ]
