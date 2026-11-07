@@ -67,6 +67,12 @@ from app.models.capture import (
     ConsentRecord,
 )
 
+# Shariah pilot (default OFF, DEC-05 gated)
+from app.models.shariah import (
+    ShariahEstimate,
+    ShariahEvidence,
+)
+
 __all__ = [
     "Base",
     # Legacy
@@ -122,4 +128,7 @@ __all__ = [
     # Capture
     "ConsentRecord",
     "CaptureSession",
+    # Shariah pilot
+    "ShariahEvidence",
+    "ShariahEstimate",
 ]
