@@ -1,7 +1,7 @@
 """
 Database Models
 """
-from sqlalchemy import Column, String, Float, Boolean, DateTime, JSON, ForeignKey, Text, Integer
+from sqlalchemy import Column, String, Float, Boolean, DateTime, JSON, ForeignKey, Text, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, UTC
@@ -10,6 +10,9 @@ from app.core.database import Base
 
 class Client(Base):
     __tablename__ = "clients"
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'id', name='uq_clients_tenant_id'),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(Text, nullable=True)  # Additive for multi-tenant architecture

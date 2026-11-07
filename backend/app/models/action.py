@@ -1,6 +1,6 @@
 """Action preview, authorization, and outbox models."""
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import uuid4
 
 from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -12,7 +12,7 @@ from app.core.database import Base
 class ActionPreview(Base):
     __tablename__ = "action_previews"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     revision_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -47,7 +47,7 @@ class ActionPreview(Base):
 class ActionAuthorization(Base):
     __tablename__ = "action_authorizations"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     preview_id = Column(PGUUID(as_uuid=True), nullable=False)

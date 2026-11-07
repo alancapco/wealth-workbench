@@ -3,6 +3,24 @@
 import React from 'react';
 import { briefApi } from '@/lib/api';
 
+function BriefSection({ title, section }: { title: string; section?: { content?: string; provenance?: { source?: string } } }) {
+  return (
+    <div className="border border-gray-200 rounded p-4">
+      <h3 className="font-semibold text-lg mb-2 pb-2 border-b">{title}</h3>
+      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+        {section?.content || 'No data returned for this section.'}
+      </p>
+      {section?.provenance?.source && (
+        <div className="mt-3 text-xs text-gray-500">
+          <span className="inline-block px-2 py-1 bg-gray-100 rounded">
+            Source: {section.provenance.source}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface BriefModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -13,8 +31,21 @@ interface BriefModalProps {
 export default function BriefModal({ isOpen, onClose, clientId, clientName }: BriefModalProps) {
   const [loading, setLoading] = React.useState(true);
   const [brief, setBrief] = React.useState<any>(null);
+  const [error, setError] = React.useState('');
   const [editing, setEditing] = React.useState(false);
   const [editedAgenda, setEditedAgenda] = React.useState('');
+  const [loadedClientId, setLoadedClientId] = React.useState(clientId);
+  const requestSeq = React.useRef(0);
+
+  if (loadedClientId !== clientId) {
+    requestSeq.current += 1;
+    setLoadedClientId(clientId);
+    setBrief(null);
+    setError('');
+    setLoading(true);
+    setEditing(false);
+    setEditedAgenda('');
+  }
 
   React.useEffect(() => {
     if (isOpen) {
@@ -23,52 +54,23 @@ export default function BriefModal({ isOpen, onClose, clientId, clientName }: Br
   }, [isOpen, clientId]);
 
   const loadBrief = async () => {
+    const seq = ++requestSeq.current;
+    const requestedId = clientId;
     try {
       setLoading(true);
-      const response = await briefApi.generate(clientId);
+      setError('');
+      const response = await briefApi.generate(requestedId);
+      if (seq !== requestSeq.current) return;
       const briefData = response.data.brief;
-
-      // Enrich with real data if missing
-      if (!briefData.recent_interactions?.content) {
-        briefData.recent_interactions = {
-          content: `Last meeting (15 days ago): Client expressed preference for gradual rebalancing to minimize tax impact. Mentioned daughter may join next meeting.
-
-Previous meeting (30 days ago): Discussed Hong Kong tech sector opportunities. Client interested in fintech exposure.
-
-Action items: Send consolidated quarterly statement by Nov 20.`,
-          provenance: {
-            source: 'CRM & D5 Memory',
-            timestamp: new Date().toISOString(),
-            confidence: 0.92
-          }
-        };
-      }
-
-      if (!briefData.market_news?.content) {
-        briefData.market_news = {
-          content: `HSBC Holdings (0005.HK) +2.3%: Strong Q3 earnings announced today, guidance upgraded for FY2026. Analysts raising price targets.
-
-Hong Kong Tech Sector Rally: Fintech companies showing strong momentum on policy support.
-
-Portfolio Impact: HSBC position represents 51% of equity allocation. Recent movement has caused 6% drift from target allocation.`,
-          provenance: {
-            source: 'TigerBroker News · LIVE',
-            timestamp: new Date().toISOString(),
-            confidence: 1.0
-          }
-        };
-      }
-
       setBrief(briefData);
-      setEditedAgenda(briefData.proposed_agenda?.content || `1. Review portfolio drift due to HSBC +2.3% movement
-2. Discuss rebalancing approach (gradual execution preferred)
-3. Hong Kong tech sector opportunities
-4. Family involvement - daughter attending next meeting
-5. Q&A and next steps`);
-    } catch (error) {
-      console.error('Error loading brief:', error);
+      setEditedAgenda(briefData.proposed_agenda?.content || '');
+    } catch (err) {
+      if (seq !== requestSeq.current) return;
+      console.error('Error loading brief:', err);
+      setBrief(null);
+      setError('The brief could not be loaded from the client record.');
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   };
 
@@ -113,49 +115,14 @@ Portfolio Impact: HSBC position represents 51% of equity allocation. Recent move
               <div className="flex items-center justify-center h-64">
                 <div className="text-lg text-gray-600">Generating brief...</div>
               </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-64 text-sm text-gray-600">{error}</div>
             ) : (
               <div className="space-y-6">
-                {/* Portfolio Overview */}
-                <div className="border border-gray-200 rounded p-4">
-                  <h3 className="font-semibold text-lg mb-2 pb-2 border-b">Portfolio Overview</h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {brief?.portfolio_overview?.content || 'Portfolio data temporarily unavailable.'}
-                  </p>
-                  <div className="mt-3 text-xs text-gray-500">
-                    <span className="inline-block px-2 py-1 bg-gray-100 rounded">
-                      Source: {brief?.portfolio_overview?.provenance?.source}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Material Changes */}
-                <div className="border border-gray-200 rounded p-4">
-                  <h3 className="font-semibold text-lg mb-2 pb-2 border-b">Material Changes</h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {brief?.material_changes?.content || 'No significant changes detected.'}
-                  </p>
-                  <div className="mt-3">
-                    <span className="inline-block px-2 py-1 bg-green-50 border border-green-600 text-green-900 text-xs rounded">
-                      ● LIVE · TigerBroker
-                    </span>
-                  </div>
-                </div>
-
-                {/* Recent Interactions */}
-                <div className="border border-gray-200 rounded p-4">
-                  <h3 className="font-semibold text-lg mb-2 pb-2 border-b">Recent Interactions</h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {brief?.recent_interactions?.content || 'Interaction history available in client record.'}
-                  </p>
-                </div>
-
-                {/* Market News */}
-                <div className="border border-gray-200 rounded p-4">
-                  <h3 className="font-semibold text-lg mb-2 pb-2 border-b">Market News</h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {brief?.market_news?.content || 'Market news feed temporarily unavailable.'}
-                  </p>
-                </div>
+                <BriefSection title="Portfolio Overview" section={brief?.portfolio_overview} />
+                <BriefSection title="Material Changes" section={brief?.material_changes} />
+                <BriefSection title="Recent Interactions" section={brief?.recent_interactions} />
+                <BriefSection title="Market News" section={brief?.market_news} />
 
                 {/* Proposed Agenda - Editable */}
                 <div className="border border-gray-200 rounded p-4 bg-orange-50">

@@ -7,9 +7,9 @@ from app.core.database import Base
 from app.core.config import settings
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def test_engine():
-    """Create test database engine and initialize schema once per test session."""
+    """Create test database engine and initialize schema for each test."""
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     
     # Drop and recreate all tables for clean test state

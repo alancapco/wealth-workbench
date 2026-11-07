@@ -26,7 +26,7 @@ from app.models.platform import WorkbenchTenant, ClientScope
 from app.models.artifact import ArtifactLineage, ArtifactRevision
 from app.models.action import ActionPreview, ActionAuthorization, OutboxAction
 from app.schemas.message import MessageGenerate, MessageRecipient, Message
-from app.schemas.common import ConfigRef, ItemRef, Origin
+from app.schemas.common import ConfigRef, ItemRef, Origin, ArtifactRef
 from app.services.messaging.message_service import MessageService
 from app.services.messaging.provider_stub import MessageProviderStub
 from app.services.actions.action_service import ActionService
@@ -35,14 +35,26 @@ from app.services.actions.action_service import ActionService
 @pytest_asyncio.fixture
 async def test_workflow(db_session: AsyncSession):
     """Create test tenant, client scope, and workflow."""
+    from app.models.models import Client
+    
     tenant = WorkbenchTenant(
         tenant_id="test-tenant",
         environment_kind="FIXTURE",
         environment_id="test-env",
     )
     db_session.add(tenant)
+    await db_session.flush()  # Flush tenant before creating client
     
     client_id = uuid4()
+    client = Client(
+        id=client_id,
+        tenant_id="test-tenant",
+        name="Test Client",
+        email="test@example.com",
+    )
+    db_session.add(client)
+    await db_session.flush()  # Flush client before creating client_scope
+    
     client_scope = ClientScope(
         tenant_id="test-tenant",
         client_id=client_id,
@@ -127,7 +139,7 @@ class TestMessageDraftCreation:
         service = MessageService(db_session)
         
         item_ref = ItemRef(
-            artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+            artifact_ref=ArtifactRef(artifact_id=uuid4(), revision_id=uuid4(), version=1, hash="b" * 64),
             item_key="meeting_note_1",
             item_hash="c" * 64,
         )
@@ -224,7 +236,7 @@ class TestMessageEditing:
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[
                 ItemRef(
-                    artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+                    artifact_ref=ArtifactRef(artifact_id=uuid4(), revision_id=uuid4(), version=1, hash="b" * 64),
                     item_key="note_1",
                     item_hash="c" * 64,
                 )
@@ -376,7 +388,7 @@ class TestMessageActionWorkflow:
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[
                 ItemRef(
-                    artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+                    artifact_ref=ArtifactRef(artifact_id=uuid4(), revision_id=uuid4(), version=1, hash="b" * 64),
                     item_key="note_1",
                     item_hash="c" * 64,
                 )
@@ -466,7 +478,7 @@ class TestMessageActionWorkflow:
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[
                 ItemRef(
-                    artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+                    artifact_ref=ArtifactRef(artifact_id=uuid4(), revision_id=uuid4(), version=1, hash="b" * 64),
                     item_key="note_1",
                     item_hash="c" * 64,
                 )
@@ -538,7 +550,7 @@ class TestFixtureProvenance:
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[
                 ItemRef(
-                    artifact_ref=ConfigRef(id=uuid4(), revision=1, hash="b" * 64),
+                    artifact_ref=ArtifactRef(artifact_id=uuid4(), revision_id=uuid4(), version=1, hash="b" * 64),
                     item_key="note_1",
                     item_hash="c" * 64,
                 )
