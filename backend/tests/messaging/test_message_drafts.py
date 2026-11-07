@@ -103,8 +103,8 @@ class TestMessageDraftCreation:
         service = MessageService(db_session)
         
         request = MessageGenerate(
-            mode="OUTREACH,
-            channel="EMAIL,
+            mode="OUTREACH",
+            channel="EMAIL",
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[],
             priority_reason_ref=None,  # Missing - should fail
@@ -133,8 +133,8 @@ class TestMessageDraftCreation:
         )
         
         request = MessageGenerate(
-            mode="FOLLOWUP,
-            channel="EMAIL,
+            mode="FOLLOWUP",
+            channel="EMAIL",
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[item_ref],
         )
@@ -178,8 +178,8 @@ class TestMessageDraftCreation:
         from app.schemas.message import PriorityReasonRef
         
         request = MessageGenerate(
-            mode="OUTREACH,
-            channel="SMS,
+            mode="OUTREACH",
+            channel="SMS",
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[],
             priority_reason_ref=PriorityReasonRef(
@@ -219,8 +219,8 @@ class TestMessageEditing:
         
         # Create original message
         request = MessageGenerate(
-            mode="FOLLOWUP,
-            channel="EMAIL,
+            mode="FOLLOWUP",
+            channel="EMAIL",
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[
                 ItemRef(
@@ -280,8 +280,8 @@ class TestMessageProviderIntegration:
         provider = MessageProviderStub(provider_config=None)
         
         message = Message(
-            mode="FOLLOWUP,
-            channel="EMAIL,
+            mode="FOLLOWUP",
+            channel="EMAIL",
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             recipients=[
                 MessageRecipient(
@@ -315,8 +315,8 @@ class TestMessageProviderIntegration:
         provider = MessageProviderStub(provider_config={"provider_key": "test-provider"})
         
         message = Message(
-            mode="FOLLOWUP,
-            channel="EMAIL,
+            mode="FOLLOWUP",
+            channel="EMAIL",
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             recipients=[
                 MessageRecipient(
@@ -350,7 +350,7 @@ class TestMessageProviderIntegration:
         
         is_blocked = await provider.check_dnc(
             destination="test@example.com",
-            channel="EMAIL,
+            channel="EMAIL",
             tenant_id="test-tenant",
         )
         
@@ -371,8 +371,8 @@ class TestMessageActionWorkflow:
         
         # Step 1: Generate message artifact
         request = MessageGenerate(
-            mode="FOLLOWUP,
-            channel="EMAIL,
+            mode="FOLLOWUP",
+            channel="EMAIL",
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[
                 ItemRef(
@@ -461,8 +461,8 @@ class TestMessageActionWorkflow:
         
         # Generate and create preview
         request = MessageGenerate(
-            mode="FOLLOWUP,
-            channel="EMAIL,
+            mode="FOLLOWUP",
+            channel="EMAIL",
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[
                 ItemRef(
@@ -533,8 +533,8 @@ class TestFixtureProvenance:
         service = MessageService(db_session)
         
         request = MessageGenerate(
-            mode="FOLLOWUP,
-            channel="EMAIL,
+            mode="FOLLOWUP",
+            channel="EMAIL",
             template_ref=ConfigRef(id=uuid4(), revision=1, hash="a" * 64),
             accepted_item_refs=[
                 ItemRef(
