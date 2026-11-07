@@ -14,6 +14,7 @@ Per architecture §7 and U-002 card requirements.
 import asyncio
 import os
 import pytest
+import pytest_asyncio
 from typing import AsyncGenerator
 from sqlalchemy import text, inspect
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
@@ -49,7 +50,7 @@ def script_directory(alembic_config: Config) -> ScriptDirectory:
     return ScriptDirectory.from_config(alembic_config)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def disposable_engine() -> AsyncGenerator[AsyncEngine, None]:
     """
     Create a disposable async engine for migration testing.
