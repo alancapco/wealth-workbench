@@ -448,7 +448,17 @@ async def investors_like_me(
         raise HTTPException(404, "Client not found")
 
     aum = client.aum_usd_millions or 0.0
-    low, high = aum * 0.8, aum * 1.2
+    # Broaden: ±50% AUM range to ensure enough peers in a small demo dataset
+    low, high = aum * 0.5, aum * 1.5
+
+    # Adjacent risk profiles: Moderate matches Conservative and Balanced too
+    ADJACENT_RISK: dict[str, list[str]] = {
+        "Conservative": ["Conservative", "Moderate"],
+        "Moderate": ["Conservative", "Moderate", "Balanced"],
+        "Balanced": ["Moderate", "Balanced", "Aggressive"],
+        "Aggressive": ["Balanced", "Aggressive"],
+    }
+    risk_group = ADJACENT_RISK.get(client.risk_profile or "Moderate", [client.risk_profile])
 
     peers_result = await session.execute(
         select(DemoClient)
@@ -456,12 +466,24 @@ async def investors_like_me(
         .where(
             DemoClient.is_active == True,
             DemoClient.id != client_id,
-            DemoClient.risk_profile == client.risk_profile,
+            DemoClient.risk_profile.in_(risk_group),
             DemoClient.aum_usd_millions >= low,
             DemoClient.aum_usd_millions <= high,
         )
     )
     peers = peers_result.scalars().all()
+    # If still too few, fall back to same risk profile only, no AUM filter
+    if len(peers) < 2:
+        fallback_result = await session.execute(
+            select(DemoClient)
+            .options(selectinload(DemoClient.portfolio_holdings))
+            .where(
+                DemoClient.is_active == True,
+                DemoClient.id != client_id,
+                DemoClient.risk_profile.in_(risk_group),
+            )
+        )
+        peers = fallback_result.scalars().all()
 
     my_holdings = (
         await session.execute(
