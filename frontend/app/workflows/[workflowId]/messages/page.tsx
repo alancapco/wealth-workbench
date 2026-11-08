@@ -36,7 +36,7 @@ export default function MessageComposerPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<Message[]>(`/workflows/${workflowId}/messages`);
+      const response = await apiClient.get<Message[]>(`/workflow/${workflowId}/messages`);
       setMessages(response.data);
       if (response.data.length > 0 && !selectedMessage) {
         setSelectedMessage(response.data[0]);
@@ -51,7 +51,7 @@ export default function MessageComposerPage() {
 
   const handleApprove = async (messageId: string) => {
     try {
-      await apiClient.post(`/workflows/${workflowId}/messages/${messageId}/approve`, {
+      await apiClient.post(`/workflow/${workflowId}/messages/${messageId}/approve`, {
         approved_by: 'current_user',
       });
       await loadMessages();
@@ -64,7 +64,7 @@ export default function MessageComposerPage() {
 
   const handleSend = async (messageId: string) => {
     try {
-      await apiClient.post(`/workflows/${workflowId}/messages/${messageId}/send`);
+      await apiClient.post(`/workflow/${workflowId}/messages/${messageId}/send`);
       await loadMessages();
       alert('Message sent successfully');
     } catch (err: any) {

@@ -44,7 +44,7 @@ export default function WorkflowDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<{ workflow: any }>(`/workflows/${workflowId}`);
+      const response = await apiClient.get<{ workflow: any }>(`/workflow/${workflowId}`);
       const wfData = response.data as { workflow: any };
       const wf = wfData.workflow || response.data;
       setWorkflow({

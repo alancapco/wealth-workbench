@@ -30,7 +30,7 @@ export default function WorkflowsPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<{ items: Workflow[], total: number }>(`/workflows?book_id=${DEFAULT_SESSION.book_id}`);
+      const response = await apiClient.get<{ items: Workflow[], total: number }>(`/workflow?book_id=${DEFAULT_SESSION.book_id}`);
       const wfData = response.data as { items: Workflow[], total: number };
       setWorkflows(wfData.items || []);
     } catch (err: any) {

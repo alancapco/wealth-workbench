@@ -28,8 +28,9 @@ export default function PrioritiesPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<PriorityEvaluation[]>('/priorities/evaluations');
-      setPriorities(response.data.slice(0, 10));
+      const response = await apiClient.get('/priorities/evaluations');
+      const evalData = response.data as { clients: any[], evaluation_date: string, status: string };
+      setPriorities((evalData.clients || []).slice(0, 10));
     } catch (err: any) {
       console.error('Error loading priorities:', err);
       setError(err.message || 'Failed to load priorities');
