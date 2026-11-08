@@ -74,7 +74,7 @@ class ActionAuthorization(Base):
 class OutboxAction(Base):
     __tablename__ = "outbox_actions"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     authorization_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -117,7 +117,7 @@ class OutboxAction(Base):
 class OutboxAttempt(Base):
     __tablename__ = "outbox_attempts"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     action_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -147,7 +147,7 @@ class OutboxAttempt(Base):
 class ClientMemoryEntry(Base):
     __tablename__ = "client_memory_entries"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     memory_key = Column(Text, nullable=False)
