@@ -11,6 +11,11 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product import CandidateSelection, SuitabilityOverride
+from app.models.platform import WorkbenchTenant
+from app.models.workflow import Workflow
+from app.models.models import Client
+from app.models.artifact import ArtifactLineage, ArtifactRevision
+from app.models.admin import ConfigScope, ConfigurationRevision
 from app.schemas.product import (
     ProductInterpretation,
     ProductFilter,
@@ -298,6 +303,110 @@ async def test_override_requires_approval(db_session: AsyncSession, test_config_
     
     from app.schemas.product import ProductRef, SuitabilityFactor
     
+    # Create required parent records
+    tenant = WorkbenchTenant(
+        tenant_id=tenant_id,
+        environment_kind="FIXTURE",
+        environment_id="test-env",
+    )
+    db_session.add(tenant)
+    await db_session.flush()
+    
+    client = Client(
+        id=client_id,
+        tenant_id=tenant_id,
+        name="Test Client",
+        email="test@example.com",
+    )
+    db_session.add(client)
+    await db_session.flush()
+    
+    # Create client scope (required by workflow)
+    from app.models.platform import ClientScope
+    client_scope = ClientScope(
+        tenant_id=tenant_id,
+        client_id=client_id,
+        context_revision=1,
+        ownership_source="test",
+        ownership_version="v1",
+        verified_at=datetime.now(UTC),
+    )
+    db_session.add(client_scope)
+    await db_session.flush()
+    
+    # Create workflow (required by artifact lineage)
+    workflow_id = uuid4()
+    workflow = Workflow(
+        id=workflow_id,
+        tenant_id=tenant_id,
+        client_id=client_id,
+        workflow_type="MEETING_FOLLOWUP",
+        status="RUNNING",
+        context_revision=1,
+        entry_point="test",
+        created_by=actor,
+    )
+    db_session.add(workflow)
+    await db_session.flush()
+    
+    # Create artifact lineage and revision for assessment
+    lineage_id = uuid4()
+    assessment_revision_id = uuid4()
+    
+    lineage = ArtifactLineage(
+        id=lineage_id,
+        tenant_id=tenant_id,
+        client_id=client_id,
+        workflow_id=workflow_id,
+        kind="ASSESSMENT",
+        current_revision_id=assessment_revision_id,
+        created_by=actor,
+    )
+    db_session.add(lineage)
+    await db_session.flush()
+    
+    revision = ArtifactRevision(
+        id=assessment_revision_id,
+        tenant_id=tenant_id,
+        client_id=client_id,
+        artifact_id=lineage_id,
+        version=1,
+        payload="{}",
+        content_hash="b" * 64,
+        environment_kind="FIXTURE",
+        environment_id="test-env",
+        created_by=actor,
+    )
+    db_session.add(revision)
+    await db_session.flush()
+    
+    # Create config scope and configuration revision for policy
+    config_scope_id = uuid4()
+    config_scope = ConfigScope(
+        id=config_scope_id,
+        tenant_id=tenant_id,
+        scope_key='["test_tenant", null, null]',
+    )
+    db_session.add(config_scope)
+    await db_session.flush()
+    
+    config_revision_id = test_config_ref.id
+    config_revision = ConfigurationRevision(
+        id=config_revision_id,
+        tenant_id=tenant_id,
+        scope_id=config_scope_id,
+        config_key="suitability_policy",
+        config_class="GOVERNANCE",
+        revision=test_config_ref.revision,
+        content_hash=test_config_ref.hash,
+        status="APPROVED",
+        value="{}",
+        author=actor,
+        change_reason="Test fixture",
+    )
+    db_session.add(config_revision)
+    await db_session.flush()
+    
     # Create assessment with soft factors
     assessment = Assessment(
         client_id=client_id,
@@ -337,8 +446,8 @@ async def test_override_requires_approval(db_session: AsyncSession, test_config_
     )
     
     assessment_ref = ArtifactRef(
-        artifact_id=uuid4(),
-        revision_id=uuid4(),
+        artifact_id=lineage_id,
+        revision_id=assessment_revision_id,
         version=1,
         hash="b" * 64,
     )
@@ -395,6 +504,110 @@ async def test_override_audit_trail(db_session: AsyncSession, test_config_ref, t
     
     from app.schemas.product import ProductRef, SuitabilityFactor
     
+    # Create required parent records
+    tenant = WorkbenchTenant(
+        tenant_id=tenant_id,
+        environment_kind="FIXTURE",
+        environment_id="test-env",
+    )
+    db_session.add(tenant)
+    await db_session.flush()
+    
+    client = Client(
+        id=client_id,
+        tenant_id=tenant_id,
+        name="Test Client",
+        email="test@example.com",
+    )
+    db_session.add(client)
+    await db_session.flush()
+    
+    # Create client scope (required by workflow)
+    from app.models.platform import ClientScope
+    client_scope = ClientScope(
+        tenant_id=tenant_id,
+        client_id=client_id,
+        context_revision=1,
+        ownership_source="test",
+        ownership_version="v1",
+        verified_at=datetime.now(UTC),
+    )
+    db_session.add(client_scope)
+    await db_session.flush()
+    
+    # Create workflow (required by artifact lineage)
+    workflow_id = uuid4()
+    workflow = Workflow(
+        id=workflow_id,
+        tenant_id=tenant_id,
+        client_id=client_id,
+        workflow_type="MEETING_FOLLOWUP",
+        status="RUNNING",
+        context_revision=1,
+        entry_point="test",
+        created_by=actor,
+    )
+    db_session.add(workflow)
+    await db_session.flush()
+    
+    # Create artifact lineage and revision for assessment
+    lineage_id = uuid4()
+    assessment_revision_id = uuid4()
+    
+    lineage = ArtifactLineage(
+        id=lineage_id,
+        tenant_id=tenant_id,
+        client_id=client_id,
+        workflow_id=workflow_id,
+        kind="ASSESSMENT",
+        current_revision_id=assessment_revision_id,
+        created_by=actor,
+    )
+    db_session.add(lineage)
+    await db_session.flush()
+    
+    revision = ArtifactRevision(
+        id=assessment_revision_id,
+        tenant_id=tenant_id,
+        client_id=client_id,
+        artifact_id=lineage_id,
+        version=1,
+        payload="{}",
+        content_hash="d" * 64,
+        environment_kind="FIXTURE",
+        environment_id="test-env",
+        created_by=actor,
+    )
+    db_session.add(revision)
+    await db_session.flush()
+    
+    # Create config scope and configuration revision for policy
+    config_scope_id = uuid4()
+    config_scope = ConfigScope(
+        id=config_scope_id,
+        tenant_id=tenant_id,
+        scope_key='["test_tenant", null, null]',
+    )
+    db_session.add(config_scope)
+    await db_session.flush()
+    
+    config_revision_id = test_config_ref.id
+    config_revision = ConfigurationRevision(
+        id=config_revision_id,
+        tenant_id=tenant_id,
+        scope_id=config_scope_id,
+        config_key="suitability_policy",
+        config_class="GOVERNANCE",
+        revision=test_config_ref.revision,
+        content_hash=test_config_ref.hash,
+        status="APPROVED",
+        value="{}",
+        author=actor,
+        change_reason="Test fixture",
+    )
+    db_session.add(config_revision)
+    await db_session.flush()
+    
     assessment = Assessment(
         client_id=client_id,
         product_ref=ProductRef(id="PROD001", version="v1"),
@@ -424,8 +637,8 @@ async def test_override_audit_trail(db_session: AsyncSession, test_config_ref, t
     )
     
     assessment_ref = ArtifactRef(
-        artifact_id=uuid4(),
-        revision_id=uuid4(),
+        artifact_id=lineage_id,
+        revision_id=assessment_revision_id,
         version=1,
         hash="d" * 64,
     )
@@ -478,6 +691,80 @@ async def test_candidate_selection_telemetry(db_session: AsyncSession):
     workflow_id = uuid4()
     search_revision_id = uuid4()
     selected_by = "rm_user_001"
+    
+    # Create required parent records
+    tenant = WorkbenchTenant(
+        tenant_id=tenant_id,
+        environment_kind="FIXTURE",
+        environment_id="test-env",
+    )
+    db_session.add(tenant)
+    await db_session.flush()
+    
+    client = Client(
+        id=client_id,
+        tenant_id=tenant_id,
+        name="Test Client",
+        email="test@example.com",
+    )
+    db_session.add(client)
+    await db_session.flush()
+    
+    # Create client scope (required by workflow)
+    from app.models.platform import ClientScope
+    client_scope = ClientScope(
+        tenant_id=tenant_id,
+        client_id=client_id,
+        context_revision=1,
+        ownership_source="test",
+        ownership_version="v1",
+        verified_at=datetime.now(UTC),
+    )
+    db_session.add(client_scope)
+    await db_session.flush()
+    
+    workflow = Workflow(
+        id=workflow_id,
+        tenant_id=tenant_id,
+        client_id=client_id,
+        workflow_type="MEETING_FOLLOWUP",
+        status="RUNNING",
+        context_revision=1,
+        entry_point="test",
+        created_by=selected_by,
+    )
+    db_session.add(workflow)
+    await db_session.flush()
+    
+    # Create artifact lineage and revision for search
+    lineage_id = uuid4()
+    
+    lineage = ArtifactLineage(
+        id=lineage_id,
+        tenant_id=tenant_id,
+        client_id=client_id,
+        workflow_id=workflow_id,
+        kind="PRODUCT_SEARCH",
+        current_revision_id=search_revision_id,
+        created_by=selected_by,
+    )
+    db_session.add(lineage)
+    await db_session.flush()
+    
+    revision = ArtifactRevision(
+        id=search_revision_id,
+        tenant_id=tenant_id,
+        client_id=client_id,
+        artifact_id=lineage_id,
+        version=1,
+        payload="{}",
+        content_hash="e" * 64,
+        environment_kind="FIXTURE",
+        environment_id="test-env",
+        created_by=selected_by,
+    )
+    db_session.add(revision)
+    await db_session.flush()
     
     selection_id = uuid4()
     selection = CandidateSelection(
