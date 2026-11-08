@@ -2,7 +2,7 @@ import os
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-# Test database connection - now using same postgres instance, different database
+# Test database connection - same postgres instance, different database
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
     "postgresql+asyncpg://workbench_test:test_password@localhost:5432/workbench_test"
