@@ -27,7 +27,7 @@ import tempfile
 # Disposable test database URL - NEVER use configured/production DB
 TEST_DB_URL = os.getenv(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://workbench_test:test_password@localhost:5433/workbench_test"
+    "postgresql+asyncpg://workbench_test:test_password@localhost:5432/workbench_test"
 )
 
 
