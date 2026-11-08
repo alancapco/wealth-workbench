@@ -12,10 +12,11 @@ interface NavItem {
 }
 
 const navigationItems: NavItem[] = [
-  { label: 'Dashboard', href: '/', icon: '📊' },
+  { label: 'Dashboard', href: '/dashboard', icon: '📊' },
   { label: 'Clients', href: '/clients', icon: '👥' },
-  { label: 'Calendar', href: '/calendar', icon: '📅' },
-  { label: 'Profile', href: '/profile', icon: '👤' },
+  { label: 'Priorities', href: '/priorities', icon: '🎯' },
+  { label: 'Workflows', href: '/workflows', icon: '⚙️' },
+  { label: 'Admin', href: '/admin', icon: '🔧' },
 ];
 
 export default function MobileNavigation() {

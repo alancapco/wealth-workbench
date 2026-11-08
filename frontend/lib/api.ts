@@ -86,7 +86,7 @@ export const marketApi = {
   getQuotes: (symbols: string[]) =>
     axios.get(`${API_BASE_URL}/api/v1/market/quotes?symbols=${symbols.join(',')}`),
   getNews: (symbols?: string[], limit: number = 20) =>
-    axios.get(`${API_BASE_URL}/api/v1/market/news${symbols ? `?symbols=${symbols.join(',')}` : ''}?limit=${limit}`),
+    axios.get(`${API_BASE_URL}/api/v1/market/news${symbols ? `?symbols=${symbols.join(',')}&limit=${limit}` : `?limit=${limit}`}`),
   getSignals: (symbols: string[], threshold: number = 2.0) =>
     axios.get(`${API_BASE_URL}/api/v1/market/signals?symbols=${symbols.join(',')}&threshold=${threshold}`),
   getHistorical: (symbol: string, period: string = '1d', limit: number = 100) =>
