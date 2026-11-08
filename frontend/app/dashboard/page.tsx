@@ -6,10 +6,12 @@ import AllocationChart from '@/components/AllocationChart';
 import PerformanceChart from '@/components/PerformanceChart';
 import BriefModal from '@/components/BriefModal';
 import FamilyGraphModal from '@/components/FamilyGraphModal';
+import MarketNewsPanel from '@/components/MarketNewsPanel';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [marketNewsData, setMarketNewsData] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [briefModalOpen, setBriefModalOpen] = useState(false);
   const [familyGraphOpen, setFamilyGraphOpen] = useState(false);
@@ -40,6 +42,15 @@ export default function Dashboard() {
         allocation: allocationRes.data,
         performance: performanceRes.data,
       });
+
+      // Independent news fetch — can refresh without reloading whole dashboard
+      try {
+        const newsRes = await marketApi.getNews(undefined, 10);
+        const fetchedNews = newsRes.data?.news || [];
+        setMarketNewsData(fetchedNews);
+      } catch (newsErr) {
+        console.warn('Market news fetch failed, falling back to dashboard data:', newsErr);
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -89,6 +100,7 @@ export default function Dashboard() {
   const performance = dashboardData?.performance || {};
   const rankedClients = dashboardData?.myDay?.ranked_clients || [];
   const marketNews = dashboardData?.myDay?.market_news || [];
+  const displayNews = marketNewsData.length > 0 ? marketNewsData : marketNews;
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -303,40 +315,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded p-6">
-            <h2 className="text-lg font-semibold mb-4 pb-3 border-b border-gray-200">
-              Market News
-            </h2>
-
-            <div className="space-y-4">
-              {marketNews.length === 0 && (
-                <div className="text-sm text-gray-500">No market news available.</div>
-              )}
-              {marketNews.slice(0, 4).map((news: any) => (
-                <div key={news.id || news.url} className="pb-3 border-b border-gray-100 last:border-0">
-                  <div className="font-semibold text-sm mb-1">
-                    {news.url ? (
-                      <a href={news.url} target="_blank" rel="noreferrer" className="hover:underline">
-                        {news.title}
-                      </a>
-                    ) : (
-                      news.title
-                    )}
-                  </div>
-                  {news.content && (
-                    <div className="text-xs text-gray-500">{news.content}</div>
-                  )}
-                  <div className="mt-2">
-                    <span className="inline-block px-2 py-1 bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded">
-                      {news.source || 'Tiger Broker'}
-                      {news.symbol ? ` · ${news.symbol}` : ''}
-                      {news.timestamp ? ` · ${formatNewsTime(news.timestamp)}` : ''}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <MarketNewsPanel
+            news={displayNews}
+            onRefresh={loadDashboard}
+          />
         </div>
 
         {/* Priority Actions */}

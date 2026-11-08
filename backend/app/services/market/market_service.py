@@ -26,6 +26,9 @@ ALPHAVANTAGE_SYMBOLS = {
 # Laohu8 publishes the Chinese edition. The en_US ids from the same feed
 # return HTTP 410 / code 10001 ("News does not exist") on the detail URL.
 NEWS_LANG = "zh_CN"
+NEWS_CACHE_SECONDS = 300  # 5-minute cache for news
+
+HK_SNAPSHOT_SYMBOLS = ["HSBC", "TCEHY", "0005.HK", "1299.HK", "0388.HK"]
 
 class MarketDataService:
     def __init__(self):
@@ -38,8 +41,10 @@ class MarketDataService:
 
         logger.info(f"Market service initialized with Tiger ID: {self.tiger_id}")
         self._tiger_news = None
+        self._tiger_news_failed = False  # sentinel: True if Tiger init failed, skip retrying
         self._av_cache: dict[tuple, tuple[float, dict]] = {}
         self._av_last_request = 0.0
+        self._news_cache: dict[str, tuple[float, list]] = {}
 
     def _av_symbol(self, symbol: str) -> str:
         cleaned = symbol.strip().upper()
@@ -179,24 +184,31 @@ class MarketDataService:
         return key
 
     def _tiger_news_client(self):
+        if self._tiger_news_failed:
+            return None
         if self._tiger_news is not None:
             return self._tiger_news
         if not settings.TIGER_CLIENT_ID or not settings.TIGER_PRIVATE_KEY:
             return None
-        from tigeropen.news.news_client import NewsClient
-        from tigeropen.tiger_open_config import TigerOpenClientConfig
+        try:
+            from tigeropen.news.news_client import NewsClient
+            from tigeropen.tiger_open_config import TigerOpenClientConfig
 
-        config = TigerOpenClientConfig(enable_dynamic_domain=True)
-        config.tiger_id = settings.TIGER_CLIENT_ID
-        config.private_key = self._private_key_material()
-        config.account = settings.TIGER_ACCOUNT
-        if settings.TIGER_LICENSE:
-            config.license = settings.TIGER_LICENSE
-        if settings.TIGER_TOKEN:
-            config.token = settings.TIGER_TOKEN
-        config.language = NEWS_LANG
-        self._tiger_news = NewsClient(config)
-        return self._tiger_news
+            config = TigerOpenClientConfig(enable_dynamic_domain=True)
+            config.tiger_id = settings.TIGER_CLIENT_ID
+            config.private_key = self._private_key_material()
+            config.account = settings.TIGER_ACCOUNT
+            if settings.TIGER_LICENSE:
+                config.license = settings.TIGER_LICENSE
+            if settings.TIGER_TOKEN:
+                config.token = settings.TIGER_TOKEN
+            config.language = NEWS_LANG
+            self._tiger_news = NewsClient(config)
+            return self._tiger_news
+        except Exception as e:
+            logger.error(f"Tiger NewsClient init failed, disabling Tiger news: {e}")
+            self._tiger_news_failed = True
+            return None
 
     def _serialize_news(self, item, symbol: Optional[str] = None) -> Dict:
         published = None
@@ -229,7 +241,7 @@ class MarketDataService:
                         return items
             return items
 
-        page = client.get_market_news(lang=NEWS_LANG)
+        page = client.get_market_news(lang=NEWS_LANG, page_size=min(limit, 50))
         return [self._serialize_news(item) for item in (page.items or [])[:limit]]
 
     def _sign_request(self, timestamp: str, method: str, path: str) -> str:
@@ -270,17 +282,34 @@ class MarketDataService:
             logger.error(f"Error fetching quotes: {e}")
             return []
 
-    async def get_market_news(self, symbols: Optional[List[str]] = None, limit: int = 20) -> List[Dict]:
-        """Alpha Vantage NEWS_SENTIMENT when the key allows it, otherwise Tiger Broker."""
+    async def get_market_news(self, symbols: Optional[List[str]] = None, limit: int = 20) -> tuple[List[Dict], str, bool]:
+        """Alpha Vantage NEWS_SENTIMENT when the key allows it, otherwise Tiger Broker.
+        Returns (news_list, source_label, was_cached).
+        """
+        cache_key = str(symbols) + ":" + str(limit)
+        now = time.monotonic()
+        cached = self._news_cache.get(cache_key)
+        if cached and now - cached[0] < NEWS_CACHE_SECONDS:
+            news_list, source_label = cached[1], cached[2]
+            return news_list, source_label, True
+
         try:
             alphavantage = await asyncio.to_thread(self._fetch_av_news, symbols, limit)
             if alphavantage:
-                return alphavantage
+                self._news_cache[cache_key] = (now, alphavantage, "alphavantage")
+                return alphavantage, "alphavantage", False
             logger.info(f"Fetching Tiger news (symbols: {symbols}, limit: {limit})")
-            return await asyncio.to_thread(self._fetch_news, symbols, limit)
+            tiger_news = await asyncio.to_thread(self._fetch_news, symbols, limit)
+            source = "tiger" if tiger_news else "none"
+            self._news_cache[cache_key] = (now, tiger_news, source)
+            return tiger_news, source, False
         except Exception as e:
             logger.error(f"Error fetching news: {e}")
-            return []
+            return [], "none", False
+
+    async def get_market_quotes_snapshot(self) -> List[Dict]:
+        """Fetch a fixed set of HK-relevant tickers and return their quotes."""
+        return await self.get_real_time_quote(HK_SNAPSHOT_SYMBOLS)
 
     async def detect_market_signal(self, symbol: str, threshold: float = 2.0) -> Optional[Dict]:
         """

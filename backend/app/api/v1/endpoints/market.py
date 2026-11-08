@@ -3,6 +3,7 @@ Market Data API Endpoints
 """
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
+from datetime import datetime, timezone
 import logging
 
 from app.services.market.market_service import market_data_service
@@ -26,15 +27,32 @@ async def get_quotes(
 @router.get("/news")
 async def get_market_news(
     symbols: Optional[str] = None,
-    limit: int = Query(20, ge=1, le=100)
+    limit: int = Query(20, ge=1, le=100),
+    lang: Optional[str] = Query(None, description="Language: zh_CN or en_US"),
 ):
-    """Get market news"""
+    """Get market news with caching. Returns source, cached flag, and as_of timestamp."""
     try:
         symbol_list = [s.strip() for s in symbols.split(",")] if symbols else None
-        news = await market_data_service.get_market_news(symbol_list, limit)
-        return {"news": news, "count": len(news)}
+        news, source, cached = await market_data_service.get_market_news(symbol_list, limit)
+        return {
+            "news": news,
+            "count": len(news),
+            "source": source,
+            "cached": cached,
+            "as_of": datetime.now(timezone.utc).isoformat(),
+        }
     except Exception as e:
         logger.error(f"Error fetching news: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/snapshot")
+async def get_quotes_snapshot():
+    """Get quotes for a fixed set of HK-relevant tickers."""
+    try:
+        quotes = await market_data_service.get_market_quotes_snapshot()
+        return {"quotes": quotes, "count": len(quotes)}
+    except Exception as e:
+        logger.error(f"Error fetching snapshot: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/signals")
