@@ -48,7 +48,7 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 asyncio_default_fixture_loop_scope = "function"
 env = [
-    "DATABASE_URL=postgresql+asyncpg://workbench_test:test_password@localhost:5433/workbench_test",
+    "DATABASE_URL=postgresql+asyncpg://workbench_test:test_password@localhost:5432/workbench_test",
     "AUTH_MODE=fixture",
     "APP_ENV=test",
 ]
