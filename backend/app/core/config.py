@@ -27,8 +27,6 @@ class Settings(BaseSettings):
     TIGER_LICENSE: str = "TBHK"
     TIGER_ENV: str = "PROD"
     TIGER_TOKEN: str = ""
-    HUBSPOT_API_KEY: str = ""
-    HUBSPOT_ACCESS_TOKEN: str = ""
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = "https://api.openai.com/v1"
     LLM_MODEL: str = "gpt-4-turbo-preview"
@@ -68,7 +66,6 @@ class Settings(BaseSettings):
     def provider_configuration(self) -> dict[str, str]:
         return {
             "market_data": "UNAVAILABLE" if self.TIGER_CLIENT_ID and self.TIGER_PRIVATE_KEY and self.TIGER_ACCOUNT else "UNCONFIGURED",
-            "crm": "UNAVAILABLE" if self.HUBSPOT_ACCESS_TOKEN else "UNCONFIGURED",
             "llm": "UNAVAILABLE" if self.LLM_API_KEY else "UNCONFIGURED",
         }
 

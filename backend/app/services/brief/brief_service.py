@@ -1,13 +1,12 @@
 """
 Brief Service - Generate meeting briefs from real data
-Implements versioning, provenance, and HubSpot integration
+Implements versioning and provenance tracking
 """
 from typing import Dict, Optional, List
 from datetime import datetime, UTC, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.models import Client, Interaction, Holding
-from app.services.crm.crm_service import crm_service
 from app.services.market.market_service import market_data_service
 import logging
 import uuid
@@ -25,7 +24,7 @@ class BriefService:
         Generate a 5-section meeting brief from real data sources
         - Portfolio Overview: from holdings table
         - Material Changes: from live market data
-        - Recent Interactions: from interactions table + HubSpot
+        - Recent Interactions: from interactions table
         - Market News: from TigerBroker
         - Proposed Agenda: AI-generated from above context
         """
@@ -156,7 +155,7 @@ class BriefService:
         }
 
     async def _build_recent_interactions(self, client: Client, db: AsyncSession) -> Dict:
-        """Build recent interactions from database + HubSpot"""
+        """Build recent interactions from database"""
         # Get interactions from database
         result = await db.execute(
             select(Interaction)

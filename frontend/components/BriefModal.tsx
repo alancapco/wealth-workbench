@@ -75,13 +75,18 @@ export default function BriefModal({ isOpen, onClose, clientId, clientName }: Br
   };
 
   const handleApprove = async () => {
+    if (!brief?.id) {
+      alert('Cannot approve: Brief ID not available');
+      return;
+    }
     try {
-      await briefApi.approve('brief-123', 'Sarah Chen', editing ? editedAgenda : undefined);
+      await briefApi.approve(brief.id, 'Sarah Chen', editing ? editedAgenda : undefined);
       onClose();
       // Show success message or trigger next stage
       alert('Brief approved! Ready for meeting.');
     } catch (error) {
       console.error('Error approving brief:', error);
+      alert('Failed to approve brief. Please try again.');
     }
   };
 
