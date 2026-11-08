@@ -13,6 +13,10 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  TrendingUp,
+  DollarSign,
+  BarChart2,
+  Users2,
 } from 'lucide-react';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -23,6 +27,13 @@ const navItems = [
   { href: '/priorities', label: 'Priorities', icon: Target },
   { href: '/workflows', label: 'Workflows', icon: Workflow },
   { href: '/admin', label: 'Admin', icon: Settings },
+];
+
+const portfolioNavItems = [
+  { href: '/portfolio', label: 'Portfolio Hub', icon: TrendingUp },
+  { href: '/portfolio/currency', label: 'Currency Exposure', icon: DollarSign },
+  { href: '/portfolio/future-planner', label: 'Future Planner', icon: BarChart2 },
+  { href: '/portfolio/investors-like-me', label: 'Investors Like Me', icon: Users2 },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -51,28 +62,63 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
 
             {/* Nav items */}
-            <nav className="flex-1 py-4 space-y-1 px-2">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname?.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    title={collapsed ? item.label : undefined}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
-                      isActive
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-400 hover:bg-gray-900 hover:text-white'
-                    } ${collapsed ? 'justify-center' : ''}`}
-                  >
-                    <Icon size={20} className="shrink-0" />
-                    {!collapsed && (
-                      <span className="text-sm font-medium">{item.label}</span>
-                    )}
-                  </Link>
-                );
-              })}
+            <nav className="flex-1 py-4 px-2 overflow-y-auto">
+              <div className="space-y-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname?.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={collapsed ? item.label : undefined}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
+                        isActive
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-400 hover:bg-gray-900 hover:text-white'
+                      } ${collapsed ? 'justify-center' : ''}`}
+                    >
+                      <Icon size={20} className="shrink-0" />
+                      {!collapsed && (
+                        <span className="text-sm font-medium">{item.label}</span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Portfolio & Analytics section */}
+              {!collapsed && (
+                <div className="mt-6 mb-1 px-3">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Portfolio &amp; Analytics
+                  </span>
+                </div>
+              )}
+              {collapsed && <div className="mt-4 border-t border-gray-800 mb-2" />}
+              <div className="space-y-1">
+                {portfolioNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={collapsed ? item.label : undefined}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
+                        isActive
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-400 hover:bg-gray-900 hover:text-white'
+                      } ${collapsed ? 'justify-center' : ''}`}
+                    >
+                      <Icon size={20} className="shrink-0" />
+                      {!collapsed && (
+                        <span className="text-sm font-medium">{item.label}</span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
             </nav>
 
             {/* Collapse toggle button */}

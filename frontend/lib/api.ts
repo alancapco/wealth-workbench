@@ -96,3 +96,15 @@ export const briefApi = {
   getBrief: (briefId: string) =>
     axios.get(`${API_BASE_URL}/api/v1/briefs/${briefId}`),
 };
+
+// Demo Client API - used by portfolio demo pages
+const API_BASE_URL_DIRECT = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export const demoClientApi = {
+  list: () => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients`),
+  get: (id: string) => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}`),
+  currencyExposure: (id: string) => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}/portfolio/currency-exposure`),
+  assetBreakdown: (id: string) => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}/portfolio/asset-class-breakdown`),
+  futurePlanner: (id: string, params: Record<string, unknown>) => axios.post(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}/future-planner`, params),
+  investorsLikeMe: (id: string) => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}/investors-like-me`),
+};
