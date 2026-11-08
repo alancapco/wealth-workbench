@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
     SHARIAH_TOOLS_PATH: str = "/tmp"
 
+    AAOIFI_PDF_PATH: str = ""
+    SHARIAH_DEC05_ENABLED: bool = False
+
     AUTH_MODE: str = "oidc"
     OIDC_ISSUER_URL: str = ""
     OIDC_CLIENT_ID: str = ""

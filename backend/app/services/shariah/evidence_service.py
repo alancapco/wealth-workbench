@@ -7,7 +7,9 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.repositories.shariah import EvidenceRepository
+from app.services.shariah.rag_service import ShariahRagService
 
 
 class EvidenceService:
@@ -15,11 +17,24 @@ class EvidenceService:
     
     Handles evidence from certified bodies (AAOIFI, SSB screening reports).
     Returns UNCONFIGURED without DEC-05 gate and certified provider.
+    Provider is "configured" when aaoifi_clauses with approval_status='approved' exist.
     """
 
     def __init__(self, db: AsyncSession):
         self.db = db
         self.evidence_repo = EvidenceRepository(db)
+
+    async def _rag_provider_configured(self) -> bool:
+        """Return True if the local AAOIFI knowledge base has been ingested and approved."""
+        if not settings.database_configured:
+            return False
+        try:
+            rag = ShariahRagService(db_url=settings.DATABASE_URL)  # type: ignore[arg-type]
+            result = await rag.has_approved_clauses()
+            await rag.close()
+            return result
+        except Exception:
+            return False
 
     async def fetch_evidence(
         self,
@@ -31,21 +46,30 @@ class EvidenceService:
         """Fetch evidence for product.
         
         Returns UNCONFIGURED if DEC-05 OFF or no certified provider.
+        provider_configured is overridden by checking the local AAOIFI knowledge base.
         
         Args:
             tenant_id: Tenant identifier
             product_ref: Product reference
-            dec_05_enabled: DEC-05 Shariah pilot gate status
-            provider_configured: Whether certified provider is configured
+            dec_05_enabled: DEC-05 Shariah pilot gate status (legacy param, checked from settings)
+            provider_configured: Legacy param; actual check uses AAOIFI knowledge base rows
             
         Returns:
             Evidence data or UNCONFIGURED status
         """
+        dec_05_active = dec_05_enabled or settings.SHARIAH_DEC05_ENABLED
+        rag_ready = await self._rag_provider_configured()
+
         # DEC-05 gate: feature OFF blocks evidence fetch
-        if not dec_05_enabled or not provider_configured:
+        if not dec_05_active or not rag_ready:
+            message = (
+                "Shariah pilot requires DEC-05 gate and certified provider"
+                if not dec_05_active
+                else "AAOIFI knowledge base not yet ingested. Run: python -m app.scripts.ingest_aaoifi"
+            )
             return {
                 "status": "UNCONFIGURED",
-                "message": "Shariah pilot requires DEC-05 gate and certified provider",
+                "message": message,
             }
 
         # Fetch evidence from repository

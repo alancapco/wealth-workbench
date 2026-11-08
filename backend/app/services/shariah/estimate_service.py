@@ -1,12 +1,14 @@
 """Shariah estimate service - generate compliance estimates with disclaimers.
 
 U-015: Preliminary technical estimate, NOT fatwa or religious authority ruling.
+When DEC-05 is enabled, calls ShariahComplianceService for AAOIFI-backed analysis.
 """
 from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.repositories.shariah import EstimateRepository, EvidenceRepository
 
 
@@ -35,10 +37,14 @@ class EstimateService:
         tenant_id: str,
         product_ref: str,
         workflow_id: UUID,
+        product_description: str = "",
     ) -> dict:
         """Generate Shariah compliance estimate for product.
         
-        Logic per U-015:
+        When DEC-05 is enabled (settings.SHARIAH_DEC05_ENABLED), delegates to
+        ShariahComplianceService for AAOIFI RAG-backed analysis.
+
+        Legacy logic per U-015 (DEC-05 OFF):
         - LIKELY_COMPLIANT: all evidence is COMPLIANT and current (not expired)
         - INSUFFICIENT_DATA: no evidence or all evidence expired
         - LIKELY_NON_COMPLIANT: any evidence is NON_COMPLIANT
@@ -49,10 +55,57 @@ class EstimateService:
             tenant_id: Tenant identifier
             product_ref: Product reference
             workflow_id: Workflow context
+            product_description: Optional product description for RAG analysis
             
         Returns:
             Estimate with evidence, reasoning, and disclaimer
         """
+        # DEC-05 path: use AAOIFI RAG-backed compliance estimation
+        if settings.SHARIAH_DEC05_ENABLED:
+            from app.services.shariah.compliance_service import ShariahComplianceService
+            svc = ShariahComplianceService()
+            description = product_description or product_ref
+            rag_result = await svc.estimate_compliance(
+                product_ref=product_ref,
+                product_description=description,
+                workflow_id=str(workflow_id),
+            )
+
+            # Map RAG findings to evidence-layer estimate and persist
+            findings = rag_result.get("findings", [])
+            has_critical = any(f.get("severity") == "critical" for f in findings)
+            estimate_value = rag_result["estimate"]
+            reasoning = (
+                f"AAOIFI RAG analysis: {len(findings)} finding(s) identified. "
+                + (" Critical concerns detected." if has_critical else "")
+                + f" Confidence: {rag_result.get('confidence', 'medium')}."
+            )
+
+            estimate_id = uuid4()
+            estimate = await self.estimate_repo.create_estimate(
+                estimate_id=estimate_id,
+                tenant_id=tenant_id,
+                product_ref=product_ref,
+                workflow_id=workflow_id,
+                estimate=estimate_value,
+                evidence_ids=[],
+                reasoning=reasoning,
+                limitations=rag_result["disclaimer"],
+            )
+            return {
+                "estimate_id": str(estimate.id),
+                "product_ref": product_ref,
+                "estimate": estimate_value,
+                "reasoning": reasoning,
+                "evidence_count": 0,
+                "evidence_ids": [],
+                "disclaimer": rag_result["disclaimer"],
+                "created_at": estimate.created_at.isoformat(),
+                "rag_findings": findings,
+                "candidate_sources": rag_result.get("candidate_sources", []),
+                "model_used": rag_result.get("model_used", ""),
+            }
+
         now = datetime.now(UTC)
 
         # Fetch valid (non-expired) evidence
