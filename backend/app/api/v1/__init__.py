@@ -3,7 +3,7 @@ API Router - Main router aggregating all endpoints
 """
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
-    clients, market, briefs, workflow, dashboard, crm, priorities, products,
+    clients, market, briefs, workflow, dashboard, priorities, products,
     actions, messages, admin, shariah, family,
     session, calendar, meetings, memory, artifacts, telemetry, demo_clients,
 )
@@ -17,7 +17,6 @@ api_router.include_router(market.router, prefix="/market", tags=["market"])
 api_router.include_router(briefs.router, prefix="/briefs", tags=["briefs"])
 api_router.include_router(workflow.router, prefix="/workflow", tags=["workflow"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
-api_router.include_router(crm.router, prefix="/crm", tags=["crm"])
 api_router.include_router(priorities.router, tags=["priorities"])
 api_router.include_router(priorities.convenience_router, tags=["priorities"])
 api_router.include_router(products.router, tags=["products"])
