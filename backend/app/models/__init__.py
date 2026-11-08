@@ -80,6 +80,15 @@ from app.models.family import (
     HouseholdMembership,
 )
 
+# Demo client data (replaces HubSpot)
+from app.models.client_data import (
+    DemoClient,
+    ClientPortfolioHolding,
+    ClientFinancialPlan,
+    ClientConversation,
+    ClientSuitabilityProfile,
+)
+
 __all__ = [
     "Base",
     # Legacy
@@ -142,4 +151,10 @@ __all__ = [
     "FamilyRelationship",
     "HouseholdGroup",
     "HouseholdMembership",
+    # Demo client data
+    "DemoClient",
+    "ClientPortfolioHolding",
+    "ClientFinancialPlan",
+    "ClientConversation",
+    "ClientSuitabilityProfile",
 ]
