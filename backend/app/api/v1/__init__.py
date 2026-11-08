@@ -19,6 +19,7 @@ api_router.include_router(workflow.router, prefix="/workflow", tags=["workflow"]
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(crm.router, prefix="/crm", tags=["crm"])
 api_router.include_router(priorities.router, tags=["priorities"])
+api_router.include_router(priorities.convenience_router, tags=["priorities"])
 api_router.include_router(products.router, tags=["products"])
 api_router.include_router(actions.router, tags=["actions"])
 api_router.include_router(messages.router, tags=["messages"])

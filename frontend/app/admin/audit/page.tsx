@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
+import { DEFAULT_SESSION } from '@/lib/session';
 
 interface AuditEvent {
   event_id: string;
@@ -30,8 +31,19 @@ export default function AuditLogPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<AuditEvent[]>('/admin/audit');
-      setEvents(response.data);
+      const response = await apiClient.get<{ events: any[] }>(`/admin/audit?tenant_id=${DEFAULT_SESSION.tenant_id}`);
+      const auditData = response.data as { events: any[] };
+      const mappedEvents = (auditData.events || []).map(e => ({
+        event_id: e.id,
+        actor: e.principal,
+        action: e.action,
+        resource_type: e.resource_type,
+        resource_id: e.resource_id,
+        timestamp: e.timestamp || e.created_at,
+        outcome: 'success' as const,
+        details: e.details,
+      }));
+      setEvents(mappedEvents);
     } catch (err: any) {
       console.error('Error loading audit log:', err);
       setError(err.message || 'Failed to load audit log');

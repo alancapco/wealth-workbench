@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
+import { DEFAULT_SESSION } from '@/lib/session';
 
 interface Workflow {
   workflow_id: string;
@@ -29,8 +30,9 @@ export default function WorkflowsPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<Workflow[]>('/workflows');
-      setWorkflows(response.data);
+      const response = await apiClient.get<{ items: Workflow[], total: number }>(`/workflows?book_id=${DEFAULT_SESSION.book_id}`);
+      const wfData = response.data as { items: Workflow[], total: number };
+      setWorkflows(wfData.items || []);
     } catch (err: any) {
       console.error('Error loading workflows:', err);
       setError(err.message || 'Failed to load workflows');

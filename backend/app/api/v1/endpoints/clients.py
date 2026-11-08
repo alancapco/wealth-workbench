@@ -35,7 +35,10 @@ async def list_clients(
             select(Client).offset(skip).limit(limit)
         )
         clients = result.scalars().all()
-        return {"clients": [c.__dict__ for c in clients], "count": len(clients)}
+        from uuid import uuid4
+        from datetime import datetime, UTC
+        clients_list = [c.__dict__ for c in clients]
+        return {"data": {"clients": clients_list, "count": len(clients_list)}, "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
     except Exception as e:
         logger.error(f"Error listing clients: {e}")
         raise HTTPException(status_code=500, detail=str(e))

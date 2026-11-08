@@ -18,7 +18,8 @@ export default function BriefPage({ params }: { params: { clientId: string } }) 
         setLoading(true);
         setError(null);
         const response = await apiClient.get(`/briefs?client_id=${params.clientId}`);
-        const briefs = (response.data as any[]) || [];
+        const briefsData = response.data as { briefs?: any[], items?: any[] } | any[];
+        const briefs = Array.isArray(briefsData) ? briefsData : (briefsData.briefs || briefsData.items || []);
         setBrief(briefs.length > 0 ? briefs[0] : null);
       } catch (err: any) {
         setError(err?.message || 'Failed to load brief');
@@ -76,10 +77,13 @@ export default function BriefPage({ params }: { params: { clientId: string } }) 
     return (
       <div className="p-6">
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-500 mb-4">No brief found for this client.</p>
-          <Link href="/clients" className="text-blue-600 hover:underline">
-            ← Back to Clients
-          </Link>
+          <p className="text-gray-500 mb-4">No brief generated yet for this client.</p>
+          <button
+            onClick={() => apiClient.post('/briefs', { client_id: params.clientId })}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Generate Brief
+          </button>
         </div>
       </div>
     );

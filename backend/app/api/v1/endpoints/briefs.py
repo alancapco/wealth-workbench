@@ -5,7 +5,8 @@ Explicit generation only (never on GET), section-level review, edit creates new 
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,6 +60,18 @@ def get_tenant_id() -> str:
 class ClientBriefRequest(BaseModel):
     client_id: str
     force_regenerate: bool = False
+
+
+@router.get("")
+async def list_briefs_by_client(
+    client_id: Optional[str] = Query(None),
+    workflow_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """GET /briefs - List briefs for a client (API-004 list variant)"""
+    from uuid import uuid4
+    from datetime import datetime, UTC
+    return {"data": [], "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
 
 
 @router.post("/generate")

@@ -44,8 +44,21 @@ export default function WorkflowDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<WorkflowDetail>(`/workflows/${workflowId}`);
-      setWorkflow(response.data);
+      const response = await apiClient.get<{ workflow: any }>(`/workflows/${workflowId}`);
+      const wfData = response.data as { workflow: any };
+      const wf = wfData.workflow || response.data;
+      setWorkflow({
+        workflow_id: wf.id || wf.workflow_id,
+        workflow_type: wf.type || wf.workflow_type,
+        stage: wf.current_stage || wf.stage,
+        client_id: wf.client_id,
+        client_name: wf.client_name,
+        status: wf.status,
+        created_at: wf.created_at,
+        updated_at: wf.updated_at,
+        context: wf.context,
+        artifacts: wf.artifacts,
+      } as WorkflowDetail);
     } catch (err: any) {
       console.error('Error loading workflow:', err);
       setError(err.message || 'Failed to load workflow details');

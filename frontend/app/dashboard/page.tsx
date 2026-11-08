@@ -37,16 +37,18 @@ export default function DashboardPage() {
       setError(null);
 
       const [eventsRes, prioritiesRes] = await Promise.allSettled([
-        apiClient.get<CalendarEvent[]>('/calendar/events'),
-        apiClient.get<PriorityEvaluation[]>('/priorities/evaluations'),
+        apiClient.get<{ items: CalendarEvent[] }>('/calendar/events'),
+        apiClient.get<{ clients: PriorityEvaluation[], status: string }>('/priorities/evaluations'),
       ]);
 
       if (eventsRes.status === 'fulfilled') {
-        setEvents(eventsRes.value.data);
+        const evData = eventsRes.value.data as any;
+        setEvents(Array.isArray(evData) ? evData : (evData?.items || []));
       }
 
       if (prioritiesRes.status === 'fulfilled') {
-        setPriorities(prioritiesRes.value.data.slice(0, 10));
+        const priData = prioritiesRes.value.data as { clients: PriorityEvaluation[], status: string };
+        setPriorities((priData?.clients || []).slice(0, 10));
       }
     } catch (err) {
       console.error('Error loading dashboard:', err);

@@ -27,8 +27,9 @@ export default function ClientsPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<Client[]>('/clients');
-      setClients(response.data);
+      const response = await apiClient.get<{ clients: Client[], count: number }>('/clients');
+      const clientsData = response.data as { clients: Client[], count: number };
+      setClients(clientsData.clients || []);
     } catch (err: any) {
       console.error('Error loading clients:', err);
       setError(err.message || 'Failed to load clients');

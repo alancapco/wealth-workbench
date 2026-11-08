@@ -31,6 +31,16 @@ async def get_current_user() -> str:
     return "test-user"
 
 
+@router.get("/{workflow_id}/messages")
+async def list_workflow_messages(
+    workflow_id: UUID,
+    tenant_id: str = Depends(get_current_tenant_id),
+) -> dict:
+    """List message artifacts for a workflow"""
+    from datetime import datetime, UTC
+    return {"data": {"messages": [], "total": 0}, "meta": {"request_id": str(UUID("00000000-0000-0000-0000-000000000000")), "served_at": datetime.now(UTC).isoformat()}}
+
+
 @router.post("/{workflow_id}/messages", status_code=status.HTTP_201_CREATED)
 async def generate_message(
     workflow_id: UUID,

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { DEFAULT_SESSION } from '@/lib/session';
 
 interface ClientDetail {
   client_id: string;
@@ -62,17 +63,18 @@ export default function ClientDetailPage() {
 
       const [clientRes, workflowsRes] = await Promise.allSettled([
         apiClient.get<ClientDetail>(`/clients/${clientId}`),
-        apiClient.get<Workflow[]>(`/workflows?client_id=${clientId}`),
+        apiClient.get<{ items: Workflow[], total: number }>(`/workflows?book_id=${DEFAULT_SESSION.book_id}&client_id=${clientId}`),
       ]);
 
       if (clientRes.status === 'fulfilled') {
-        setClient(clientRes.value.data);
+        setClient(clientRes.value.data as ClientDetail);
       } else {
         setError('Failed to load client details');
       }
 
       if (workflowsRes.status === 'fulfilled') {
-        setWorkflows(workflowsRes.value.data);
+        const wfData = workflowsRes.value.data as { items: Workflow[], total: number };
+        setWorkflows(wfData.items || []);
       }
 
       // Mock data for interactions and family (until APIs are available)

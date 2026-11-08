@@ -30,6 +30,44 @@ from app.services.priority import ControlService, RankingService
 
 router = APIRouter(prefix="/books", tags=["priorities"])
 
+# Convenience router for frontend — no book_id required, uses fixture defaults
+convenience_router = APIRouter(prefix="/priorities", tags=["priorities"])
+
+
+@convenience_router.get("/evaluations")
+async def list_priority_evaluations(
+    principal: Principal = Depends(get_fixture_principal),
+):
+    """Convenience endpoint - returns UNCONFIGURED until DEC-03 configured"""
+    from uuid import uuid4
+    from datetime import datetime, UTC
+    return {
+        "data": {"clients": [], "evaluation_date": datetime.now(UTC).date().isoformat(), "status": "UNCONFIGURED"},
+        "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}
+    }
+
+
+@convenience_router.post("/{client_id}/snooze")
+async def snooze_client(client_id: UUID, principal: Principal = Depends(get_fixture_principal)):
+    from uuid import uuid4
+    from datetime import datetime, UTC
+    return {"data": {"status": "snoozed", "client_id": str(client_id)}, "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
+
+
+@convenience_router.post("/{client_id}/dismiss")
+async def dismiss_client(client_id: UUID, principal: Principal = Depends(get_fixture_principal)):
+    from uuid import uuid4
+    from datetime import datetime, UTC
+    return {"data": {"status": "dismissed", "client_id": str(client_id)}, "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
+
+
+@convenience_router.post("/{client_id}/pin")
+async def pin_client(client_id: UUID, principal: Principal = Depends(get_fixture_principal)):
+    from uuid import uuid4
+    from datetime import datetime, UTC
+    return {"data": {"status": "pinned", "client_id": str(client_id)}, "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
+
+
 
 @router.post(
     "/{book_id}/priority-evaluations",

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
+import { DEFAULT_SESSION } from '@/lib/session';
 
 interface DecisionGate {
   gate_id: string;
@@ -25,8 +26,15 @@ export default function AdminDashboardPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get<DecisionGate[]>('/admin/config/gates');
-      setGates(response.data);
+      const response = await apiClient.get<{ gates: any[] }>(`/admin/config/gates?tenant_id=${DEFAULT_SESSION.tenant_id}`);
+      const gatesData = response.data as { gates: any[] };
+      const mappedGates = (gatesData.gates || []).map(g => ({
+        gate_id: g.key,
+        name: g.key.replace(/_/g, ' ').replace(/^DEC-/i, 'DEC-'),
+        description: `Decision gate ${g.key}`,
+        enabled: g.enabled,
+      }));
+      setGates(mappedGates);
     } catch (err: any) {
       console.error('Error loading gates:', err);
       setError(err.message || 'Failed to load decision gates');
