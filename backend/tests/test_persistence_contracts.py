@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, UTC, timedelta
 
 import pytest
+import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -44,16 +45,7 @@ from app.repositories import (
 TEST_DB_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/test_rmworkbench"
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create event loop for async tests."""
-    import asyncio
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture
 async def engine():
     """Create test database engine."""
     test_engine = create_async_engine(TEST_DB_URL, echo=False, future=True)
@@ -71,7 +63,7 @@ async def engine():
     await test_engine.dispose()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def session(engine):
     """Create clean test session for each test."""
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -81,7 +73,7 @@ async def session(engine):
         await sess.rollback()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_tenant(session: AsyncSession):
     """Create test tenant."""
     tenant = WorkbenchTenant(
@@ -95,7 +87,7 @@ async def test_tenant(session: AsyncSession):
     return tenant
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_client(session: AsyncSession, test_tenant):
     """Create test client."""
     client = Client(
@@ -121,7 +113,7 @@ async def test_client(session: AsyncSession, test_tenant):
     return client
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_workflow(session: AsyncSession, test_tenant, test_client):
     """Create test workflow."""
     workflow = Workflow(
@@ -144,6 +136,7 @@ async def test_workflow(session: AsyncSession, test_tenant, test_client):
 class TestTenantIsolation:
     """Test tenant isolation enforcement."""
 
+    @pytest.mark.asyncio
     async def test_cross_tenant_artifact_access_denied(
         self, session: AsyncSession, test_tenant, test_client, test_workflow
     ):
@@ -164,6 +157,7 @@ class TestTenantIsolation:
         result = await repo.get_by_id("wrong-tenant", test_client.id, lineage.id)
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_same_tenant_different_client_isolation(
         self, session: AsyncSession, test_tenant, test_client, test_workflow
     ):
@@ -188,6 +182,7 @@ class TestTenantIsolation:
 class TestArtifactVersionImmutability:
     """Test artifact revision immutability."""
 
+    @pytest.mark.asyncio
     async def test_revision_immutable_after_creation(
         self, session: AsyncSession, test_tenant, test_client, test_workflow
     ):
@@ -227,6 +222,7 @@ class TestArtifactVersionImmutability:
         assert retrieved.content_hash == original_hash
         assert retrieved.version == 1
 
+    @pytest.mark.asyncio
     async def test_unique_version_constraint(
         self, session: AsyncSession, test_tenant, test_client, test_workflow
     ):
@@ -280,6 +276,7 @@ class TestArtifactVersionImmutability:
 class TestApprovalInvalidation:
     """Test approval invalidation when content changes."""
 
+    @pytest.mark.asyncio
     async def test_content_change_invalidates_approvals(
         self, session: AsyncSession, test_tenant, test_client, test_workflow
     ):
@@ -351,6 +348,7 @@ class TestApprovalInvalidation:
 class TestMemorySuperseding:
     """Test client memory superseding logic."""
 
+    @pytest.mark.asyncio
     async def test_memory_version_sequence(
         self, session: AsyncSession, test_tenant, test_client, test_workflow
     ):
@@ -469,6 +467,7 @@ class TestMemorySuperseding:
 class TestOutboxLeaseCrashRecovery:
     """Test outbox lease mechanism and crash recovery."""
 
+    @pytest.mark.asyncio
     async def test_outbox_lease_claim(
         self, session: AsyncSession, test_tenant, test_client, test_workflow
     ):
@@ -547,6 +546,7 @@ class TestOutboxLeaseCrashRecovery:
         assert claimed[0].lease_token is not None
         assert claimed[0].lease_until is not None
 
+    @pytest.mark.asyncio
     async def test_expired_lease_reclaim(
         self, session: AsyncSession, test_tenant, test_client, test_workflow
     ):
@@ -626,6 +626,7 @@ class TestOutboxLeaseCrashRecovery:
         assert reclaimed[0].id == action.id
         assert reclaimed[0].lease_token != action.lease_token  # New lease token
 
+    @pytest.mark.asyncio
     async def test_attempt_history_preserved(
         self, session: AsyncSession, test_tenant, test_client, test_workflow
     ):
@@ -732,6 +733,7 @@ class TestOutboxLeaseCrashRecovery:
 class TestAuditTransactionality:
     """Test transactional audit with rollback."""
 
+    @pytest.mark.asyncio
     async def test_audit_rollback_with_business_failure(
         self, session: AsyncSession, test_tenant
     ):
@@ -763,6 +765,7 @@ class TestAuditTransactionality:
         )
         assert len(events) == 0
 
+    @pytest.mark.asyncio
     async def test_audit_append_only_enforcement(
         self, session: AsyncSession, test_tenant
     ):

@@ -8,6 +8,7 @@ Validates:
 - Calendar acceptance NOT consent
 """
 import pytest
+import pytest_asyncio
 from datetime import datetime, UTC, timedelta
 from uuid import uuid4
 
@@ -21,7 +22,7 @@ from app.services.capture.capture_service import CaptureService
 from app.services.capture.extraction_service import ExtractionService
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def setup_tenant_client(db_session: AsyncSession):
     """Setup test tenant and client."""
     tenant = WorkbenchTenant(

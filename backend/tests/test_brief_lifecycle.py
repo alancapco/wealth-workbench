@@ -8,6 +8,7 @@ from datetime import datetime, UTC, timezone
 from uuid import uuid4
 
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.artifact import ArtifactLineage, ArtifactRevision, ArtifactItem, ReviewDecision
@@ -18,7 +19,7 @@ from app.repositories.artifacts import ArtifactRepository, RevisionRepository, R
 from app.services.brief.brief_generator import BriefGenerator
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def tenant(db_session: AsyncSession):
     """Create fixture tenant."""
     tenant = WorkbenchTenant(
@@ -31,7 +32,7 @@ async def tenant(db_session: AsyncSession):
     return tenant
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(db_session: AsyncSession, tenant):
     """Create fixture client."""
     client_id = uuid4()
@@ -59,7 +60,7 @@ async def client(db_session: AsyncSession, tenant):
     return client
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def workflow(db_session: AsyncSession, tenant, client):
     """Create fixture workflow."""
     workflow = Workflow(

@@ -13,6 +13,7 @@ Tests cover:
 - DNC still blocks outreach
 """
 import pytest
+import pytest_asyncio
 from datetime import date, datetime, UTC, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
@@ -51,16 +52,7 @@ from app.schemas.priority import (
 from app.services.priority import ControlService, RankingService
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create event loop for async tests."""
-    import asyncio
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture
 async def engine():
     """Create test database engine."""
     from sqlalchemy.ext.asyncio import create_async_engine
@@ -84,7 +76,7 @@ async def engine():
     await test_engine.dispose()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def session(engine):
     """Create clean test session for each test."""
     from sqlalchemy.ext.asyncio import AsyncSession

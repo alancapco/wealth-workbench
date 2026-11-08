@@ -4,6 +4,7 @@ Tests DEC-05 gate, evidence-backed estimates, and disclaimers.
 Default OFF behavior and tenant isolation enforcement.
 """
 import pytest
+import pytest_asyncio
 from datetime import datetime, UTC, timedelta
 from uuid import uuid4
 
@@ -390,7 +391,7 @@ class TestDisclaimerRequirement:
 
 
 # Fixture for async session (would be provided by conftest.py)
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_session():
     """Provide async database session for tests."""
     # This would be implemented in conftest.py with actual DB setup

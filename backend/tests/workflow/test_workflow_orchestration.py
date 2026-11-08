@@ -9,6 +9,7 @@ Tests:
 - GET never starts run
 """
 import pytest
+import pytest_asyncio
 from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
@@ -29,7 +30,7 @@ from app.schemas.common import ArtifactRef
 from app.services.workflow import WorkflowOrchestrator, StageRunner
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client_scope(db_session: AsyncSession) -> ClientScope:
     """Create test client scope with context_revision."""
     from app.models import WorkbenchTenant
