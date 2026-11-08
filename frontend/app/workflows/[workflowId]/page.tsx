@@ -71,7 +71,7 @@ export default function WorkflowDetailPage() {
     switch (status.toLowerCase()) {
       case 'active':
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gray-100 text-gray-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'failed':
@@ -104,7 +104,7 @@ export default function WorkflowDetailPage() {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-4">
-            <Link href="/workflows" className="text-blue-600 hover:text-blue-800">
+            <Link href="/workflows" className="text-gray-700 hover:text-black">
               ← Back to Workflows
             </Link>
           </div>
@@ -126,7 +126,7 @@ export default function WorkflowDetailPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-4">
-          <Link href="/workflows" className="text-blue-600 hover:text-blue-800">
+          <Link href="/workflows" className="text-gray-700 hover:text-black">
             ← Back to Workflows
           </Link>
         </div>
@@ -149,7 +149,7 @@ export default function WorkflowDetailPage() {
                 <div className="text-sm text-gray-600">Client</div>
                 <Link
                   href={`/clients/${workflow.client_id}`}
-                  className="text-lg font-semibold text-blue-600 hover:text-blue-800"
+                  className="text-lg font-semibold text-gray-900 hover:underline"
                 >
                   {workflow.client_name}
                 </Link>
@@ -212,7 +212,7 @@ export default function WorkflowDetailPage() {
                           href={artifact.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          className="text-sm text-gray-700 hover:text-black font-medium"
                         >
                           View →
                         </a>
@@ -231,7 +231,7 @@ export default function WorkflowDetailPage() {
           <div className="flex items-center gap-3">
             <Link
               href={`/workflows/${workflowId}/messages`}
-              className="px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-black text-white font-medium rounded hover:bg-gray-800 transition-colors"
             >
               View Messages
             </Link>

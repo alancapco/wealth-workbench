@@ -114,19 +114,19 @@ export default function ClientDetailPage() {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-4">
-            <Link href="/clients" className="text-blue-600 hover:text-blue-800">
-              ← Back to Clients
-            </Link>
-          </div>
-          <div className="bg-red-50 border border-red-300 rounded p-6">
-            <p className="text-red-700">{error || 'Client not found'}</p>
-            <button
-              onClick={loadClientDetail}
-              className="mt-2 text-sm text-red-800 underline hover:no-underline"
-            >
-              Retry
-            </button>
-          </div>
+          <Link href="/clients" className="text-gray-700 hover:text-black">
+            ← Back to Clients
+          </Link>
+        </div>
+        <div className="bg-red-50 border border-red-300 rounded p-6">
+          <p className="text-red-700">{error || 'Client not found'}</p>
+          <button
+            onClick={loadClientDetail}
+            className="mt-2 text-sm text-red-800 underline hover:no-underline"
+          >
+            Retry
+          </button>
+        </div>
         </div>
       </div>
     );
@@ -136,7 +136,7 @@ export default function ClientDetailPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-4">
-          <Link href="/clients" className="text-blue-600 hover:text-blue-800">
+          <Link href="/clients" className="text-gray-700 hover:text-black">
             ← Back to Clients
           </Link>
         </div>
@@ -149,7 +149,7 @@ export default function ClientDetailPage() {
               <p className="text-gray-600">{client.client_id}</p>
             </div>
             {client.segment && (
-              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded">
+              <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded">
                 {client.segment}
               </span>
             )}
@@ -194,7 +194,7 @@ export default function ClientDetailPage() {
             ) : (
               <div className="space-y-3">
                 {interactions.map((interaction) => (
-                  <div key={interaction.id} className="border-l-4 border-blue-500 bg-blue-50 p-3 rounded">
+                  <div key={interaction.id} className="border-l-4 border-gray-400 bg-gray-50 p-3 rounded">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="font-semibold">{interaction.type}</div>
@@ -254,7 +254,7 @@ export default function ClientDetailPage() {
                         <div className="font-semibold">{member.name}</div>
                         <div className="text-sm text-gray-600">{member.relationship}</div>
                       </div>
-                      <span className="text-blue-600">→</span>
+                      <span className="text-gray-600">→</span>
                     </div>
                   </Link>
                 ))}

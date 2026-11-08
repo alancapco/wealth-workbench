@@ -49,7 +49,7 @@ export default function WorkflowsPage() {
     switch (status.toLowerCase()) {
       case 'active':
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gray-100 text-gray-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'failed':
@@ -104,7 +104,7 @@ export default function WorkflowsPage() {
               onClick={() => setFilterStatus('all')}
               className={`px-4 py-2 rounded font-medium transition-colors ${
                 filterStatus === 'all'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-black text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -114,7 +114,7 @@ export default function WorkflowsPage() {
               onClick={() => setFilterStatus('active')}
               className={`px-4 py-2 rounded font-medium transition-colors ${
                 filterStatus === 'active'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-black text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -124,7 +124,7 @@ export default function WorkflowsPage() {
               onClick={() => setFilterStatus('completed')}
               className={`px-4 py-2 rounded font-medium transition-colors ${
                 filterStatus === 'completed'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-black text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -134,7 +134,7 @@ export default function WorkflowsPage() {
               onClick={() => setFilterStatus('pending')}
               className={`px-4 py-2 rounded font-medium transition-colors ${
                 filterStatus === 'pending'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-black text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >

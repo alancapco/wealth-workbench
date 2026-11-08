@@ -65,7 +65,7 @@ export default function BriefPage({ params }: { params: { clientId: string } }) 
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700">{error}</p>
-          <Link href="/clients" className="text-blue-600 hover:underline mt-2 inline-block">
+          <Link href="/clients" className="text-gray-700 hover:text-black mt-2 inline-block">
             ← Back to Clients
           </Link>
         </div>
@@ -76,11 +76,16 @@ export default function BriefPage({ params }: { params: { clientId: string } }) 
   if (!brief) {
     return (
       <div className="p-6">
+        <div className="mb-4">
+          <Link href="/clients" className="text-gray-700 hover:text-black">
+            ← Back to Clients
+          </Link>
+        </div>
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
           <p className="text-gray-500 mb-4">No brief generated yet for this client.</p>
           <button
             onClick={() => apiClient.post('/briefs', { client_id: params.clientId })}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
           >
             Generate Brief
           </button>
@@ -91,8 +96,8 @@ export default function BriefPage({ params }: { params: { clientId: string } }) 
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-black z-50 md:ml-64">
+      {/* In-page header strip (no fixed positioning — sidebar layout handles nav) */}
+      <div className="h-16 bg-black w-full">
         <div className="max-w-[1920px] mx-auto h-full px-8 flex items-center justify-between">
           <button onClick={() => router.push('/clients')} className="text-white hover:text-gray-300">
             ← Back to Clients
@@ -100,11 +105,11 @@ export default function BriefPage({ params }: { params: { clientId: string } }) 
           <div className="text-white font-semibold">Client Brief</div>
           <div className="text-white text-sm">RM User</div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
-      <main className="pt-16 pb-12 px-8 max-w-[1400px] mx-auto">
-        <div className="pt-12">
+      <main className="pb-12 px-8 max-w-[1400px] mx-auto">
+        <div className="pt-8">
           <h1 className="text-4xl font-light mb-4">Meeting Brief</h1>
           <p className="text-gray-600 mb-8">Review sections and approve before meeting</p>
 

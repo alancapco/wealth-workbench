@@ -136,7 +136,7 @@ export default function AdminDashboardPage() {
                       <p className="text-gray-600 mb-3">{gate.description}</p>
                       {gate.config && Object.keys(gate.config).length > 0 && (
                         <details className="text-sm">
-                          <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                          <summary className="cursor-pointer text-gray-700 hover:text-black">
                             View Configuration
                           </summary>
                           <pre className="mt-2 p-3 bg-gray-50 rounded overflow-auto text-xs font-mono">

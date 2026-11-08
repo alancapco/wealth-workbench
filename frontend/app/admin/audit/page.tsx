@@ -80,7 +80,7 @@ export default function AuditLogPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-4">
-          <Link href="/admin" className="text-blue-600 hover:text-blue-800">
+          <Link href="/admin" className="text-gray-700 hover:text-black">
             ← Back to Admin Dashboard
           </Link>
         </div>
@@ -112,7 +112,7 @@ export default function AuditLogPage() {
               <select
                 value={filterAction}
                 onChange={(e) => setFilterAction(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
               >
                 <option value="all">All Actions</option>
                 {uniqueActions.map((action) => (
@@ -130,7 +130,7 @@ export default function AuditLogPage() {
               <select
                 value={filterResource}
                 onChange={(e) => setFilterResource(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
               >
                 <option value="all">All Resources</option>
                 {uniqueResources.map((resource) => (
@@ -182,7 +182,7 @@ export default function AuditLogPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">{event.actor}</td>
                       <td className="px-4 py-3 text-sm">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
                           {event.action}
                         </span>
                       </td>
@@ -204,7 +204,7 @@ export default function AuditLogPage() {
                       <td className="px-4 py-3 text-sm">
                         {event.details && Object.keys(event.details).length > 0 ? (
                           <details>
-                            <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                            <summary className="cursor-pointer text-gray-700 hover:text-black">
                               View
                             </summary>
                             <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-auto max-w-md">

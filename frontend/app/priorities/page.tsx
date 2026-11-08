@@ -141,7 +141,7 @@ export default function PrioritiesPage() {
                       <div>
                         <Link
                           href={`/clients/${priority.client_id}`}
-                          className="text-xl font-semibold text-gray-900 hover:text-blue-600"
+                          className="text-xl font-semibold text-gray-900 hover:text-black"
                         >
                           {priority.client_name}
                         </Link>
@@ -168,7 +168,7 @@ export default function PrioritiesPage() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/clients/${priority.client_id}`}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors"
+                        className="px-4 py-2 bg-black text-white text-sm font-medium rounded hover:bg-gray-800 transition-colors"
                       >
                         View Client
                       </Link>

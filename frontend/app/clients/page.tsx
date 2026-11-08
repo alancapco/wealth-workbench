@@ -85,7 +85,7 @@ export default function ClientsPage() {
             placeholder="Search clients by name or ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
         </div>
 
@@ -110,7 +110,7 @@ export default function ClientsPage() {
                     <p className="text-sm text-gray-500">{client.client_id}</p>
                   </div>
                   {client.segment && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                    <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
                       {client.segment}
                     </span>
                   )}

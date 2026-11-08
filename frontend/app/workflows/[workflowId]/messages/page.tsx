@@ -82,7 +82,7 @@ export default function MessageComposerPage() {
       case 'approved':
         return 'bg-green-100 text-green-800';
       case 'sent':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -108,7 +108,7 @@ export default function MessageComposerPage() {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-4">
-            <Link href={`/workflows/${workflowId}`} className="text-blue-600 hover:text-blue-800">
+            <Link href={`/workflows/${workflowId}`} className="text-gray-700 hover:text-black">
               ← Back to Workflow
             </Link>
           </div>
@@ -130,7 +130,7 @@ export default function MessageComposerPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-4">
-          <Link href={`/workflows/${workflowId}`} className="text-blue-600 hover:text-blue-800">
+          <Link href={`/workflows/${workflowId}`} className="text-gray-700 hover:text-black">
             ← Back to Workflow
           </Link>
         </div>
@@ -156,7 +156,7 @@ export default function MessageComposerPage() {
                     onClick={() => setSelectedMessage(message)}
                     className={`w-full text-left p-3 rounded border transition-all ${
                       selectedMessage?.message_id === message.message_id
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-gray-800 bg-gray-50'
                         : 'border-gray-200 hover:border-gray-400'
                     }`}
                   >
@@ -220,7 +220,7 @@ export default function MessageComposerPage() {
                       onChange={(e) =>
                         setSelectedMessage({ ...selectedMessage, content: e.target.value })
                       }
-                      className="w-full min-h-[400px] p-4 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                      className="w-full min-h-[400px] p-4 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-400 font-mono text-sm"
                       placeholder="Message content..."
                     />
                   )}
@@ -238,7 +238,7 @@ export default function MessageComposerPage() {
                     {selectedMessage.status === 'approved' && (
                       <button
                         onClick={() => handleSend(selectedMessage.message_id)}
-                        className="px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition-colors"
+                        className="px-4 py-2 bg-black text-white font-medium rounded hover:bg-gray-800 transition-colors"
                       >
                         Send
                       </button>

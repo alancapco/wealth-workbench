@@ -36,12 +36,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           {/* Desktop Sidebar */}
           <aside
-            className={`hidden md:flex flex-col bg-slate-900 text-white fixed h-screen transition-all duration-200 z-40 ${
+            className={`hidden md:flex flex-col bg-black text-white fixed h-screen transition-all duration-200 z-40 ${
               collapsed ? 'w-16' : 'w-64'
             }`}
           >
             {/* Logo / App name */}
-            <div className={`flex items-center border-b border-slate-700 h-14 ${collapsed ? 'justify-center px-0' : 'px-4'}`}>
+            <div className={`flex items-center border-b border-gray-800 h-14 ${collapsed ? 'justify-center px-0' : 'px-4'}`}>
               {!collapsed && (
                 <span className="text-lg font-bold truncate">RM Workbench</span>
               )}
@@ -62,8 +62,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     title={collapsed ? item.label : undefined}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
                       isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                        ? 'bg-gray-800 text-white'
+                        : 'text-gray-400 hover:bg-gray-900 hover:text-white'
                     } ${collapsed ? 'justify-center' : ''}`}
                   >
                     <Icon size={20} className="shrink-0" />
@@ -76,10 +76,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </nav>
 
             {/* Collapse toggle button */}
-            <div className="border-t border-slate-700 p-2">
+            <div className="border-t border-gray-800 p-2">
               <button
                 onClick={() => setCollapsed(!collapsed)}
-                className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors ${
+                className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-gray-500 hover:bg-gray-900 hover:text-white transition-colors ${
                   collapsed ? 'justify-center' : ''
                 }`}
                 title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -97,7 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </aside>
 
           {/* Mobile top nav */}
-          <nav className="md:hidden fixed top-0 w-full bg-slate-900 text-white z-50 h-14">
+          <nav className="md:hidden fixed top-0 w-full bg-black text-white z-50 h-14">
             <div className="flex items-center justify-between px-4 h-full">
               <Link href="/dashboard" className="text-base font-bold">RM Workbench</Link>
               <div className="flex items-center gap-1">
@@ -110,7 +110,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       href={item.href}
                       title={item.label}
                       className={`p-2 rounded-lg transition-colors ${
-                        isActive ? 'text-blue-400' : 'text-slate-300 hover:text-white'
+                        isActive ? 'text-white bg-gray-800' : 'text-gray-400 hover:text-white'
                       }`}
                     >
                       <Icon size={20} />
