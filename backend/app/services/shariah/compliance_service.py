@@ -1,6 +1,6 @@
 """
 Shariah compliance estimation service for investment products.
-Adapted from islamic-ai/shariah contract_analysis.py for RM Workbench.
+Adapted from islamic-ai/shariah contract_analysis.py for WM Workbench.
 
 DEC-05 gated (default OFF).
 NOT a fatwa. NOT a religious ruling. Preliminary technical estimate only.
@@ -137,8 +137,10 @@ class ShariahComplianceService:
             raw = _parse_json(content)
             findings = raw.get("findings") if isinstance(raw.get("findings"), list) else []
         except Exception as exc:
+            # Empty findings would be scored LIKELY_COMPLIANT, so an LLM failure
+            # must propagate instead of being mistaken for "no concerns found".
             logger.warning("LLM call failed for compliance estimate: %s", exc)
-            return []  # Caller treats empty findings as INSUFFICIENT_DATA on error
+            raise
 
         validated: list[dict[str, Any]] = []
         for item in findings[:MAX_FINDINGS]:
@@ -194,6 +196,19 @@ class ShariahComplianceService:
         except Exception as exc:
             logger.warning("RAG retrieval failed: %s", exc)
             sources = []
+
+        # With no retrieved clauses there is nothing to rely on; an assessment
+        # produced from an empty evidence set would be a fabricated conclusion.
+        if not sources:
+            return {
+                "estimate": "INSUFFICIENT_DATA",
+                "confidence": "low",
+                "findings": [],
+                "candidate_sources": [],
+                "disclaimer": self.DISCLAIMER,
+                "model_used": settings.LLM_MODEL,
+                "error": "No AAOIFI clauses matched the supplied description",
+            }
 
         # LLM analysis
         llm_failed = False

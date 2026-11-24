@@ -7,6 +7,7 @@ from datetime import datetime, UTC, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.models import Client, Holding, Interaction
+from app.services.ranking.policy_config import get_concentration_threshold
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,12 +37,16 @@ class RankingService:
             )
             clients = result.scalars().all()
 
+            # Threshold is a policy input, resolved once per run from the config service.
+            tenant_id = next((c.tenant_id for c in clients if c.tenant_id), None)
+            concentration_threshold = await get_concentration_threshold(db, tenant_id)
+
             ranked_clients = []
 
             for client in clients:
                 # Calculate scores
                 opportunity_score = await self._calculate_opportunity(client, market_signals, db)
-                risk_score = await self._calculate_risk(client, db)
+                risk_score = await self._calculate_risk(client, db, concentration_threshold)
                 retention_score = await self._calculate_retention(client, db)
 
                 # Weighted total score
@@ -127,7 +132,12 @@ class RankingService:
 
         return min(score, 10.0)
 
-    async def _calculate_risk(self, client: Client, db: AsyncSession) -> float:
+    async def _calculate_risk(
+        self,
+        client: Client,
+        db: AsyncSession,
+        concentration_threshold: float,
+    ) -> float:
         """
         Calculate risk score based on:
         - Portfolio concentration
@@ -156,19 +166,16 @@ class RankingService:
             except (ValueError, TypeError) as e:
                 logger.warning(f"Invalid suitability_expiry for client {client.id}: {e}")
 
-        # Portfolio concentration risk (placeholder)
         result = await db.execute(
             select(Holding).where(Holding.client_id == client.id)
         )
         holdings = result.scalars().all()
-
         if holdings:
-            # Check for concentration (> 10% in single holding)
             total_value = sum(h.current_value or 0 for h in holdings)
             if total_value > 0:
                 for holding in holdings:
                     concentration = (holding.current_value or 0) / total_value
-                    if concentration > 0.10:
+                    if concentration > concentration_threshold:
                         score += 2.0
 
         return min(score, 10.0)

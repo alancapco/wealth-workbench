@@ -1,12 +1,18 @@
 """Outbox worker for claiming pending actions and managing lease lifecycle."""
+import asyncio
+from collections.abc import Awaitable, Callable
 from datetime import datetime, UTC, timedelta
 from uuid import UUID, uuid4
 import json
+import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import database
 from app.models.action import OutboxAction, ActionPreview, ActionAuthorization
 from app.repositories.outbox import OutboxRepository
+
+logger = logging.getLogger(__name__)
 
 
 class OutboxWorker:
@@ -206,3 +212,53 @@ class OutboxWorker:
             raise ValueError("Preview not found")
 
         return action, authorization, preview
+
+
+ActionDispatcher = Callable[["OutboxWorker", OutboxAction], Awaitable[None]]
+_action_dispatcher: ActionDispatcher | None = None
+
+
+def set_action_dispatcher(dispatcher: ActionDispatcher | None) -> None:
+    """Register the production provider dispatcher (H-14 integration seam).
+
+    The coroutine receives the worker and a claimed action and records every
+    outcome through the worker's existing attempt/lease methods.
+    """
+    global _action_dispatcher
+    _action_dispatcher = dispatcher
+
+
+async def run_outbox_worker(poll_interval_seconds: float = 5.0) -> None:
+    """Claim loop driven by the FastAPI lifespan; owns its own DB session per tick.
+
+    Provider dispatch is an external capability. Without a registered
+    dispatcher, claiming would strand actions under a lease, so the loop keeps
+    them PENDING and reports PROVIDER_UNCONFIGURED rather than fabricating a
+    receipt or a SUCCEEDED status.
+    """
+    if database.async_session_maker is None:
+        logger.warning("Outbox worker idle: database is not configured")
+        return
+
+    warned = False
+    while True:
+        try:
+            dispatcher = _action_dispatcher
+            if dispatcher is None:
+                if not warned:
+                    logger.warning(
+                        "Outbox worker idle: no provider dispatcher registered "
+                        "(PROVIDER_UNCONFIGURED); actions remain PENDING"
+                    )
+                    warned = True
+            else:
+                async with database.async_session_maker() as session:
+                    worker = OutboxWorker(session)
+                    for action in await worker.claim_actions():
+                        await dispatcher(worker, action)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # A failed tick (DB down, provider error) must not kill the app.
+            logger.warning("Outbox worker tick failed", exc_info=True)
+        await asyncio.sleep(poll_interval_seconds)

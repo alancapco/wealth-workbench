@@ -24,19 +24,20 @@ interface ApiResponse {
   comparison_notes: string[];
 }
 
+/** Monochrome ramp only — the Capco palette has no new product colours. */
 const ASSET_COLORS: Record<string, string> = {
-  Equities: '#3b82f6',
-  'Fixed Income': '#22c55e',
-  Alternatives: '#a855f7',
-  Cash: '#94a3b8',
-  'Real Estate': '#f97316',
+  Equities: '#111827',
+  'Fixed Income': '#4b5563',
+  Alternatives: '#9ca3af',
+  Cash: '#d1d5db',
+  'Real Estate': '#6b7280',
 };
 
 const RISK_BADGE: Record<string, string> = {
-  Conservative: 'bg-blue-100 text-blue-800',
-  Moderate: 'bg-amber-100 text-amber-800',
-  Balanced: 'bg-emerald-100 text-emerald-800',
-  Aggressive: 'bg-red-100 text-red-800',
+  Conservative: 'bg-gray-100 text-gray-700',
+  Moderate: 'bg-gray-200 text-gray-800',
+  Balanced: 'bg-gray-700 text-white',
+  Aggressive: 'bg-black text-white',
 };
 
 export default function InvestorsLikeMePage() {
@@ -52,16 +53,12 @@ export default function InvestorsLikeMePage() {
       .list()
       .then((res) => {
         const raw = res.data?.data ?? res.data;
-        const list = raw?.clients ?? raw;
+        const list = Array.isArray(raw) ? raw : raw?.clients ?? [];
         setClients(Array.isArray(list) ? list : []);
       })
       .catch(() => {
         setOffline(true);
-        setClients([
-          { id: 'demo-001', name: 'Kenneth Wong', aum_usd_millions: 45.2, risk_profile: 'Moderate' },
-          { id: 'demo-002', name: 'Ahmad Rahman', aum_usd_millions: 32.8, risk_profile: 'Conservative' },
-          { id: 'demo-003', name: 'Tan Family Office', aum_usd_millions: 120.5, risk_profile: 'Balanced' },
-        ]);
+        setClients([]);
       })
       .finally(() => setLoadingClients(false));
   }, []);
@@ -88,11 +85,13 @@ export default function InvestorsLikeMePage() {
   };
 
   // Build unified asset class list from both sides
+  const yourAllocation = data?.your_allocation ?? [];
+  const peerAllocation = data?.peer_avg_allocation ?? [];
   const allClasses: string[] = data
     ? Array.from(
         new Set([
-          ...data.your_allocation.map((r) => r.asset_class),
-          ...data.peer_avg_allocation.map((r) => r.asset_class),
+          ...yourAllocation.map((r) => r.asset_class),
+          ...peerAllocation.map((r) => r.asset_class),
         ]),
       )
     : [];
@@ -106,8 +105,8 @@ export default function InvestorsLikeMePage() {
           <p className="text-gray-400 text-sm">Peer Allocation Benchmark</p>
         </div>
         {offline && (
-          <span className="text-xs bg-yellow-900 text-yellow-300 px-3 py-1 rounded-full">
-            Backend offline — showing sample data
+          <span className="text-xs bg-gray-800 text-white px-3 py-1 rounded-full">
+            Backend unavailable — no data displayed
           </span>
         )}
       </header>
@@ -149,7 +148,16 @@ export default function InvestorsLikeMePage() {
           </div>
         )}
 
-        {selectedClient && !loadingData && data && (
+        {selectedClient && !loadingData && !offline && data && allClasses.length === 0 && (
+          <div className="border border-gray-200 bg-white rounded-xl p-5 text-sm text-gray-600">
+            No peer allocation comparison is available for this client.
+            {(data.comparison_notes ?? []).length > 0 && (
+              <p className="mt-2 text-xs text-gray-500">{data.comparison_notes.join(' ')}</p>
+            )}
+          </div>
+        )}
+
+        {selectedClient && !loadingData && data && allClasses.length > 0 && (
           <div className="space-y-5">
             {/* Client info card */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
@@ -182,8 +190,8 @@ export default function InvestorsLikeMePage() {
                   </h3>
                   <div className="space-y-3.5">
                     {allClasses.map((cls) => {
-                      const mine = data.your_allocation.find((r) => r.asset_class === cls);
-                      const peer = data.peer_avg_allocation.find((r) => r.asset_class === cls);
+                      const mine = yourAllocation.find((r) => r.asset_class === cls);
+                      const peer = peerAllocation.find((r) => r.asset_class === cls);
                       const myPct = mine?.allocation_pct ?? 0;
                       const peerPct = peer?.allocation_pct ?? 0;
                       const delta = myPct - peerPct;
@@ -199,7 +207,7 @@ export default function InvestorsLikeMePage() {
                               {delta !== 0 && (
                                 <span
                                   className={`text-xs font-medium ${
-                                    delta > 0 ? 'text-green-600' : 'text-red-600'
+                                    delta > 0 ? 'text-gray-900' : 'text-gray-500'
                                   }`}
                                 >
                                   {delta > 0 ? '↑' : '↓'} {Math.abs(delta).toFixed(1)}%
@@ -229,7 +237,7 @@ export default function InvestorsLikeMePage() {
                   </h3>
                   <div className="space-y-3.5">
                     {allClasses.map((cls) => {
-                      const peer = data.peer_avg_allocation.find((r) => r.asset_class === cls);
+                      const peer = peerAllocation.find((r) => r.asset_class === cls);
                       const peerPct = peer?.allocation_pct ?? 0;
 
                       return (
@@ -258,7 +266,7 @@ export default function InvestorsLikeMePage() {
             </div>
 
             {/* Comparison notes */}
-            {data.comparison_notes.length > 0 && (
+            {(data.comparison_notes ?? []).length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <h2 className="text-sm font-semibold text-gray-700 mb-3">Key Differences</h2>
                 <ul className="space-y-2">
@@ -281,8 +289,8 @@ export default function InvestorsLikeMePage() {
         )}
 
         {selectedClient && !loadingData && !data && offline && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-800">
-            Backend offline. Start the backend with <code className="bg-yellow-100 px-1 rounded">cd backend && uv run uvicorn app.main:app --port 8000</code> to see live data.
+          <div className="bg-gray-50 border border-gray-300 rounded-xl p-4 text-sm text-gray-700">
+            No peer data returned. Verify the backend is running and the client has holdings, then retry.
           </div>
         )}
       </div>

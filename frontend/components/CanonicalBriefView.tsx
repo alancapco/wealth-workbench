@@ -22,6 +22,8 @@ interface Source {
   as_of?: string;
   retrieved_at?: string;
   limitation_codes: string[];
+  authoritative_owner?: string;
+  system_key?: string;
 }
 
 interface BriefClaim {
@@ -104,7 +106,7 @@ export default function CanonicalBriefView({
   if (breakpoint === 'mobile') {
     const mobileBrief = {
       id: brief.brief_id,
-      clientName: brief.client_id,
+      clientName: (brief as any).client_name || 'Client',
       version: brief.version.toString(),
       sections: sectionKeys.map(key => {
         const section = brief.sections[key];
@@ -151,17 +153,17 @@ export default function CanonicalBriefView({
             {/* Capability state badge */}
             {isUnavailable && (
               <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-gray-700 text-xs rounded">
-                {section.capability_state}
+                {section.capability_state === 'UNCONFIGURED' ? 'Not configured' : 'Unavailable'}
               </span>
             )}
             {isStale && (
               <span className="px-2 py-1 bg-yellow-50 border border-yellow-600 text-yellow-900 text-xs rounded">
-                STALE
+                Needs refresh
               </span>
             )}
             {section.sources.some(s => s.live_response) && (
               <span className="px-2 py-1 bg-green-50 border border-green-600 text-green-900 text-xs rounded">
-                ● LIVE
+                Live
               </span>
             )}
             {editable && onSectionEdit && (
@@ -194,9 +196,11 @@ export default function CanonicalBriefView({
                         ({Math.round(claim.confidence * 100)}% confidence)
                       </span>
                     )}
-                    <span className="ml-2 text-xs text-gray-400">
-                      [{claim.origin}]
-                    </span>
+                    {claim.origin && claim.origin !== 'RECORDED' && (
+                      <span className="ml-2 text-xs text-gray-400">
+                        {String(claim.origin).replace(/_/g, ' ').toLowerCase()}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -234,19 +238,24 @@ export default function CanonicalBriefView({
 
         {/* Source provenance */}
         <div className="mt-4 pt-4 border-t text-xs text-gray-500 space-y-1">
-          {section.sources.map((source) => (
-            <div key={source.id} className="flex items-center gap-2">
-              <span>Source: {source.origin}</span>
-              {source.as_of && (
-                <span>• As of: {new Date(source.as_of).toLocaleString()}</span>
-              )}
-              {source.environment.kind === 'FIXTURE' && (
-                <span className="px-1 py-0.5 bg-orange-100 text-orange-800 rounded">
-                  FIXTURE
-                </span>
-              )}
-            </div>
-          ))}
+          {section.sources.map((source) => {
+            const label = source.authoritative_owner
+              || source.system_key?.replace(/_/g, ' ')
+              || (source.origin ? String(source.origin).replace(/_/g, ' ').toLowerCase() : 'Recorded data');
+            return (
+              <div key={source.id} className="flex items-center gap-2">
+                <span>Source: {label}</span>
+                {source.as_of && (
+                  <span>• As of: {new Date(source.as_of).toLocaleString()}</span>
+                )}
+                {source.environment.kind === 'FIXTURE' && (
+                  <span className="px-1 py-0.5 bg-orange-100 text-orange-800 rounded">
+                    Demo data
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Review actions */}
@@ -285,7 +294,10 @@ export default function CanonicalBriefView({
           <div>
             <h3 className="font-semibold text-blue-900">Brief v{brief.version}</h3>
             <p className="text-sm text-blue-700">
-              Generated {new Date(brief.generated_at).toLocaleString()} by {brief.generated_by}
+              Generated {new Date(brief.generated_at).toLocaleString()}
+              {brief.generated_by && !/^[0-9a-f-]{16,}$/i.test(brief.generated_by)
+                ? ` by ${brief.generated_by}`
+                : ''}
             </p>
           </div>
           {brief.environment.kind === 'FIXTURE' && (

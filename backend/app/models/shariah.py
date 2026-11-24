@@ -3,7 +3,7 @@
 U-015: Evidence-backed Shariah compliance estimation (not fatwa/approval).
 """
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKeyConstraint, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, UUID as PGUUID
@@ -18,7 +18,7 @@ class ShariahEvidence(Base):
     """
     __tablename__ = "shariah_evidence"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     product_ref = Column(Text, nullable=False)
     evidence_type = Column(Text, nullable=False)
@@ -46,7 +46,7 @@ class ShariahEstimate(Base):
     """
     __tablename__ = "shariah_estimates"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     product_ref = Column(Text, nullable=False)
     workflow_id = Column(PGUUID(as_uuid=True), nullable=False)

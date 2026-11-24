@@ -130,7 +130,7 @@ def _row_to_candidate(row: asyncpg.Record) -> dict[str, Any]:
 
 class ShariahRagService:
     """
-    3-way hybrid AAOIFI clause search for RM Workbench.
+    3-way hybrid AAOIFI clause search for WM Workbench.
 
     Search branches:
       - sparse:  PostgreSQL tsvector/tsquery + ts_rank (was ParadeDB BM25)

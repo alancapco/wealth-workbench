@@ -7,6 +7,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.identity import FIXTURE_TENANT_ID
 from app.schemas.admin import (
     AuditEventDetail,
     AuditLogResponse,
@@ -20,7 +21,9 @@ from app.services.config import AuditService, ConfigService, TelemetryService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-FIXTURE_TENANT_ID = "tenant-fixture-001"
+# Imported from identity so reads and writes resolve to the same fixture tenant.
+# The previous local value ("tenant-fixture-001") never matched the principal,
+# so telemetry metrics always came back empty even after events were recorded.
 
 
 @router.get("/config/gates", response_model=Envelope[DecisionGateList])
@@ -46,13 +49,13 @@ async def list_decision_gates(
 
     gates = []
     for key in gate_keys:
-        enabled = await config_service.get_decision_gate(scope, key)
+        enabled, changed_at = await config_service.get_gate_state(scope, key)
         gates.append(
             DecisionGate(
                 key=key,
                 scope=scope,
                 enabled=enabled,
-                updated_at=datetime.now(UTC),
+                updated_at=changed_at,
             )
         )
 
@@ -66,12 +69,32 @@ async def list_decision_gates(
 async def update_decision_gate(
     key: str,
     enabled: bool = Body(..., embed=True),
+    tenant_id: Optional[str] = Query(None, description="Tenant ID (uses fixture in AUTH_MODE=fixture)"),
+    book_id: str | None = Query(None, description="Book ID for scope"),
+    jurisdiction: str | None = Query(None, description="Jurisdiction for scope"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Toggle a decision gate"""
+    """Toggle a decision gate by persisting a new capability-control revision."""
+    resolved_tenant = tenant_id or FIXTURE_TENANT_ID
+    scope = Scope(tenant_id=resolved_tenant, book_id=book_id, jurisdiction=jurisdiction)
+    config_service = ConfigService(db)
+
+    try:
+        state, changed_at = await config_service.set_decision_gate(
+            scope, key, enabled, actor="workbench-ui"
+        )
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Could not persist gate: {exc}") from exc
+
     return {
-        "data": {"key": key, "enabled": enabled, "updated_at": datetime.now(UTC).isoformat()},
-        "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}
+        "data": {
+            "key": key,
+            "enabled": state,
+            "updated_at": changed_at.isoformat(),
+        },
+        "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()},
     }
 
 
@@ -90,13 +113,13 @@ async def get_decision_gate(
     scope = Scope(tenant_id=resolved_tenant, book_id=book_id, jurisdiction=jurisdiction)
     config_service = ConfigService(db)
 
-    enabled = await config_service.get_decision_gate(scope, key)
+    enabled, changed_at = await config_service.get_gate_state(scope, key)
 
     gate = DecisionGate(
         key=key,
         scope=scope,
         enabled=enabled,
-        updated_at=datetime.now(UTC),
+        updated_at=changed_at,
     )
 
     return Envelope(

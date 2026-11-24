@@ -1,6 +1,6 @@
 """AAOIFI knowledge base ingest script.
 
-Adapted from islamic-ai/shariah scripts/ingest_ss8_draft.py for RM Workbench.
+Adapted from islamic-ai/shariah scripts/ingest_ss8_draft.py for WM Workbench.
 Ingests AAOIFI Shariah standards PDF at page granularity (covers all 54 standards).
 Status written as 'draft' — administrator + qualified scholar must approve before RAG queries use them.
 

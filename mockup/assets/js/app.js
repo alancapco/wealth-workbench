@@ -1,4 +1,4 @@
-// Capco RM Workbench MVP - Interactive Mockup
+// Capco WM Workbench MVP - Interactive Mockup
 // Application logic for clickable hi-fi prototype
 
 // State management
@@ -12,7 +12,7 @@ const appState = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Capco RM Workbench initialized');
+    console.log('Capco WM Workbench initialized');
     updateClock();
     setInterval(updateClock, 1000);
 

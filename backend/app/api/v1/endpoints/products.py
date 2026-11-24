@@ -7,12 +7,19 @@ from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.api.dependencies import get_current_principal
 from app.schemas.identity import Principal
-from app.schemas.common import Envelope, ResponseMeta, Environment, EnvironmentKind
+from app.schemas.common import (
+    Envelope,
+    ResponseMeta,
+    Environment,
+    EnvironmentKind,
+    CapabilityState,
+)
 from app.schemas.product import (
     ProductInterpretationRequest,
     ProductInterpretationResponse,
@@ -23,7 +30,6 @@ from app.schemas.product import (
     ProductSearch,
     ProductComparisonRequest,
     ProductComparisonResponse,
-    ProductComparison,
     CandidateSelectionRequest,
     CandidateSelectionResponse,
     AssessmentRequest,
@@ -32,10 +38,11 @@ from app.schemas.product import (
     SuitabilityOverrideRequest,
     SuitabilityOverrideResponse,
     Artifact,
-    ProductFilter,
 )
-from app.schemas.common import ArtifactRef, ConfigRef, CatalogRef
+from app.schemas.common import ConfigRef, CatalogRef
 from app.models.product import CandidateSelection as CandidateSelectionModel
+from app.models.platform import ClientScope
+from app.models.workflow import Workflow
 from app.services.product import (
     ProductSearchService,
     InterpretationService,
@@ -43,30 +50,84 @@ from app.services.product import (
     SuitabilityService,
     OverrideService,
 )
-from app.repositories.artifacts import ArtifactRepository
+from app.services.product.artifact_adapter import ProductArtifactRepository
+from app.services.product.config_refs import (
+    POLICY_CONFIG_CLASS,
+    POLICY_CONFIG_KEY,
+    PRODUCT_FILTERS_CATALOG_KEY,
+    UNIVERSE_CONFIG_CLASS,
+    UNIVERSE_CONFIG_KEY,
+    parse_config_value,
+    resolve_approved_config,
+    resolve_client_jurisdiction,
+    to_config_ref,
+    unconfigured_config_ref,
+)
 
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-# Stub: resolve universe config (real impl from configuration service)
-def _get_universe_config() -> ConfigRef:
-    return ConfigRef(
-        id=uuid4(),
-        revision=1,
-        hash="0" * 64,
+async def _resolve_workflow_client(
+    db: AsyncSession, workflow_id: UUID, principal: Principal
+) -> UUID:
+    """Resolve the real client behind a workflow within the caller's tenant.
+
+    A workflow from another tenant and a workflow whose client has no client_scope
+    row are indistinguishable from a missing workflow (§3.1). The client_scope
+    check also guarantees the composite FK on artifact_lineages is satisfiable.
+    """
+    row = (await db.execute(
+        select(Workflow.tenant_id, Workflow.client_id).where(Workflow.id == workflow_id)
+    )).first()
+    if row is None or row.tenant_id != principal.tenant_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+
+    scope = (await db.execute(
+        select(ClientScope.client_id).where(
+            ClientScope.tenant_id == principal.tenant_id,
+            ClientScope.client_id == row.client_id,
+        )
+    )).scalar_one_or_none()
+    if scope is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+    return row.client_id
+
+
+async def _get_universe_config(
+    db: AsyncSession, tenant_id: str, jurisdiction: str | None
+) -> tuple[ConfigRef, str | None]:
+    """Resolve the approved universe ConfigRef with its real content hash."""
+    row, reason = await resolve_approved_config(
+        db, tenant_id, UNIVERSE_CONFIG_CLASS, UNIVERSE_CONFIG_KEY, jurisdiction
     )
+    if row is None:
+        return unconfigured_config_ref(
+            tenant_id, UNIVERSE_CONFIG_KEY, reason or "Product universe is not configured."
+        ), reason
+    return to_config_ref(row), None
 
 
-def _get_catalog_ref() -> CatalogRef:
-    return CatalogRef(
-        config_ref=_get_universe_config(),
-        catalog_key="product_filters",
+def _get_catalog_ref(universe_ref: ConfigRef) -> CatalogRef:
+    return CatalogRef(config_ref=universe_ref, catalog_key=PRODUCT_FILTERS_CATALOG_KEY)
+
+
+async def _get_suitability_policy(
+    db: AsyncSession, tenant_id: str, jurisdiction: str | None
+) -> tuple[ConfigRef | None, dict | None, str | None]:
+    """Resolve the approved policy; an absent policy returns an explicit reason."""
+    row, reason = await resolve_approved_config(
+        db, tenant_id, POLICY_CONFIG_CLASS, POLICY_CONFIG_KEY, jurisdiction
     )
-
-
-def _get_suitability_policy() -> ConfigRef | None:
-    # UNCONFIGURED: no approved suitability policy
-    return None
+    if row is None:
+        return None, None, reason
+    policy = parse_config_value(row)
+    declared = policy.get("jurisdiction")
+    if declared and jurisdiction and declared != jurisdiction:
+        return None, None, (
+            f"Approved suitability policy is for {declared}, "
+            f"not the client's jurisdiction {jurisdiction}."
+        )
+    return to_config_ref(row), policy, None
 
 
 @router.post(
@@ -85,13 +146,11 @@ async def interpret_query(
     Extracts objective, timeframe, amount, risk and other criteria.
     Returns editable confirmed filters. Ambiguities block search until resolved.
     """
-    # Get workflow and authorize
-    # Stub: real impl queries workflow service for client_id and authorization
-    client_id = uuid4()  # Placeholder
-    
-    # Interpret query
-    universe_ref = _get_universe_config()
-    catalog_ref = _get_catalog_ref()
+    client_id = await _resolve_workflow_client(db, workflow_id, principal)
+    jurisdiction = await resolve_client_jurisdiction(db, client_id)
+
+    universe_ref, _ = await _get_universe_config(db, principal.tenant_id, jurisdiction)
+    catalog_ref = _get_catalog_ref(universe_ref)
     
     interpretation_service = InterpretationService(universe_ref, catalog_ref)
     interpretation = await interpretation_service.interpret_query(
@@ -101,7 +160,7 @@ async def interpret_query(
     )
     
     # Persist as artifact
-    artifact_repo = ArtifactRepository(db)
+    artifact_repo = ProductArtifactRepository(db)
     artifact_ref = await artifact_repo.create_artifact(
         tenant_id=principal.tenant_id,
         client_id=client_id,
@@ -146,7 +205,7 @@ async def edit_filters(
     Hard filters (regulatory/policy) cannot be modified.
     """
     # Retrieve existing interpretation artifact
-    artifact_repo = ArtifactRepository(db)
+    artifact_repo = ProductArtifactRepository(db)
     existing = await artifact_repo.get_artifact(
         tenant_id=principal.tenant_id,
         artifact_id=artifact_id,
@@ -221,12 +280,12 @@ async def search_products(
     db: AsyncSession = Depends(get_db),
 ) -> Envelope[ProductSearchResponse]:
     """API-058: Search entitled products with confirmed filters.
-    
-    Returns UNCONFIGURED without approved DEC-04 product catalog provider.
-    No live product provider calls authorized by this task.
+
+    Searches the current approved product universe; without one the result is an
+    explicit UNCONFIGURED/UNAVAILABLE explanation rather than fabricated products.
     """
     # Retrieve interpretation artifact
-    artifact_repo = ArtifactRepository(db)
+    artifact_repo = ProductArtifactRepository(db)
     interpretation_artifact = await artifact_repo.get_artifact(
         tenant_id=principal.tenant_id,
         artifact_id=request.interpretation_ref.artifact_id,
@@ -247,30 +306,38 @@ async def search_products(
             detail=f"Ambiguities must be resolved: {', '.join(interpretation.ambiguities)}",
         )
     
-    # Search products (UNCONFIGURED stub)
     client_id = UUID(interpretation_artifact["client_id"])
-    
+    jurisdiction = await resolve_client_jurisdiction(db, client_id)
+
     search_service = ProductSearchService(
-        environment=Environment(kind=EnvironmentKind.FIXTURE, id="test")
+        environment=Environment(kind=EnvironmentKind.FIXTURE, id="test"),
+        db=db,
     )
-    
+
     products, next_cursor, capability_state = await search_service.search_products(
         tenant_id=principal.tenant_id,
         client_id=client_id,
         filters=interpretation.filters,
         universe_ref_id=interpretation.universe_ref.id,
+        jurisdiction=jurisdiction,
     )
-    
-    # Build search result
+
+    if capability_state != CapabilityState.READY:
+        explanation = search_service.capability_reason or f"Product catalog is {capability_state.value}."
+    elif not products:
+        explanation = "No entitled products match the confirmed filters."
+    else:
+        explanation = None
+
     search_result = ProductSearch(
         interpretation_ref=request.interpretation_ref,
         executed_filters=interpretation.filters,
         executed_at=datetime.now(UTC),
         products=products,
         next_cursor=next_cursor,
-        no_result_explanation="Product catalog is UNCONFIGURED. No provider configured." if not products else None,
+        no_result_explanation=explanation,
         soft_edit_suggestions=[],
-        sources=[],
+        sources=list({p.terms_source.id: p.terms_source for p in products}.values()),
     )
     
     # Persist as artifact
@@ -317,7 +384,7 @@ async def compare_products(
     Returns feature matrix. Missing metrics show null, not fabricated data.
     """
     # Retrieve search artifact
-    artifact_repo = ArtifactRepository(db)
+    artifact_repo = ProductArtifactRepository(db)
     search_artifact = await artifact_repo.get_artifact(
         tenant_id=principal.tenant_id,
         artifact_id=request.search_ref.artifact_id,
@@ -398,7 +465,7 @@ async def select_candidate(
     No trade intent. Selection creates telemetry event only.
     """
     # Retrieve search artifact
-    artifact_repo = ArtifactRepository(db)
+    artifact_repo = ProductArtifactRepository(db)
     search_artifact = await artifact_repo.get_artifact(
         tenant_id=principal.tenant_id,
         artifact_id=request.search_ref.artifact_id,
@@ -455,18 +522,26 @@ async def assess_suitability(
     db: AsyncSession = Depends(get_db),
 ) -> Envelope[AssessmentResponse]:
     """API-061: Assess product suitability against current profile.
-    
+
     Returns GREEN/YELLOW/RED/UNAVAILABLE.
     Missing/expired profile blocks GREEN and ticket handoff.
     Pre-screen only, not compliance approval.
     """
-    # Get workflow client
-    # Stub: real impl queries workflow service
-    client_id = uuid4()
-    
-    # Assess suitability
-    policy_ref = _get_suitability_policy()
-    suitability_service = SuitabilityService(policy_ref)
+    client_id = await _resolve_workflow_client(db, workflow_id, principal)
+    jurisdiction = await resolve_client_jurisdiction(db, client_id)
+
+    policy_ref, policy, policy_reason = await _get_suitability_policy(
+        db, principal.tenant_id, jurisdiction
+    )
+    environment = Environment(kind=EnvironmentKind.FIXTURE, id="test")
+    suitability_service = SuitabilityService(
+        policy_ref,
+        db=db,
+        policy=policy,
+        jurisdiction=jurisdiction,
+        policy_reason=policy_reason,
+        environment=environment,
+    )
     
     assessment = await suitability_service.assess_suitability(
         tenant_id=principal.tenant_id,
@@ -477,7 +552,7 @@ async def assess_suitability(
     )
     
     # Persist as artifact
-    artifact_repo = ArtifactRepository(db)
+    artifact_repo = ProductArtifactRepository(db)
     artifact_ref = await artifact_repo.create_artifact(
         tenant_id=principal.tenant_id,
         client_id=client_id,
@@ -523,7 +598,7 @@ async def override_assessment(
     Original rating preserved in audit trail.
     """
     # Retrieve assessment artifact
-    artifact_repo = ArtifactRepository(db)
+    artifact_repo = ProductArtifactRepository(db)
     assessment_artifact = await artifact_repo.get_artifact(
         tenant_id=principal.tenant_id,
         artifact_id=assessment_id,

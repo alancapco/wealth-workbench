@@ -3,30 +3,15 @@ Client Memory Service - Persistent relationship context
 Implements D5 memory requirements (G-13)
 """
 from typing import Dict, List
-from datetime import datetime, UTC, timezone
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Text, select
-from sqlalchemy.dialects.postgresql import UUID
-from app.core.database import Base
+from sqlalchemy import select
+from app.models.memory import ClientMemory
 import uuid
 import logging
 
 logger = logging.getLogger(__name__)
 
-class ClientMemory(Base):
-    """Persistent client memory and relationship graph"""
-    __tablename__ = "client_memories"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"), nullable=False)
-    memory_type = Column(String, nullable=False)  # preference, relationship, context
-    key = Column(String, nullable=False)
-    value = Column(Text)
-    metadata = Column(JSON, default=dict)
-    confidence = Column(String)  # low, medium, high
-    source = Column(String)  # interaction, crm, inferred
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, onupdate=datetime.utcnow)
 
 class MemoryService:
     async def store_memory(
@@ -36,7 +21,7 @@ class MemoryService:
         memory_type: str,
         key: str,
         value: str,
-        metadata: Dict = None,
+        extra_metadata: Dict = None,
         confidence: str = "medium",
         source: str = "interaction"
     ):
@@ -47,7 +32,7 @@ class MemoryService:
                 memory_type=memory_type,
                 key=key,
                 value=value,
-                metadata=metadata or {},
+                extra_metadata=extra_metadata or {},
                 confidence=confidence,
                 source=source,
                 created_at=datetime.now(timezone.utc)
@@ -87,7 +72,7 @@ class MemoryService:
                     "memory_type": m.memory_type,
                     "key": m.key,
                     "value": m.value,
-                    "metadata": m.metadata,
+                    "extra_metadata": m.extra_metadata,
                     "confidence": m.confidence,
                     "source": m.source,
                     "created_at": m.created_at.isoformat() if m.created_at else None

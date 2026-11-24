@@ -3,7 +3,7 @@
 Architecture §6.6, SQL priority_evaluations/priority_items/priority_controls/contact_outcomes tables.
 """
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import (
     CheckConstraint,
@@ -28,7 +28,7 @@ class PriorityEvaluation(Base):
     
     __tablename__ = "priority_evaluations"
     
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     book_id = Column(Text, nullable=False)
     local_date = Column(Date, nullable=False)
@@ -77,7 +77,7 @@ class PriorityItem(Base):
     
     __tablename__ = "priority_items"
     
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     book_id = Column(Text, nullable=False)
     evaluation_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -115,7 +115,7 @@ class PriorityControl(Base):
     
     __tablename__ = "priority_controls"
     
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     book_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -164,7 +164,7 @@ class ContactOutcome(Base):
     
     __tablename__ = "contact_outcomes"
     
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     book_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)

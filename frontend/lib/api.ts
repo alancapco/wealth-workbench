@@ -1,110 +1,88 @@
-import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
-import type { Envelope, ErrorResponse } from './contracts/common';
+/**
+ * Compatibility layer for the screens that predate the canonical API client.
+ *
+ * New code should import from `@/lib/endpoints` directly. This module keeps the
+ * old call signatures working while routing them through the same live API
+ * client (with CSRF headers and envelope unwrapping).
+ */
+import { call, get, post, patch, endpoints, API_BASE, CSRF_TOKEN, Method } from './endpoints';
+import type { Envelope } from './contracts/common';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = API_BASE;
+export { API_BASE_URL, CSRF_TOKEN };
 
-// Typed API client with canonical envelope handling
-class ApiClient {
-  private client: AxiosInstance;
-
-  constructor(baseURL: string) {
-    this.client = axios.create({
-      baseURL: `${baseURL}/api/v1`,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      withCredentials: true, // Include session cookies
-    });
-
-    // Response interceptor for envelope unwrapping and error handling
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error: AxiosError<ErrorResponse>) => {
-        if (error.response?.data?.error) {
-          // Canonical error response
-          const apiError = error.response.data.error;
-          const enrichedError = new Error(apiError.message);
-          Object.assign(enrichedError, {
-            code: apiError.code,
-            fields: apiError.fields,
-            retryable: apiError.retryable,
-            status_url: apiError.status_url,
-            status: error.response.status,
-            request_id: error.response.data.meta.request_id,
-          });
-          return Promise.reject(enrichedError);
-        }
-        return Promise.reject(error);
-      }
-    );
-  }
-
-  async get<T>(url: string, config?: AxiosRequestConfig): Promise<Envelope<T>> {
-    const response = await this.client.get<Envelope<T>>(url, config);
-    return response.data;
-  }
-
-  async post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<Envelope<T>> {
-    const response = await this.client.post<Envelope<T>>(url, data, config);
-    return response.data;
-  }
-
-  async put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<Envelope<T>> {
-    const response = await this.client.put<Envelope<T>>(url, data, config);
-    return response.data;
-  }
-
-  async patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<Envelope<T>> {
-    const response = await this.client.patch<Envelope<T>>(url, data, config);
-    return response.data;
-  }
-
-  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<Envelope<T>> {
-    const response = await this.client.delete<Envelope<T>>(url, config);
-    return response.data;
-  }
+/** Repair paths that were written against routes that do not exist. */
+export function normalizeLegacyPath(path: string): string {
+  let p = path;
+  if (p === '/clients') return '/clients/';
+  if (p.startsWith('/workflows?')) return '/workflow?' + p.slice('/workflows?'.length);
+  if (/^\/workflow\/[^/]+\/messages$/.test(p)) return p.replace('/workflow/', '/workflows/');
+  return p;
 }
 
-export const apiClient = new ApiClient(API_BASE_URL);
+export const apiClient = {
+  get: async <T>(url: string): Promise<Envelope<T>> => {
+    const [path, qs] = normalizeLegacyPath(url).split('?');
+    const query = Object.fromEntries(new URLSearchParams(qs || ''));
+    const res = await get<T>(path, query);
+    return { data: res.data, meta: res.meta as any };
+  },
+  post: async <T>(url: string, data?: unknown): Promise<Envelope<T>> => {
+    const res = await post<T>(normalizeLegacyPath(url), data);
+    return { data: res.data, meta: res.meta as any };
+  },
+  patch: async <T>(url: string, data?: unknown): Promise<Envelope<T>> => {
+    const res = await patch<T>(normalizeLegacyPath(url), data);
+    return { data: res.data, meta: res.meta as any };
+  },
+  put: async <T>(url: string, data?: unknown): Promise<Envelope<T>> => {
+    const res = await call<T>('PUT', normalizeLegacyPath(url), { body: data });
+    return { data: res.data, meta: res.meta as any };
+  },
+  delete: async <T>(url: string): Promise<Envelope<T>> => {
+    const res = await call<T>('DELETE', normalizeLegacyPath(url));
+    return { data: res.data, meta: res.meta as any };
+  },
+};
 
-// Dashboard API - used by app/dashboard/page.tsx
+// Axios-shaped adapters used by the older dashboard and modal components.
+const asResponse = (res: { data: unknown; raw: unknown }) => ({ data: res.data as any });
+
 export const dashboardApi = {
-  getMyDay: (rmId: string = 'RM001') =>
-    axios.get(`${API_BASE_URL}/api/v1/dashboard/my-day?rm_id=${rmId}`),
-  getKPIs: (rmId: string = 'RM001') =>
-    axios.get(`${API_BASE_URL}/api/v1/dashboard/kpis?rm_id=${rmId}`),
-  getBookStats: (rmId: string = 'RM001') =>
-    axios.get(`${API_BASE_URL}/api/v1/dashboard/book-stats?rm_id=${rmId}`),
-  getAllocation: (rmId: string = 'RM001') =>
-    axios.get(`${API_BASE_URL}/api/v1/dashboard/allocation?rm_id=${rmId}`),
-  getPerformanceTrend: (rmId: string = 'RM001', period: string = 'ytd') =>
-    axios.get(`${API_BASE_URL}/api/v1/dashboard/performance-trend?rm_id=${rmId}&period=${period}`),
+  getMyDay: async (rmId = 'RM001') => asResponse(await endpoints.dashboard.myDay(rmId)),
+  getKPIs: async (rmId = 'RM001') => asResponse(await endpoints.dashboard.kpis(rmId)),
+  getBookStats: async (rmId = 'RM001') => asResponse(await endpoints.dashboard.bookStats(rmId)),
+  getAllocation: async (rmId = 'RM001') => asResponse(await endpoints.dashboard.allocation()),
+  getPerformanceTrend: async (rmId = 'RM001', period = 'ytd') =>
+    asResponse(await endpoints.dashboard.performance(period)),
 };
 
-// Market API - used by app/dashboard/page.tsx
 export const marketApi = {
-  getNews: (symbols?: string[], limit: number = 20) =>
-    axios.get(`${API_BASE_URL}/api/v1/market/news${symbols ? `?symbols=${symbols.join(',')}&limit=${limit}` : `?limit=${limit}`}`),
+  getNews: async (symbols?: string[], limit = 20) =>
+    asResponse(await endpoints.market.news(limit, symbols?.join(','))),
 };
 
-// Brief API - used by components/BriefModal.tsx
 export const briefApi = {
-  generate: (clientId: string, forceRegenerate: boolean = false) =>
-    axios.post(`${API_BASE_URL}/api/v1/briefs/generate`, { client_id: clientId, force_regenerate: forceRegenerate }),
-  approve: (briefId: string, approvedBy: string, editedAgenda?: string) =>
-    axios.post(`${API_BASE_URL}/api/v1/briefs/approve`, { brief_id: briefId, approved_by: approvedBy, edited_agenda: editedAgenda }),
-  getBrief: (briefId: string) =>
-    axios.get(`${API_BASE_URL}/api/v1/briefs/${briefId}`),
+  generate: async (clientId: string, forceRegenerate = false) =>
+    asResponse(await endpoints.briefs.generateLegacy(clientId, forceRegenerate)),
+  // Canonical review lives on /briefs/briefs/{id}/reviews and requires an
+  // artifact revision + If-Match. The legacy modal no longer pretends to
+  // approve; it links to the briefs workspace instead.
+  approve: async (briefId: string, _approvedBy: string, _editedAgenda?: string) => {
+    throw new Error('Use the Client Briefs workspace to record a section review.');
+  },
+  getBrief: async (briefId: string) => asResponse(await endpoints.briefs.detail(briefId)),
 };
 
-// Demo Client API - used by portfolio demo pages
-const API_BASE_URL_DIRECT = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Portfolio pages expect the raw (still enveloped) response.
+const rawResponse = (res: { raw: unknown }) => ({ data: res.raw as any });
 
 export const demoClientApi = {
-  list: () => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients`),
-  get: (id: string) => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}`),
-  currencyExposure: (id: string) => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}/portfolio/currency-exposure`),
-  assetBreakdown: (id: string) => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}/portfolio/asset-class-breakdown`),
-  futurePlanner: (id: string, params: Record<string, unknown>) => axios.post(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}/future-planner`, params),
-  investorsLikeMe: (id: string) => axios.get(`${API_BASE_URL_DIRECT}/api/v1/demo-clients/${id}/investors-like-me`),
+  list: async () => rawResponse(await call('GET', '/demo-clients')),
+  get: async (id: string) => rawResponse(await endpoints.demoClients.detail(id)),
+  currencyExposure: async (id: string) => rawResponse(await endpoints.demoClients.currencyExposure(id)),
+  assetBreakdown: async (id: string) => rawResponse(await endpoints.demoClients.assetBreakdown(id)),
+  futurePlanner: async (id: string, params: Record<string, unknown>) =>
+    rawResponse(await endpoints.demoClients.futurePlanner(id, params)),
+  investorsLikeMe: async (id: string) => rawResponse(await endpoints.demoClients.investorsLikeMe(id)),
 };

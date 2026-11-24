@@ -4,8 +4,12 @@ Provides real-time market data, quotes, and news via HTTP API
 """
 from typing import List, Dict, Optional
 from datetime import datetime, UTC, timezone
+from email.utils import parsedate_to_datetime
 import asyncio
+import os
+import re
 import time
+import xml.etree.ElementTree as ET
 import requests
 from app.core.config import settings
 import logging
@@ -25,8 +29,24 @@ ALPHAVANTAGE_SYMBOLS = {
 
 # Laohu8 publishes the Chinese edition. The en_US ids from the same feed
 # return HTTP 410 / code 10001 ("News does not exist") on the detail URL.
+# English requests never use this feed; zh_CN is an explicit opt-in.
 NEWS_LANG = "zh_CN"
 NEWS_CACHE_SECONDS = 300  # 5-minute cache for news
+NEWSFILTER_URL = "https://api.newsfilter.io/search"
+NEWSFILTER_COOLDOWN_SECONDS = 60
+YAHOO_NEWS_URL = "https://feeds.finance.yahoo.com/rss/2.0/headline"
+YAHOO_USER_AGENT = "Mozilla/5.0 (compatible; WMWorkbench/1.0)"
+
+# Newsfilter indexes US listings. These Hong Kong codes are the US symbols
+# for the same issuers.
+NEWSFILTER_SYMBOLS = {
+    "0005.HK": "HSBC",
+    "0700.HK": "TCEHY",
+    "00700.HK": "TCEHY",
+    "700.HK": "TCEHY",
+    "9988.HK": "BABA",
+    "09988.HK": "BABA",
+}
 
 HK_SNAPSHOT_SYMBOLS = ["HSBC", "TCEHY", "0005.HK", "1299.HK", "0388.HK"]
 
@@ -44,7 +64,228 @@ class MarketDataService:
         self._tiger_news_failed = False  # sentinel: True if Tiger init failed, skip retrying
         self._av_cache: dict[tuple, tuple[float, dict]] = {}
         self._av_last_request = 0.0
-        self._news_cache: dict[str, tuple[float, list]] = {}
+        self._news_cache: dict[tuple, tuple[float, list, str]] = {}
+        self._newsfilter_down_until = 0.0
+
+    @property
+    def news_configured(self) -> bool:
+        return settings.market_news_configured
+
+    def _news_provider(self) -> str:
+        return settings.news_provider
+
+    @staticmethod
+    def _normalize_lang(lang: Optional[str]) -> str:
+        value = (lang or "en_US").strip() or "en_US"
+        lowered = value.lower().replace("-", "_")
+        if lowered in {"zh_cn", "zh"}:
+            return "zh_CN"
+        return "en_US"
+
+    def _yahoo_symbol(self, symbol: str) -> str:
+        """Yahoo RSS uses 4-digit Hong Kong codes. 00700.HK returns an empty feed."""
+        cleaned = symbol.strip().upper()
+        if not cleaned.endswith(".HK"):
+            return cleaned
+        code = cleaned[:-3]
+        if not code.isdigit():
+            return cleaned
+        digits = code.lstrip("0") or "0"
+        if len(digits) < 4:
+            digits = digits.zfill(4)
+        return f"{digits}.HK"
+
+    def _newsfilter_symbol(self, symbol: str) -> Optional[str]:
+        cleaned = symbol.strip().upper()
+        yahoo = self._yahoo_symbol(cleaned)
+        mapped = (
+            NEWSFILTER_SYMBOLS.get(cleaned)
+            or NEWSFILTER_SYMBOLS.get(yahoo)
+            or ALPHAVANTAGE_SYMBOLS.get(cleaned)
+            or ALPHAVANTAGE_SYMBOLS.get(yahoo)
+        )
+        if mapped:
+            return mapped
+        if "." not in cleaned and cleaned.isalpha():
+            return cleaned
+        return None
+
+    def _newsfilter_query(self, symbols: Optional[List[str]]) -> Optional[str]:
+        if not symbols:
+            return "*"
+        mapped: List[str] = []
+        for symbol in symbols:
+            newsfilter_symbol = self._newsfilter_symbol(symbol)
+            if newsfilter_symbol and newsfilter_symbol not in mapped:
+                mapped.append(newsfilter_symbol)
+        if not mapped:
+            return None
+        if len(mapped) == 1:
+            return f"symbols:{mapped[0]}"
+        return "(" + " OR ".join(f"symbols:{symbol}" for symbol in mapped) + ")"
+
+    @staticmethod
+    def _strip_html(value: str) -> str:
+        text = re.sub(r"<[^>]+>", " ", value or "")
+        return re.sub(r"\s+", " ", text).strip()
+
+    def _parse_iso_timestamp(self, value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc).isoformat()
+
+    def _serialize_article(
+        self,
+        *,
+        article_id: Optional[str],
+        title: str,
+        content: str,
+        timestamp: Optional[str],
+        source: str,
+        url: Optional[str],
+        symbol: Optional[str] = None,
+        symbols: Optional[List[str]] = None,
+    ) -> Dict:
+        item = {
+            "id": article_id or url or title,
+            "title": title,
+            "content": content,
+            "timestamp": timestamp,
+            "source": source,
+            "url": url,
+            "symbol": symbol,
+        }
+        if symbols:
+            item["symbols"] = symbols
+        return item
+
+    def _fetch_newsfilter_news(self, symbols: Optional[List[str]], limit: int) -> Optional[List[Dict]]:
+        if self._news_provider() == "yahoo":
+            return None
+        key = (settings.NEWSFILTER_API_KEY or "").strip()
+        if not key:
+            return None
+        if time.monotonic() < self._newsfilter_down_until:
+            logger.info("Newsfilter circuit open; skipping until cooldown ends")
+            return None
+        query = self._newsfilter_query(symbols)
+        if query is None:
+            return None
+        try:
+            response = requests.post(
+                NEWSFILTER_URL,
+                headers={"Authorization": key, "Content-Type": "application/json"},
+                json={
+                    "query": query,
+                    "from": 0,
+                    "size": max(1, min(limit, 50)),
+                    "sort": {"publishedAt": {"order": "desc"}},
+                },
+                timeout=8,
+            )
+        except requests.RequestException as exc:
+            logger.warning("Newsfilter request failed: %s", exc)
+            self._newsfilter_down_until = time.monotonic() + NEWSFILTER_COOLDOWN_SECONDS
+            return None
+        if response.status_code >= 500:
+            logger.warning("Newsfilter HTTP %s", response.status_code)
+            self._newsfilter_down_until = time.monotonic() + NEWSFILTER_COOLDOWN_SECONDS
+            return None
+        if response.status_code >= 400:
+            logger.warning("Newsfilter HTTP %s", response.status_code)
+            return None
+        try:
+            payload = response.json()
+        except ValueError:
+            logger.warning("Newsfilter returned a non-JSON body")
+            return None
+        articles = payload.get("articles") if isinstance(payload, dict) else None
+        if not isinstance(articles, list) or not articles:
+            return None
+        items = []
+        for article in articles[:limit]:
+            if not isinstance(article, dict):
+                continue
+            publisher = article.get("source") if isinstance(article.get("source"), dict) else {}
+            tickers = article.get("symbols") if isinstance(article.get("symbols"), list) else []
+            items.append(self._serialize_article(
+                article_id=article.get("id"),
+                title=article.get("title") or "",
+                content=article.get("description") or "",
+                timestamp=self._parse_iso_timestamp(article.get("publishedAt")),
+                source=publisher.get("name") or "Newsfilter",
+                url=article.get("sourceUrl") or article.get("url"),
+                symbol=tickers[0] if tickers else None,
+                symbols=[str(ticker) for ticker in tickers] or None,
+            ))
+        return items or None
+
+    def _yahoo_symbols(self, symbols: Optional[List[str]]) -> List[str]:
+        if symbols:
+            yahoo_symbols: List[str] = []
+            for symbol in symbols:
+                yahoo = self._yahoo_symbol(symbol)
+                if yahoo and yahoo not in yahoo_symbols:
+                    yahoo_symbols.append(yahoo)
+            return yahoo_symbols
+        return [
+            symbol.strip()
+            for symbol in (settings.YAHOO_NEWS_DEFAULT_SYMBOLS or "").split(",")
+            if symbol.strip()
+        ]
+
+    def _parse_yahoo_rss(self, xml_text: str, limit: int) -> List[Dict]:
+        root = ET.fromstring(xml_text)
+        items: List[Dict] = []
+        seen: set[str] = set()
+        for node in root.findall("./channel/item"):
+            title = self._strip_html(node.findtext("title") or "")
+            link = (node.findtext("link") or "").strip()
+            guid = (node.findtext("guid") or link or title).strip()
+            if not title or not guid or guid in seen:
+                continue
+            seen.add(guid)
+            published = None
+            pub_date = node.findtext("pubDate")
+            if pub_date:
+                try:
+                    published = parsedate_to_datetime(pub_date).astimezone(timezone.utc).isoformat()
+                except (TypeError, ValueError, IndexError):
+                    published = None
+            description = node.find("description")
+            content = self._strip_html("".join(description.itertext()) if description is not None else "")
+            items.append(self._serialize_article(
+                article_id=guid,
+                title=title,
+                content=content,
+                timestamp=published,
+                source="Yahoo Finance",
+                url=link or None,
+            ))
+        items.sort(key=lambda row: row.get("timestamp") or "", reverse=True)
+        return items[:limit]
+
+    def _fetch_yahoo_news(self, symbols: Optional[List[str]], limit: int) -> Optional[List[Dict]]:
+        if self._news_provider() == "newsfilter":
+            return None
+        yahoo_symbols = self._yahoo_symbols(symbols)
+        if not yahoo_symbols:
+            return None
+        response = requests.get(
+            YAHOO_NEWS_URL,
+            params={"s": ",".join(yahoo_symbols), "region": "US", "lang": "en-US"},
+            headers={"User-Agent": YAHOO_USER_AGENT},
+            timeout=8,
+        )
+        response.raise_for_status()
+        items = self._parse_yahoo_rss(response.text, limit)
+        return items or None
 
     def _av_symbol(self, symbol: str) -> str:
         cleaned = symbol.strip().upper()
@@ -82,43 +323,6 @@ class MarketDataService:
             return payload
         self._av_cache[cache_key] = (self._av_last_request, payload)
         return payload
-
-    def _parse_av_time(self, value: Optional[str]) -> Optional[str]:
-        if not value:
-            return None
-        try:
-            return datetime.strptime(value, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc).isoformat()
-        except ValueError:
-            return None
-
-    def _fetch_av_news(self, symbols: Optional[List[str]], limit: int) -> Optional[List[Dict]]:
-        if not (settings.ALPHAVANTAGE_API_KEY or "").strip():
-            return None
-        params: dict[str, str] = {
-            "function": "NEWS_SENTIMENT",
-            "sort": "LATEST",
-            "limit": str(max(1, min(limit, 50))),
-        }
-        if symbols:
-            params["tickers"] = ",".join(self._av_symbol(symbol) for symbol in symbols)
-        else:
-            params["topics"] = "financial_markets"
-        payload = self._av_get(params)
-        feed = payload.get("feed")
-        if not isinstance(feed, list):
-            return None
-        items = []
-        for article in feed[:limit]:
-            items.append({
-                "id": article.get("url") or article.get("title"),
-                "title": article.get("title") or "",
-                "content": article.get("summary") or "",
-                "timestamp": self._parse_av_time(article.get("time_published")),
-                "source": article.get("source") or "Alpha Vantage",
-                "url": article.get("url"),
-                "symbol": None,
-            })
-        return items
 
     def _fetch_av_quote(self, symbol: str) -> Optional[Dict]:
         payload = self._av_get({
@@ -241,7 +445,7 @@ class MarketDataService:
                         return items
             return items
 
-        page = client.get_market_news(lang=NEWS_LANG, page_size=min(limit, 50))
+        page = client.get_market_news(lang=NEWS_LANG)
         return [self._serialize_news(item) for item in (page.items or [])[:limit]]
 
     def _sign_request(self, timestamp: str, method: str, path: str) -> str:
@@ -282,27 +486,56 @@ class MarketDataService:
             logger.error(f"Error fetching quotes: {e}")
             return []
 
-    async def get_market_news(self, symbols: Optional[List[str]] = None, limit: int = 20) -> tuple[List[Dict], str, bool]:
-        """Alpha Vantage NEWS_SENTIMENT when the key allows it, otherwise Tiger Broker.
-        Returns (news_list, source_label, was_cached).
+    async def get_market_news(
+        self,
+        symbols: Optional[List[str]] = None,
+        limit: int = 20,
+        lang: Optional[str] = None,
+    ) -> tuple[List[Dict], str, bool]:
+        """English news from Newsfilter, then Yahoo Finance RSS.
+
+        zh_CN is an explicit Tiger Broker request. English never falls back to
+        the Chinese Tiger feed. Returns (news_list, source_label, was_cached).
         """
-        cache_key = str(symbols) + ":" + str(limit)
+        if os.environ.get("WM_DISABLE_LIVE_NEWS") == "1":
+            return [], "none", False
+
+        language = self._normalize_lang(lang)
+        normalized = [symbol.strip() for symbol in (symbols or []) if symbol and symbol.strip()]
+        cache_key = (tuple(normalized), int(limit), language)
         now = time.monotonic()
         cached = self._news_cache.get(cache_key)
         if cached and now - cached[0] < NEWS_CACHE_SECONDS:
-            news_list, source_label = cached[1], cached[2]
-            return news_list, source_label, True
+            return cached[1], cached[2], True
 
+        query_symbols = normalized or None
         try:
-            alphavantage = await asyncio.to_thread(self._fetch_av_news, symbols, limit)
-            if alphavantage:
-                self._news_cache[cache_key] = (now, alphavantage, "alphavantage")
-                return alphavantage, "alphavantage", False
-            logger.info(f"Fetching Tiger news (symbols: {symbols}, limit: {limit})")
-            tiger_news = await asyncio.to_thread(self._fetch_news, symbols, limit)
-            source = "tiger" if tiger_news else "none"
-            self._news_cache[cache_key] = (now, tiger_news, source)
-            return tiger_news, source, False
+            if language == "zh_CN":
+                logger.info("Fetching Tiger news (symbols: %s, limit: %s)", query_symbols, limit)
+                tiger_news = await asyncio.to_thread(self._fetch_news, query_symbols, limit)
+                source = "tiger" if tiger_news else "none"
+                if tiger_news:
+                    self._news_cache[cache_key] = (now, tiger_news, source)
+                return tiger_news, source, False
+
+            provider = self._news_provider()
+            if provider in {"newsfilter", "newsfilter_yahoo"}:
+                articles = await asyncio.to_thread(self._fetch_newsfilter_news, query_symbols, limit)
+                if articles:
+                    self._news_cache[cache_key] = (now, articles, "newsfilter")
+                    return articles, "newsfilter", False
+
+            if provider in {"yahoo", "newsfilter_yahoo"}:
+                try:
+                    yahoo_news = await asyncio.to_thread(self._fetch_yahoo_news, query_symbols, limit)
+                except Exception as exc:
+                    logger.error("Yahoo Finance news failed: %s", exc)
+                    yahoo_news = None
+                if yahoo_news:
+                    self._news_cache[cache_key] = (now, yahoo_news, "yahoo_finance")
+                    return yahoo_news, "yahoo_finance", False
+
+            return [], "none", False
         except Exception as e:
             logger.error(f"Error fetching news: {e}")
             return [], "none", False

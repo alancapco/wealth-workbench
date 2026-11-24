@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11, <3.14"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'emscripten'",
@@ -791,6 +791,18 @@ wheels = [
 ]
 
 [[package]]
+name = "neo4j"
+version = "6.4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytz" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d1/d1/bc40a291c60b06738ce92d5f0259d348eee1f07ba10d569a881c848c8afe/neo4j-6.4.1.tar.gz", hash = "sha256:fac99b7cb9679b93ef97dc23f22a3f0e7c3feb2db223eddfd2521f27005cfeaf", size = 287897, upload-time = "2026-10-15T10:47:26.666Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/69/3036bdcacfba561c6ef4b00fe72529e0a1b6241a6b2de82572a0940a276b/neo4j-6.4.1-py3-none-any.whl", hash = "sha256:f56a281c74355522fc2642df8919bec450115431531b8f3f6fe1cc17acb57a27", size = 390684, upload-time = "2026-10-15T10:47:25.236Z" },
+]
+
+[[package]]
 name = "numpy"
 version = "2.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1425,6 +1437,7 @@ dependencies = [
     { name = "httpx" },
     { name = "hubspot-api-client" },
     { name = "mako" },
+    { name = "neo4j" },
     { name = "openai" },
     { name = "passlib", extra = ["bcrypt"] },
     { name = "pdfplumber" },
@@ -1460,6 +1473,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.26.0" },
     { name = "hubspot-api-client", specifier = ">=13.0.0" },
     { name = "mako", specifier = ">=1.3.0" },
+    { name = "neo4j", specifier = ">=5.26.0" },
     { name = "openai", specifier = ">=1.10.0" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "pdfplumber", specifier = ">=0.10.0" },

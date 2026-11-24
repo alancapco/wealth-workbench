@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Setup script for RM Workbench MVP
+# Setup script for WM Workbench MVP
 # This script initializes the development environment
 
 set -e
 
-echo "🚀 Setting up RM Workbench MVP..."
+echo "🚀 Setting up WM Workbench MVP..."
 
 # Check if .env exists
 if [ ! -f .env ]; then

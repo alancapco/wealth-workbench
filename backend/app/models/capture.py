@@ -1,6 +1,6 @@
 """Meeting capture, consent, and extraction models."""
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, BigInteger, CheckConstraint, Column, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
@@ -13,7 +13,7 @@ class ConsentRecord(Base):
     """Consent for meeting capture - ACCEPTED/DECLINED/WITHDRAWN."""
     __tablename__ = "consent_records"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     meeting_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -50,7 +50,7 @@ class CaptureSession(Base):
     """Active capture session with lease and segment tracking."""
     __tablename__ = "capture_sessions"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     meeting_id = Column(PGUUID(as_uuid=True), nullable=False)

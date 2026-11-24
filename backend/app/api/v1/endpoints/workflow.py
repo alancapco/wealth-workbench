@@ -3,10 +3,22 @@ from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.common import Envelope, ResponseMeta
+from app.core.identity import FIXTURE_TENANT_ID
+from app.models import (
+    ActionAuthorization,
+    ActionPreview,
+    ArtifactLineage,
+    ArtifactRevision,
+    OutboxAction,
+    StageArtifactRef,
+    StageRun as StageRunModel,
+    Workflow as WorkflowModel,
+)
+from app.schemas.common import ArtifactRef, Envelope, ResponseMeta
 from app.schemas.workflow import (
     AbandonWorkflowRequest,
     PauseWorkflowRequest,
@@ -15,18 +27,160 @@ from app.schemas.workflow import (
     SkillListData,
     StartWorkflow,
     StageRun,
+    StageStatus,
+    StageSummary,
     Workflow,
     WorkflowListData,
     WorkflowStatus,
+    WorkflowType,
 )
 from app.services.workflow import SkillRegistry, StageRunner, WorkflowOrchestrator
 
 router = APIRouter()
 
-# Mock principal for testing (would come from session middleware)
-MOCK_TENANT = "test-tenant"
+# Fixture principal. This used to be "test-tenant", which matched no row in
+# workbench_tenants/client_scope, so every workflow read returned an empty list
+# even when workflows were seeded. Align with the rest of the fixture data.
+MOCK_TENANT = FIXTURE_TENANT_ID
 MOCK_ACTOR = "test-rm"
 MOCK_PERMISSIONS = ["workflow:start", "workflow:read", "workflow:run", "workflow:manage"]
+
+
+async def _load_stage_refs(
+    db: AsyncSession,
+    tenant_id: str,
+    run_ids: set[UUID],
+) -> dict[UUID, tuple[list[ArtifactRef], list[ArtifactRef]]]:
+    """Load INPUT/OUTPUT artifact refs of stage runs from the persisted link table."""
+    refs: dict[UUID, tuple[list[ArtifactRef], list[ArtifactRef]]] = {
+        run_id: ([], []) for run_id in run_ids
+    }
+    if not run_ids:
+        return refs
+
+    rows = (await db.execute(
+        select(StageArtifactRef.run_id, StageArtifactRef.direction, ArtifactRevision)
+        .join(ArtifactRevision, and_(
+            ArtifactRevision.tenant_id == StageArtifactRef.tenant_id,
+            ArtifactRevision.client_id == StageArtifactRef.client_id,
+            ArtifactRevision.id == StageArtifactRef.revision_id,
+        ))
+        .where(
+            StageArtifactRef.tenant_id == tenant_id,
+            StageArtifactRef.run_id.in_(run_ids),
+        )
+    )).all()
+    for run_id, direction, revision in rows:
+        ref = ArtifactRef(
+            artifact_id=revision.artifact_id,
+            revision_id=revision.id,
+            version=revision.version,
+            hash=revision.content_hash,
+        )
+        inputs, outputs = refs[run_id]
+        (inputs if direction == "INPUT" else outputs).append(ref)
+    return refs
+
+
+async def _load_workflow_details(
+    db: AsyncSession,
+    tenant_id: str,
+    workflow_ids: list[UUID],
+) -> tuple[dict[UUID, list[StageSummary]], dict[UUID, list[UUID]]]:
+    """Load real stage summaries and dispatched action IDs for the given workflows."""
+    stages: dict[UUID, list[StageSummary]] = {wid: [] for wid in workflow_ids}
+    actions: dict[UUID, list[UUID]] = {wid: [] for wid in workflow_ids}
+    if not workflow_ids:
+        return stages, actions
+
+    runs = (await db.execute(
+        select(StageRunModel)
+        .where(
+            StageRunModel.tenant_id == tenant_id,
+            StageRunModel.workflow_id.in_(workflow_ids),
+        )
+        .order_by(StageRunModel.stage_key, StageRunModel.stage_version)
+    )).scalars().all()
+
+    refs_by_run = await _load_stage_refs(db, tenant_id, {run.id for run in runs})
+    for run in runs:
+        inputs, outputs = refs_by_run[run.id]
+        stages[run.workflow_id].append(StageSummary(
+            key=run.stage_key,
+            status=StageStatus(run.status),
+            run_id=run.id,
+            skill_id=run.skill_id,
+            skill_version=run.skill_version,
+            artifact_refs=inputs + outputs,
+            blockers=[],
+        ))
+
+    # An action is linked to a workflow through the artifact revision it was
+    # previewed against: outbox -> authorization -> preview -> revision -> lineage.
+    rows = (await db.execute(
+        select(OutboxAction.id, ArtifactLineage.workflow_id)
+        .join(ActionAuthorization, and_(
+            ActionAuthorization.tenant_id == OutboxAction.tenant_id,
+            ActionAuthorization.client_id == OutboxAction.client_id,
+            ActionAuthorization.id == OutboxAction.authorization_id,
+        ))
+        .join(ActionPreview, and_(
+            ActionPreview.tenant_id == ActionAuthorization.tenant_id,
+            ActionPreview.client_id == ActionAuthorization.client_id,
+            ActionPreview.id == ActionAuthorization.preview_id,
+        ))
+        .join(ArtifactRevision, and_(
+            ArtifactRevision.tenant_id == ActionPreview.tenant_id,
+            ArtifactRevision.client_id == ActionPreview.client_id,
+            ArtifactRevision.id == ActionPreview.revision_id,
+        ))
+        .join(ArtifactLineage, and_(
+            ArtifactLineage.tenant_id == ArtifactRevision.tenant_id,
+            ArtifactLineage.client_id == ArtifactRevision.client_id,
+            ArtifactLineage.id == ArtifactRevision.artifact_id,
+        ))
+        .where(
+            OutboxAction.tenant_id == tenant_id,
+            ArtifactLineage.workflow_id.in_(workflow_ids),
+        )
+    )).all()
+    for action_id, workflow_id in rows:
+        actions[workflow_id].append(action_id)
+    return stages, actions
+
+
+def _to_workflow_dto(
+    workflow: WorkflowModel,
+    stages: list[StageSummary],
+    action_ids: list[UUID],
+    last_confirmed_at: datetime,
+) -> Workflow:
+    return Workflow(
+        id=workflow.id,
+        type=WorkflowType(workflow.workflow_type),
+        client_id=workflow.client_id,
+        meeting_id=workflow.meeting_id,
+        status=WorkflowStatus(workflow.status),
+        row_version=workflow.row_version,
+        context_revision=workflow.context_revision,
+        entry=workflow.entry_point,
+        current_stage=workflow.current_stage,
+        stages=stages,
+        action_ids=action_ids,
+        last_confirmed_at=last_confirmed_at,
+        next_decision=None,
+    )
+
+
+async def _workflow_dto(
+    db: AsyncSession,
+    workflow: WorkflowModel,
+    last_confirmed_at: datetime,
+) -> Workflow:
+    stages, actions = await _load_workflow_details(db, workflow.tenant_id, [workflow.id])
+    return _to_workflow_dto(
+        workflow, stages[workflow.id], actions[workflow.id], last_confirmed_at
+    )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -47,22 +201,7 @@ async def create_workflow(
             actor=MOCK_ACTOR,
         )
         
-        # Convert to response DTO (simplified - full impl maps all fields)
-        workflow_dto = Workflow(
-            id=workflow.id,
-            type=request.type,
-            client_id=workflow.client_id,
-            meeting_id=workflow.meeting_id,
-            status=WorkflowStatus(workflow.status),
-            row_version=workflow.row_version,
-            context_revision=workflow.context_revision,
-            entry=workflow.entry_point,
-            current_stage=workflow.current_stage,
-            stages=[],  # Would populate from stage_runs in full impl
-            action_ids=[],
-            last_confirmed_at=workflow.created_at,
-            next_decision=None,
-        )
+        workflow_dto = await _workflow_dto(db, workflow, workflow.created_at)
         
         return Envelope(
             data={"workflow": workflow_dto},
@@ -77,7 +216,9 @@ async def create_workflow(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.get("/{workflow_id}")
+# ``:uuid`` keeps this route from shadowing the literal ``/skills`` route below.
+# Without the converter, "skills" is parsed as a workflow_id and raises 422.
+@router.get("/{workflow_id:uuid}")
 async def get_workflow(
     workflow_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -96,21 +237,7 @@ async def get_workflow(
         if not workflow:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
         
-        workflow_dto = Workflow(
-            id=workflow.id,
-            type=WorkflowStatus(workflow.workflow_type),  # Would use WorkflowType
-            client_id=workflow.client_id,
-            meeting_id=workflow.meeting_id,
-            status=WorkflowStatus(workflow.status),
-            row_version=workflow.row_version,
-            context_revision=workflow.context_revision,
-            entry=workflow.entry_point,
-            current_stage=workflow.current_stage,
-            stages=[],
-            action_ids=[],
-            last_confirmed_at=workflow.updated_at,
-            next_decision=None,
-        )
+        workflow_dto = await _workflow_dto(db, workflow, workflow.updated_at)
         
         return Envelope(
             data={"workflow": workflow_dto},
@@ -141,22 +268,11 @@ async def list_workflows(
             offset=offset,
         )
         
+        stages, actions = await _load_workflow_details(
+            db, MOCK_TENANT, [w.id for w in workflows]
+        )
         workflow_dtos = [
-            Workflow(
-                id=w.id,
-                type=WorkflowStatus(w.workflow_type),
-                client_id=w.client_id,
-                meeting_id=w.meeting_id,
-                status=WorkflowStatus(w.status),
-                row_version=w.row_version,
-                context_revision=w.context_revision,
-                entry=w.entry_point,
-                current_stage=w.current_stage,
-                stages=[],
-                action_ids=[],
-                last_confirmed_at=w.updated_at,
-                next_decision=None,
-            )
+            _to_workflow_dto(w, stages[w.id], actions[w.id], w.updated_at)
             for w in workflows
         ]
         
@@ -182,28 +298,31 @@ async def run_stage(
     """
     try:
         runner = StageRunner(db)
-        
-        # In full impl, would lookup skill from registry
-        skill_id = stage_key
-        skill_version = "1.0.0"
-        
+        registry = SkillRegistry(db)
+
+        skill = await registry.get_skill_for_stage(MOCK_TENANT, stage_key)
+        if skill is None:
+            raise ValueError(f"Skill {stage_key} is not registered for tenant {MOCK_TENANT}")
+
         run = await runner.create_stage_run(
             tenant_id=MOCK_TENANT,
             workflow_id=workflow_id,
             stage_key=stage_key,
             request=request,
-            skill_id=skill_id,
-            skill_version=skill_version,
+            skill_id=skill.skill_id,
+            skill_version=skill.version,
             actor=MOCK_ACTOR,
         )
-        
+
+        refs = await _load_stage_refs(db, MOCK_TENANT, {run.id})
+        input_refs, output_refs = refs[run.id]
         run_dto = StageRun(
             id=run.id,
             workflow_id=run.workflow_id,
             stage_key=run.stage_key,
-            status=run.status,  # Would use StageStatus enum
-            input_refs=request.input_refs,
-            output_refs=[],
+            status=StageStatus(run.status),
+            input_refs=input_refs,
+            output_refs=output_refs,
             context_revision=run.context_revision,
             skill_id=run.skill_id,
             skill_version=run.skill_version,
@@ -246,21 +365,7 @@ async def pause_workflow(
             if_match=if_match,
         )
         
-        workflow_dto = Workflow(
-            id=workflow.id,
-            type=WorkflowStatus(workflow.workflow_type),
-            client_id=workflow.client_id,
-            meeting_id=workflow.meeting_id,
-            status=WorkflowStatus(workflow.status),
-            row_version=workflow.row_version,
-            context_revision=workflow.context_revision,
-            entry=workflow.entry_point,
-            current_stage=workflow.current_stage,
-            stages=[],
-            action_ids=[],
-            last_confirmed_at=workflow.updated_at,
-            next_decision=None,
-        )
+        workflow_dto = await _workflow_dto(db, workflow, workflow.updated_at)
         
         return Envelope(
             data={"workflow": workflow_dto},
@@ -296,21 +401,7 @@ async def resume_workflow(
             actor=MOCK_ACTOR,
         )
         
-        workflow_dto = Workflow(
-            id=workflow.id,
-            type=WorkflowStatus(workflow.workflow_type),
-            client_id=workflow.client_id,
-            meeting_id=workflow.meeting_id,
-            status=WorkflowStatus(workflow.status),
-            row_version=workflow.row_version,
-            context_revision=workflow.context_revision,
-            entry=workflow.entry_point,
-            current_stage=workflow.current_stage,
-            stages=[],
-            action_ids=[],
-            last_confirmed_at=workflow.updated_at,
-            next_decision=None,
-        )
+        workflow_dto = await _workflow_dto(db, workflow, workflow.updated_at)
         
         return Envelope(
             data={"workflow": workflow_dto},
@@ -341,21 +432,7 @@ async def abandon_workflow(
             actor=MOCK_ACTOR,
         )
         
-        workflow_dto = Workflow(
-            id=workflow.id,
-            type=WorkflowStatus(workflow.workflow_type),
-            client_id=workflow.client_id,
-            meeting_id=workflow.meeting_id,
-            status=WorkflowStatus(workflow.status),
-            row_version=workflow.row_version,
-            context_revision=workflow.context_revision,
-            entry=workflow.entry_point,
-            current_stage=workflow.current_stage,
-            stages=[],
-            action_ids=[],
-            last_confirmed_at=workflow.updated_at,
-            next_decision=None,
-        )
+        workflow_dto = await _workflow_dto(db, workflow, workflow.updated_at)
         
         return Envelope(
             data={"workflow": workflow_dto, "continuing_action_ids": continuing_action_ids},
@@ -384,13 +461,15 @@ async def get_stage_run(
         if not run:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stage run not found")
         
+        refs = await _load_stage_refs(db, MOCK_TENANT, {run.id})
+        input_refs, output_refs = refs[run.id]
         run_dto = StageRun(
             id=run.id,
             workflow_id=run.workflow_id,
             stage_key=run.stage_key,
-            status=run.status,
-            input_refs=[],  # Would load from stage_artifact_refs
-            output_refs=[],
+            status=StageStatus(run.status),
+            input_refs=input_refs,
+            output_refs=output_refs,
             context_revision=run.context_revision,
             skill_id=run.skill_id,
             skill_version=run.skill_version,

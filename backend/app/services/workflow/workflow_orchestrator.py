@@ -110,9 +110,10 @@ class WorkflowOrchestrator:
             action="workflow.create",
             resource_type="workflow",
             resource_id=str(workflow.id),
+            client_id=workflow.client_id,
             workflow_id=workflow.id,
             correlation_id=uuid4(),
-            outcome="created"
+            safe_details={"outcome": "created"}
         )
         
         await self.tx.commit()
@@ -192,9 +193,10 @@ class WorkflowOrchestrator:
             action="workflow.pause",
             resource_type="workflow",
             resource_id=str(workflow.id),
+            client_id=workflow.client_id,
             workflow_id=workflow.id,
             correlation_id=uuid4(),
-            outcome="paused"
+            safe_details={"outcome": "paused"}
         )
         
         await self.tx.commit()
@@ -229,9 +231,10 @@ class WorkflowOrchestrator:
             action="workflow.resume",
             resource_type="workflow",
             resource_id=str(workflow.id),
+            client_id=workflow.client_id,
             workflow_id=workflow.id,
             correlation_id=uuid4(),
-            outcome="resumed"
+            safe_details={"outcome": "resumed"}
         )
         
         await self.tx.commit()
@@ -268,9 +271,10 @@ class WorkflowOrchestrator:
             action="workflow.abandon",
             resource_type="workflow",
             resource_id=str(workflow.id),
+            client_id=workflow.client_id,
             workflow_id=workflow.id,
             correlation_id=uuid4(),
-            outcome="abandoned"
+            safe_details={"outcome": "abandoned"}
         )
         
         await self.tx.commit()

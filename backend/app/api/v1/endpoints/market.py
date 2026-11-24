@@ -32,8 +32,10 @@ async def get_market_news(
 ):
     """Get market news with caching. Returns source, cached flag, and as_of timestamp."""
     try:
-        symbol_list = [s.strip() for s in symbols.split(",")] if symbols else None
-        news, source, cached = await market_data_service.get_market_news(symbol_list, limit)
+        symbol_list = [s.strip() for s in symbols.split(",") if s.strip()] if symbols else None
+        news, source, cached = await market_data_service.get_market_news(
+            symbol_list or None, limit, lang=lang
+        )
         return {
             "news": news,
             "count": len(news),

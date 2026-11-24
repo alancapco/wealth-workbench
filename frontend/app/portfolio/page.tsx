@@ -14,39 +14,27 @@ interface DemoClient {
 
 interface Holding {
   asset_name: string;
-  ticker: string;
+  ticker: string | null;
   asset_class: string;
   currency: string;
-  value_usd_millions: number;
-  value_local: number;
-  allocation_pct: number;
-  gain_loss_pct: number;
+  value_usd_millions: number | null;
+  allocation_pct: number | null;
+  gain_loss_pct: number | null;
   shariah_compliant: boolean;
-}
-
-interface AssetBreakdownResponse {
-  holdings: Holding[];
-  total_usd_millions: number;
 }
 
 const ASSET_CLASSES = ['All', 'Equities', 'Fixed Income', 'Alternatives', 'Cash', 'Real Estate'];
 
+const fmt = (v: number | null, digits = 1) =>
+  typeof v === 'number' && Number.isFinite(v) ? v.toFixed(digits) : '—';
+
+// Monochrome risk styling — no additional colours are introduced.
 const RISK_COLORS: Record<string, string> = {
-  Conservative: 'bg-blue-100 text-blue-800',
-  Moderate: 'bg-yellow-100 text-yellow-800',
-  'Moderate-Aggressive': 'bg-orange-100 text-orange-800',
-  Aggressive: 'bg-red-100 text-red-800',
+  Conservative: 'bg-gray-100 text-gray-700',
+  Moderate: 'bg-gray-200 text-gray-800',
+  'Moderate-Aggressive': 'bg-gray-700 text-white',
+  Aggressive: 'bg-black text-white',
 };
-
-const FALLBACK_CLIENTS: DemoClient[] = [
-  { id: 'demo-001', name: 'Kenneth Wong', aum_usd_millions: 45.2, risk_profile: 'Moderate', shariah_compliant: false },
-];
-
-const FALLBACK_HOLDINGS: Holding[] = [
-  { asset_name: 'Apple Inc', ticker: 'AAPL', asset_class: 'Equities', currency: 'USD', value_usd_millions: 12.5, value_local: 12500000, allocation_pct: 27.7, gain_loss_pct: 18.3, shariah_compliant: true },
-  { asset_name: 'HSBC Holdings', ticker: 'HSBA', asset_class: 'Equities', currency: 'HKD', value_usd_millions: 8.1, value_local: 63258000, allocation_pct: 17.9, gain_loss_pct: -3.2, shariah_compliant: false },
-  { asset_name: 'US Treasury 10Y', ticker: 'UST10Y', asset_class: 'Fixed Income', currency: 'USD', value_usd_millions: 24.6, value_local: 24600000, allocation_pct: 54.4, gain_loss_pct: 2.1, shariah_compliant: false },
-];
 
 export default function PortfolioPage() {
   const [clients, setClients] = useState<DemoClient[]>([]);
@@ -55,18 +43,22 @@ export default function PortfolioPage() {
   const [totalUsd, setTotalUsd] = useState(0);
   const [loadingClients, setLoadingClients] = useState(true);
   const [loadingHoldings, setLoadingHoldings] = useState(false);
+  const [holdingsError, setHoldingsError] = useState(false);
   const [offline, setOffline] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
 
   useEffect(() => {
     demoClientApi.list()
       .then((res) => {
-        const data = res.data?.data ?? res.data;
-        setClients(Array.isArray(data) ? data : []);
+        // /demo-clients wraps its list in { data: { clients } }; keep the
+        // normalisation tolerant of either an envelope or a bare array.
+        const raw = res.data?.data ?? res.data;
+        const list = Array.isArray(raw) ? raw : raw?.clients ?? [];
+        setClients(Array.isArray(list) ? list : []);
       })
       .catch(() => {
         setOffline(true);
-        setClients(FALLBACK_CLIENTS);
+        setClients([]);
       })
       .finally(() => setLoadingClients(false));
   }, []);
@@ -74,16 +66,31 @@ export default function PortfolioPage() {
   useEffect(() => {
     if (!selectedClient) return;
     setLoadingHoldings(true);
-    demoClientApi.assetBreakdown(selectedClient.id)
+    setHoldingsError(false);
+    // The detail endpoint is the only one that returns per-holding rows; the
+    // asset-class endpoint returns aggregates, so it cannot fill this table.
+    demoClientApi.get(selectedClient.id)
       .then((res) => {
-        const data: AssetBreakdownResponse = res.data?.data ?? res.data;
-        setHoldings(data.holdings ?? []);
-        setTotalUsd(data.total_usd_millions ?? 0);
+        const detail: any = res.data?.data ?? res.data;
+        const raw: any[] = Array.isArray(detail?.portfolio_holdings) ? detail.portfolio_holdings : [];
+        const rows: Holding[] = raw.map((h) => ({
+          asset_name: h.asset_name ?? '—',
+          ticker: h.ticker ?? null,
+          asset_class: h.asset_class ?? 'Other',
+          currency: h.currency ?? 'USD',
+          value_usd_millions: h.value_usd_millions ?? null,
+          allocation_pct: h.allocation_pct ?? null,
+          gain_loss_pct: h.unrealized_gain_pct ?? null,
+          shariah_compliant: Boolean(h.is_shariah_compliant),
+        }));
+        setHoldings(rows);
+        setTotalUsd(rows.reduce((s, h) => s + (h.value_usd_millions ?? 0), 0));
       })
       .catch(() => {
         setOffline(true);
-        setHoldings(FALLBACK_HOLDINGS);
-        setTotalUsd(FALLBACK_HOLDINGS.reduce((s, h) => s + h.value_usd_millions, 0));
+        setHoldingsError(true);
+        setHoldings([]);
+        setTotalUsd(0);
       })
       .finally(() => setLoadingHoldings(false));
   }, [selectedClient]);
@@ -92,7 +99,7 @@ export default function PortfolioPage() {
     ? holdings
     : holdings.filter((h) => h.asset_class === activeFilter);
 
-  const totalFiltered = filtered.reduce((s, h) => s + h.value_usd_millions, 0);
+  const totalFiltered = filtered.reduce((s, h) => s + (h.value_usd_millions ?? 0), 0);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -103,8 +110,8 @@ export default function PortfolioPage() {
           <p className="text-gray-400 text-sm">RM Portfolio View</p>
         </div>
         {offline && (
-          <span className="ml-auto text-xs bg-yellow-900 text-yellow-300 px-3 py-1 rounded-full">
-            Backend offline — showing sample data
+          <span className="ml-auto text-xs bg-gray-800 text-white px-3 py-1 rounded-full">
+            Backend unavailable — no data displayed
           </span>
         )}
       </header>
@@ -118,6 +125,10 @@ export default function PortfolioPage() {
           {loadingClients ? (
             <div className="flex items-center justify-center h-32">
               <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+            </div>
+          ) : clients.length === 0 ? (
+            <div className="p-4 text-xs text-gray-500">
+              No portfolio clients loaded. Verify the backend is running and refresh the page.
             </div>
           ) : (
             <ul className="divide-y divide-gray-100">
@@ -134,7 +145,7 @@ export default function PortfolioPage() {
                         {client.name}
                       </span>
                       {client.shariah_compliant && (
-                        <Moon size={14} className={selectedClient?.id === client.id ? 'text-green-400' : 'text-green-600'} />
+                        <Moon size={14} className={selectedClient?.id === client.id ? 'text-gray-300' : 'text-gray-600'} />
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
@@ -167,6 +178,14 @@ export default function PortfolioPage() {
             <div className="flex items-center justify-center h-full">
               <div className="w-8 h-8 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
             </div>
+          ) : holdingsError ? (
+            <div className="border border-gray-300 bg-white rounded p-5 text-sm text-gray-700">
+              Holdings could not be loaded. Verify the backend is running, then select the client again.
+            </div>
+          ) : holdings.length === 0 ? (
+            <div className="border border-gray-200 bg-white rounded p-5 text-sm text-gray-600">
+              No holdings are recorded for this client.
+            </div>
           ) : (
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -178,7 +197,7 @@ export default function PortfolioPage() {
                   </p>
                 </div>
                 {selectedClient.shariah_compliant && (
-                  <span className="flex items-center gap-1 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                  <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full font-medium">
                     <Moon size={12} /> Shariah Portfolio
                   </span>
                 )}
@@ -204,6 +223,11 @@ export default function PortfolioPage() {
 
               {/* Table */}
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {filtered.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-gray-500">
+                    No holdings in {activeFilter} for this client.
+                  </div>
+                ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -213,7 +237,6 @@ export default function PortfolioPage() {
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Asset Class</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Currency</th>
                         <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Value (USD M)</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Value (Local)</th>
                         <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Alloc %</th>
                         <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Gain/Loss %</th>
                         <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Shariah</th>
@@ -223,22 +246,23 @@ export default function PortfolioPage() {
                       {filtered.map((h, i) => (
                         <tr key={i} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-900">{h.asset_name}</td>
-                          <td className="px-4 py-3 text-gray-500 font-mono text-xs">{h.ticker}</td>
+                          <td className="px-4 py-3 text-gray-500 font-mono text-xs">{h.ticker || '—'}</td>
                           <td className="px-4 py-3">
                             <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{h.asset_class}</span>
                           </td>
                           <td className="px-4 py-3 text-gray-500">{h.currency}</td>
-                          <td className="px-4 py-3 text-right font-medium text-gray-900">${h.value_usd_millions.toFixed(2)}M</td>
-                          <td className="px-4 py-3 text-right text-gray-500">
-                            {h.currency !== 'USD' ? h.value_local.toLocaleString() : '-'}
+                          <td className="px-4 py-3 text-right font-medium text-gray-900">
+                            {h.value_usd_millions === null ? '—' : `$${fmt(h.value_usd_millions, 2)}M`}
                           </td>
-                          <td className="px-4 py-3 text-right text-gray-700">{h.allocation_pct.toFixed(1)}%</td>
-                          <td className={`px-4 py-3 text-right font-semibold ${h.gain_loss_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {h.gain_loss_pct >= 0 ? '+' : ''}{h.gain_loss_pct.toFixed(1)}%
+                          <td className="px-4 py-3 text-right text-gray-700">
+                            {h.allocation_pct === null ? '—' : `${fmt(h.allocation_pct)}%`}
+                          </td>
+                          <td className={`px-4 py-3 text-right font-semibold ${(h.gain_loss_pct ?? 0) >= 0 ? 'text-gray-900' : 'text-gray-500'}`}>
+                            {h.gain_loss_pct === null ? '—' : `${h.gain_loss_pct > 0 ? '+' : ''}${fmt(h.gain_loss_pct)}%`}
                           </td>
                           <td className="px-4 py-3 text-center">
                             {h.shariah_compliant ? (
-                              <Moon size={14} className="text-green-600 mx-auto" />
+                              <Moon size={14} className="text-gray-600 mx-auto" />
                             ) : (
                               <span className="text-gray-300">—</span>
                             )}
@@ -249,11 +273,12 @@ export default function PortfolioPage() {
                       <tr className="bg-gray-50 font-semibold border-t-2 border-gray-300">
                         <td className="px-4 py-3 text-gray-900" colSpan={4}>Total ({filtered.length} holdings)</td>
                         <td className="px-4 py-3 text-right text-gray-900">${totalFiltered.toFixed(2)}M</td>
-                        <td className="px-4 py-3" colSpan={4} />
+                        <td className="px-4 py-3" colSpan={3} />
                       </tr>
                     </tbody>
                   </table>
                 </div>
+                )}
               </div>
             </div>
           )}

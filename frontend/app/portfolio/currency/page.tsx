@@ -11,7 +11,7 @@ interface DemoClient {
 
 interface CurrencyRow {
   currency: string;
-  value_local: number;
+  value_local: number | null;
   value_usd_millions: number;
   allocation_pct: number;
   holdings_count: number;
@@ -26,49 +26,43 @@ interface FxRate {
 interface CurrencyExposureResponse {
   currencies: CurrencyRow[];
   fx_rates: FxRate[];
-  rates_timestamp: string;
+  rates_as_of: string;
   base_currency: string;
+  rates_source?: string | null;
+  rates_is_live?: boolean | null;
+  rates_note?: string | null;
 }
 
+const fmt = (v: number | null | undefined, digits = 1) =>
+  typeof v === 'number' && Number.isFinite(v) ? v.toFixed(digits) : '—';
+
+// Monochrome scale only — keeps the existing Capco palette.
 const CURRENCY_COLORS: Record<string, string> = {
-  HKD: 'bg-red-500',
-  USD: 'bg-green-500',
-  SGD: 'bg-blue-500',
-  EUR: 'bg-purple-500',
-  JPY: 'bg-orange-500',
-  GBP: 'bg-indigo-500',
-  CNY: 'bg-pink-500',
-  AUD: 'bg-teal-500',
+  HKD: 'bg-black',
+  USD: 'bg-gray-800',
+  SGD: 'bg-gray-600',
+  EUR: 'bg-gray-400',
+  JPY: 'bg-gray-300',
+  GBP: 'bg-gray-200',
+  CNY: 'bg-gray-500',
+  AUD: 'bg-gray-700',
 };
 
 const CURRENCY_TEXT: Record<string, string> = {
-  HKD: 'text-red-600',
-  USD: 'text-green-600',
-  SGD: 'text-blue-600',
-  EUR: 'text-purple-600',
-  JPY: 'text-orange-600',
-  GBP: 'text-indigo-600',
-  CNY: 'text-pink-600',
-  AUD: 'text-teal-600',
-};
-
-const FALLBACK_DATA: CurrencyExposureResponse = {
-  currencies: [
-    { currency: 'HKD', value_local: 235600000, value_usd_millions: 30.1, allocation_pct: 66.6, holdings_count: 4, fx_rate: 7.84 },
-    { currency: 'USD', value_local: 15100000, value_usd_millions: 15.1, allocation_pct: 33.4, holdings_count: 2, fx_rate: 1.00 },
-  ],
-  fx_rates: [
-    { currency: 'HKD', rate: 7.84 },
-    { currency: 'SGD', rate: 1.28 },
-    { currency: 'EUR', rate: 0.90 },
-    { currency: 'JPY', rate: 147.5 },
-    { currency: 'GBP', rate: 0.76 },
-  ],
-  rates_timestamp: new Date().toISOString(),
-  base_currency: 'USD',
+  HKD: 'text-black',
+  USD: 'text-gray-800',
+  SGD: 'text-gray-700',
+  EUR: 'text-gray-600',
+  JPY: 'text-gray-600',
+  GBP: 'text-gray-500',
+  CNY: 'text-gray-600',
+  AUD: 'text-gray-700',
 };
 
 function formatTimestamp(iso: string): string {
+  if (!iso) return 'date unavailable';
+  // The currency endpoint reports an as-of date, not a full timestamp.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
   try {
     const d = new Date(iso);
     return d.toLocaleString('en-SG', { timeZone: 'Asia/Singapore', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' SGT';
@@ -83,17 +77,19 @@ export default function CurrencyPage() {
   const [data, setData] = useState<CurrencyExposureResponse | null>(null);
   const [loadingClients, setLoadingClients] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
+  const [dataError, setDataError] = useState(false);
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     demoClientApi.list()
       .then((res) => {
-        const list = res.data?.data ?? res.data;
+        const raw = res.data?.data ?? res.data;
+        const list = Array.isArray(raw) ? raw : raw?.clients ?? [];
         setClients(Array.isArray(list) ? list : []);
       })
       .catch(() => {
         setOffline(true);
-        setClients([{ id: 'demo-001', name: 'Kenneth Wong', aum_usd_millions: 45.2 }]);
+        setClients([]);
       })
       .finally(() => setLoadingClients(false));
   }, []);
@@ -101,19 +97,45 @@ export default function CurrencyPage() {
   useEffect(() => {
     if (!selectedId) return;
     setLoadingData(true);
+    setDataError(false);
     demoClientApi.currencyExposure(selectedId)
       .then((res) => {
-        const d = res.data?.data ?? res.data;
-        setData(d);
+        const d: any = res.data?.data ?? res.data;
+        // The live endpoint returns currency_breakdown + a rates_used map; the
+        // screen's view model uses a flat currency list and a rate array.
+        setData({
+          currencies: (Array.isArray(d?.currency_breakdown) ? d.currency_breakdown : []).map((r: any) => ({
+            currency: r.currency,
+            value_local: r.value_in_currency_millions ?? null,
+            value_usd_millions: Number(r.value_usd_millions) || 0,
+            allocation_pct: Number(r.allocation_pct) || 0,
+            holdings_count: Number(r.holdings_count) || 0,
+            fx_rate: Number(r.fx_rate) || 1,
+          })),
+          fx_rates: Object.entries(d?.rates_used ?? {}).map(([currency, rate]) => ({
+            currency,
+            rate: Number(rate),
+          })),
+          // A static fallback has no dated market snapshot, so do not fall back
+          // to the report date and present it as a rate timestamp.
+          rates_as_of: d?.rates_as_of ?? (d?.rates_is_live === false ? '' : d?.as_of_date ?? ''),
+          base_currency: d?.base_currency ?? 'USD',
+          rates_source: d?.rates_source ?? d?.rate_source ?? d?.source ?? null,
+          rates_is_live: typeof d?.rates_is_live === 'boolean' ? d.rates_is_live : (d?.is_live ?? null),
+          rates_note: d?.rates_note ?? null,
+        });
       })
       .catch(() => {
         setOffline(true);
-        setData(FALLBACK_DATA);
+        setDataError(true);
+        setData(null);
       })
       .finally(() => setLoadingData(false));
   }, [selectedId]);
 
-  const maxUsd = data ? Math.max(...data.currencies.map((c) => c.value_usd_millions)) : 1;
+  const maxUsd = data?.currencies.length
+    ? Math.max(...data.currencies.map((c) => c.value_usd_millions), 1)
+    : 1;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -121,11 +143,11 @@ export default function CurrencyPage() {
       <header className="bg-black text-white px-6 py-4 flex items-center gap-4 shrink-0">
         <div>
           <h1 className="text-lg font-bold">Currency Exposure</h1>
-          <p className="text-gray-400 text-sm">Live FX from FreeCurrencyAPI</p>
+          <p className="text-gray-400 text-sm">Currency split for the selected client</p>
         </div>
         {offline && (
-          <span className="ml-auto text-xs bg-yellow-900 text-yellow-300 px-3 py-1 rounded-full">
-            Backend offline — showing sample data
+          <span className="ml-auto text-xs bg-gray-800 text-white px-3 py-1 rounded-full">
+            Backend unavailable — no data displayed
           </span>
         )}
       </header>
@@ -160,28 +182,54 @@ export default function CurrencyPage() {
           </div>
         )}
 
-        {selectedId && !loadingData && data && (
+        {selectedId && !loadingData && dataError && (
+          <div className="border border-gray-300 bg-white rounded-xl p-4 text-sm text-gray-700">
+            Currency exposure could not be loaded. Verify the backend is running, then select the client again.
+          </div>
+        )}
+
+        {selectedId && !loadingData && !dataError && data && data.currencies.length === 0 && (
+          <div className="border border-gray-200 bg-white rounded-xl p-4 text-sm text-gray-600">
+            No currency exposure data is recorded for this client.
+          </div>
+        )}
+
+        {selectedId && !loadingData && data && data.currencies.length > 0 && (
           <div className="space-y-6">
             {/* FX Rate banner */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-gray-700">Live FX Rates (vs USD)</h2>
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                    Live
+                <h2 className="text-sm font-semibold text-gray-700">FX Rates (vs {data.base_currency})</h2>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {data.rates_is_live === true && (
+                    <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-medium">
+                      <span className="w-1.5 h-1.5 bg-gray-800 rounded-full" />
+                      Live
+                    </span>
+                  )}
+                  {data.rates_is_live === false && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
+                      Static reference rates
+                    </span>
+                  )}
+                  <span className="text-xs text-gray-400">
+                    {data.rates_is_live === false
+                      ? 'No dated market snapshot'
+                      : `Rates as of ${formatTimestamp(data.rates_as_of)}`}
                   </span>
-                  <span className="text-xs text-gray-400">Rates as of {formatTimestamp(data.rates_timestamp)}</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {data.fx_rates.map((r) => (
                   <div key={r.currency} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
                     <span className={`text-xs font-semibold ${CURRENCY_TEXT[r.currency] ?? 'text-gray-700'}`}>{r.currency}</span>
-                    <span className="text-sm font-mono text-gray-800">{r.rate.toFixed(2)}</span>
+                    <span className="text-sm font-mono text-gray-800">{fmt(r.rate, 2)}</span>
                   </div>
                 ))}
               </div>
+              {data.rates_note && (
+                <p className="mt-3 text-xs text-gray-500">{data.rates_note}</p>
+              )}
             </div>
 
             {/* Currency breakdown table */}
@@ -211,12 +259,12 @@ export default function CurrencyPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right text-gray-700 font-mono text-xs">
-                          {row.currency !== 'USD' ? row.value_local.toLocaleString() : `$${(row.value_local / 1_000_000).toFixed(1)}M`}
+                          {row.value_local === null ? '—' : `${fmt(row.value_local, 1)}M`}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-gray-900">${row.value_usd_millions.toFixed(1)}M</td>
-                        <td className="px-4 py-3 text-right text-gray-700">{row.allocation_pct.toFixed(1)}%</td>
+                        <td className="px-4 py-3 text-right font-semibold text-gray-900">${fmt(row.value_usd_millions, 1)}M</td>
+                        <td className="px-4 py-3 text-right text-gray-700">{fmt(row.allocation_pct, 1)}%</td>
                         <td className="px-4 py-3 text-right text-gray-500">{row.holdings_count}</td>
-                        <td className="px-4 py-3 text-right font-mono text-gray-700">{row.fx_rate.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right font-mono text-gray-700">{fmt(row.fx_rate, 2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -244,7 +292,10 @@ export default function CurrencyPage() {
                 ))}
               </div>
               <p className="text-xs text-gray-400 mt-4">
-                Rates powered by FreeCurrencyAPI · Updated hourly
+                {data.rates_source ? `Rate source: ${data.rates_source}` : 'FX rates'} ·{' '}
+                {data.rates_is_live === false
+                  ? 'static reference rates, no dated snapshot'
+                  : `as of ${formatTimestamp(data.rates_as_of)}`} · base {data.base_currency}
               </p>
             </div>
           </div>

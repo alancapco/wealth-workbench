@@ -1,4 +1,9 @@
 """Pytest fixtures for all tests."""
+import os
+
+# Brief and dashboard tests must not call Newsfilter or Yahoo.
+os.environ.setdefault("WM_DISABLE_LIVE_NEWS", "1")
+
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker

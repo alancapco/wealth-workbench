@@ -98,12 +98,20 @@ async def get_shariah_report(
         )
         holdings = result.scalars().all()
 
-        # Screen each holding
+        # Screen each holding with the real instrument data on the holding record.
         screening_results = []
         for holding in holdings:
             screening = await shariah_service.screen_instrument(
                 holding.symbol,
-                {"business_description": ""}  # Would fetch from market data
+                {
+                    "symbol": holding.symbol,
+                    "asset_class": holding.asset_class,
+                    "quantity": holding.quantity,
+                    "cost_basis": holding.cost_basis,
+                    "current_value": holding.current_value,
+                    "source_kind": holding.source_kind,
+                    "as_of": holding.as_of.isoformat() if holding.as_of else None,
+                },
             )
             screening_results.append(screening)
 
@@ -117,10 +125,12 @@ async def get_shariah_report(
             for h in holdings
         ]
 
+        # No verified lunar hawl start exists on a holding snapshot, so pass None
+        # rather than inventing a date; the service marks the hawl as unverified.
         zakat = await shariah_service.calculate_zakat(
             client_id,
             portfolio_data,
-            "2025-01-01"  # Would calculate actual hawl date
+            None,
         )
 
         # Generate comprehensive report

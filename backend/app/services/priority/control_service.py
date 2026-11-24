@@ -3,15 +3,19 @@
 Implements snooze/dismiss/pin persistence with policy validation.
 Controls affect next evaluation only per explicit policy (DEC-03 gated).
 """
+import json
 from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.admin import ConfigurationRevision
 from app.models.priority import (
     ContactOutcome as ContactOutcomeModel,
     PriorityControl as PriorityControlModel,
+    PriorityEvaluation as PriorityEvaluationModel,
+    PriorityItem as PriorityItemModel,
 )
 from app.schemas.common import ConfigRef
 from app.schemas.priority import (
@@ -20,6 +24,11 @@ from app.schemas.priority import (
     MeaningfulTouchpoint,
     PriorityControl,
     PriorityControlRequest,
+)
+from app.services.ranking.policy_config import (
+    config_ref,
+    get_active_ranking_config,
+    get_config_ref,
 )
 
 
@@ -33,7 +42,60 @@ class ControlService:
     
     def __init__(self, db: AsyncSession):
         self.db = db
-    
+
+    async def _require_evaluation_item(
+        self,
+        tenant_id: str,
+        book_id: str,
+        evaluation_id: UUID,
+        client_id: UUID,
+    ) -> None:
+        """Validate the composite reference to priority_items before inserting.
+
+        Both ``priority_controls`` and ``contact_outcomes`` carry the FK
+        (tenant_id, book_id, evaluation_id, client_id) -> priority_items. A
+        fabricated or stale ``recommendation_ref`` used to raise an unhandled
+        ForeignKeyViolationError, which Starlette returned as a bare plain-text
+        500 with no CORS headers. The browser therefore saw "Network Error"
+        instead of an actionable HTTP error. Reject the reference explicitly.
+        """
+        stmt = select(PriorityItemModel.id).where(
+            PriorityItemModel.tenant_id == tenant_id,
+            PriorityItemModel.book_id == book_id,
+            PriorityItemModel.evaluation_id == evaluation_id,
+            PriorityItemModel.client_id == client_id,
+        )
+        found = (await self.db.execute(stmt)).scalar_one_or_none()
+        if found is None:
+            raise ControlServiceError(
+                "No evaluated priority item matches this recommendation_ref for "
+                f"book {book_id} / client {client_id}. A successful book "
+                "evaluation (DEC-03 ranking policy) must exist before controls "
+                "or contact outcomes can be recorded."
+            )
+
+    async def _resolve_policy(
+        self,
+        tenant_id: str,
+        book_id: str,
+        evaluation_id: UUID,
+    ) -> tuple[UUID, ConfigRef] | None:
+        """Resolve the approved RANKING policy; fall back to the evaluation's stored revision."""
+        config = await get_active_ranking_config(self.db, tenant_id, book_id)
+        if config is None:
+            stored_id = (await self.db.execute(
+                select(PriorityEvaluationModel.policy_configuration_id).where(
+                    PriorityEvaluationModel.id == evaluation_id,
+                    PriorityEvaluationModel.tenant_id == tenant_id,
+                    PriorityEvaluationModel.book_id == book_id,
+                )
+            )).scalar_one_or_none()
+            if stored_id is not None:
+                config = await self.db.get(ConfigurationRevision, stored_id)
+        if config is None:
+            return None
+        return config.id, config_ref(config)
+
     async def set_priority_control(
         self,
         tenant_id: str,
@@ -52,7 +114,7 @@ class ControlService:
             book_id: Book identifier
             request: Control request
             principal_subject: Authenticated principal
-            policy_config_id: Ranking policy config (required)
+            policy_config_id: Ranking policy config; resolved from config service when omitted
             
         Returns:
             Tuple of (control, evaluation_state) where state is STALE|CURRENT
@@ -61,11 +123,30 @@ class ControlService:
             ControlServiceError: if policy UNCONFIGURED or validation fails
         """
         if policy_config_id is None:
-            raise ControlServiceError("Control policy UNCONFIGURED: DEC-03 required")
-        
+            resolved = await self._resolve_policy(
+                tenant_id, book_id, request.recommendation_ref.evaluation_id
+            )
+            if resolved is None:
+                raise ControlServiceError("Control policy UNCONFIGURED: DEC-03 required")
+            policy_config_id, policy_ref = resolved
+        else:
+            policy_ref = await get_config_ref(self.db, policy_config_id) or ConfigRef(
+                id=policy_config_id, revision=1, hash="0" * 64
+            )
+
+        await self._require_evaluation_item(
+            tenant_id=tenant_id,
+            book_id=book_id,
+            evaluation_id=request.recommendation_ref.evaluation_id,
+            client_id=request.client_id,
+        )
+
         # Validate control request fields per discriminated union
         control_dict = request.control.model_dump()
         control_type = control_dict["type"]
+        if control_type == "DISMISS":
+            # Reason carries a ConfigRef UUID; JSONB needs a JSON-safe dict.
+            control_dict["reason"] = json.loads(request.control.reason.model_dump_json())
         
         # Build control model based on type
         recorded_at = datetime.now(UTC)
@@ -81,7 +162,8 @@ class ControlService:
             control_type=control_type,
             until_at=control_dict.get("until") if control_type == "SNOOZE" else None,
             pinned=control_dict.get("pinned") if control_type == "PIN" else None,
-            reason=control_dict.get("reason").model_dump() if control_type == "DISMISS" and "reason" in control_dict else None,
+            # model_dump() already serialises nested Reason to a plain dict.
+            reason=control_dict.get("reason") if control_type == "DISMISS" else None,
             policy_configuration_id=policy_config_id,
             actor=principal_subject,
             recorded_at=recorded_at,
@@ -100,11 +182,7 @@ class ControlService:
             actor=control_model.actor,
             recorded_at=control_model.recorded_at,
             row_version=control_model.row_version,
-            policy_ref=ConfigRef(
-                id=policy_config_id,
-                revision=1,
-                hash="0" * 64,  # Fixture hash
-            ),
+            policy_ref=policy_ref,
         )
         
         # Evaluation becomes STALE after control change
@@ -163,7 +241,8 @@ class ControlService:
                     actor=model.actor,
                     recorded_at=model.recorded_at,
                     row_version=model.row_version,
-                    policy_ref=ConfigRef(
+                    policy_ref=await get_config_ref(self.db, model.policy_configuration_id)
+                    or ConfigRef(
                         id=model.policy_configuration_id,
                         revision=1,
                         hash="0" * 64,
@@ -194,6 +273,13 @@ class ControlService:
         Returns:
             Outcome response with meaningful touchpoint classification
         """
+        await self._require_evaluation_item(
+            tenant_id=tenant_id,
+            book_id=book_id,
+            evaluation_id=request.recommendation_ref.evaluation_id,
+            client_id=request.client_id,
+        )
+
         outcome_id = uuid4()
         recorded_at = datetime.now(UTC)
         

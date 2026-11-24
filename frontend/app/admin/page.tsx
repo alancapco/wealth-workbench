@@ -1,189 +1,111 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { apiClient } from '@/lib/api';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { DEFAULT_SESSION } from '@/lib/session';
+import { endpoints } from '@/lib/endpoints';
+import { useApp } from '@/lib/app-context';
+import { FeaturePage } from '@/components/ui/LiveFeature';
+import {
+  Card, Button, DataTable, ErrorState, Loading, StatusBadge, StatCard, EmptyState,
+} from '@/components/ui/WorkbenchUI';
 
-interface DecisionGate {
-  gate_id: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  config?: Record<string, any>;
-}
+const QUICK_LINKS = [
+  { href: '/admin/audit', label: 'Audit trail', description: 'Immutable audit events' },
+  { href: '/admin/telemetry', label: 'Telemetry', description: 'Metrics and event recording' },
+  { href: '/admin/artifacts', label: 'Artifacts', description: 'Lineage and revisions' },
+  { href: '/admin/skills', label: 'Skill registry', description: 'Workflow skills and stage runs' },
+  { href: '/admin/session', label: 'Session & identity', description: 'Live principal and permissions' },
+  { href: '/admin/catalogue', label: 'Developer reference', description: 'Technical tool for administrators' },
+];
 
 export default function AdminDashboardPage() {
+  const app = useApp();
+  const [gates, setGates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [gates, setGates] = useState<DecisionGate[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadGates();
-  }, []);
+  const load = () => {
+    setLoading(true);
+    endpoints.admin.gates(app.tenantId || undefined)
+      .then((r: any) => { setGates(r.data?.gates || []); setError(null); })
+      .catch((e) => setError(e))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { if (app.ready) load(); }, [app.ready, app.tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadGates = async () => {
+  const toggle = async (gate: any) => {
+    setBusy(gate.key);
     try {
-      setLoading(true);
-      setError(null);
-      const response = await apiClient.get<{ gates: any[] }>(`/admin/config/gates?tenant_id=${DEFAULT_SESSION.tenant_id}`);
-      const gatesData = response.data as { gates: any[] };
-      const mappedGates = (gatesData.gates || []).map(g => ({
-        gate_id: g.key,
-        name: g.key.replace(/_/g, ' ').replace(/^DEC-/i, 'DEC-'),
-        description: `Decision gate ${g.key}`,
-        enabled: g.enabled,
-      }));
-      setGates(mappedGates);
-    } catch (err: any) {
-      console.error('Error loading gates:', err);
-      setError(err.message || 'Failed to load decision gates');
+      await endpoints.admin.updateGate(gate.key, { enabled: !gate.enabled }, app.tenantId || undefined);
+      load();
+    } catch (e) {
+      setError(e);
     } finally {
-      setLoading(false);
+      setBusy(null);
     }
   };
-
-  const handleToggleGate = async (gateId: string, currentState: boolean) => {
-    try {
-      await apiClient.patch(`/admin/config/gates/${gateId}`, {
-        enabled: !currentState,
-      });
-      await loadGates();
-    } catch (err: any) {
-      console.error('Error toggling gate:', err);
-      alert('Failed to toggle gate');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center py-12">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
-              <span className="text-sm text-gray-600">Loading admin dashboard...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600">System configuration and management</p>
-        </div>
+    <FeaturePage
+      eyebrow="Platform"
+      title="Decision Gates"
+      description="Live capability switches. Toggling a gate writes to the configuration service and unlocks the corresponding feature pages."
+      wide
+    >
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Gates" value={gates.length} sub="Configuration revisions" />
+        <StatCard label="Enabled" value={gates.filter((g) => g.enabled).length} sub="Active capabilities" />
+        <StatCard label="Clients" value={app.clients.length} sub="Live client book" />
+        <StatCard label="Workflows" value={app.workflows.length} sub="Live instances" />
+      </div>
 
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-300 rounded p-4">
-            <p className="text-red-700">{error}</p>
-            <button
-              onClick={loadGates}
-              className="mt-2 text-sm text-red-800 underline hover:no-underline"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {/* Quick Links */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Link
-            href="/admin/audit"
-            className="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-400 hover:shadow-lg transition-all"
-          >
-            <div className="text-2xl mb-2">📋</div>
-            <h3 className="text-lg font-semibold mb-1">Audit Logs</h3>
-            <p className="text-sm text-gray-600">View system audit trail</p>
-          </Link>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="text-2xl mb-2">⚙️</div>
-            <h3 className="text-lg font-semibold mb-1">Configuration</h3>
-            <p className="text-sm text-gray-600">Manage system settings</p>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="text-2xl mb-2">👥</div>
-            <h3 className="text-lg font-semibold mb-1">Users</h3>
-            <p className="text-sm text-gray-600">User management</p>
-          </div>
-        </div>
-
-        {/* Decision Gates */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-6">Decision Gates</h2>
-
-          {gates.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No decision gates configured</div>
+      <Card title="Capability gates" subtitle="Live capability switches" bodyClassName="p-0">
+        <div className="p-5">
+          {loading ? <Loading /> : error ? <ErrorState error={error} onRetry={load} /> : gates.length === 0 ? (
+            <EmptyState title="No switches configured" detail="No capability switches have been set up for this organisation." />
           ) : (
-            <div className="space-y-4">
-              {gates.map((gate) => (
-                <div
-                  key={gate.gate_id}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-gray-400 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">{gate.name}</h3>
-                        <span className="text-sm text-gray-500 font-mono">{gate.gate_id}</span>
-                      </div>
-                      <p className="text-gray-600 mb-3">{gate.description}</p>
-                      {gate.config && Object.keys(gate.config).length > 0 && (
-                        <details className="text-sm">
-                          <summary className="cursor-pointer text-gray-700 hover:text-black">
-                            View Configuration
-                          </summary>
-                          <pre className="mt-2 p-3 bg-gray-50 rounded overflow-auto text-xs font-mono">
-                            {JSON.stringify(gate.config, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => handleToggleGate(gate.gate_id, gate.enabled)}
-                      className={`ml-4 px-4 py-2 rounded font-medium transition-colors ${
-                        gate.enabled
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                      }`}
-                    >
-                      {gate.enabled ? 'Enabled' : 'Disabled'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DataTable
+              rows={gates}
+              columns={[
+                { key: 'key', label: 'Gate' },
+                {
+                  key: 'scope', label: 'Scope', render: (g: any) => {
+                    const book = g.scope?.book_id;
+                    const jurisdiction = g.scope?.jurisdiction;
+                    const label = [book, jurisdiction].filter(Boolean).join(' · ');
+                    return <span className="text-xs text-gray-600">{label || 'Organisation'}</span>;
+                  },
+                },
+                {
+                  key: 'enabled', label: 'State', render: (g: any) => (
+                    <StatusBadge tone={g.enabled ? 'success' : 'neutral'}>{g.enabled ? 'Enabled' : 'Disabled'}</StatusBadge>
+                  ),
+                },
+                { key: 'updated_at', label: 'Last updated' },
+                {
+                  key: 'action', label: '', render: (g: any) => (
+                    <Button loading={busy === g.key} onClick={() => void toggle(g)}>
+                      {g.enabled ? 'Disable' : 'Enable'}
+                    </Button>
+                  ),
+                },
+              ]}
+            />
           )}
         </div>
+      </Card>
 
-        {/* System Status */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-sm text-gray-600 mb-2">System Status</h3>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="font-semibold">Operational</span>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-sm text-gray-600 mb-2">Active Workflows</h3>
-            <div className="text-2xl font-semibold">-</div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-sm text-gray-600 mb-2">Total Users</h3>
-            <div className="text-2xl font-semibold">-</div>
-          </div>
+      <Card title="Platform workspaces" subtitle="Every administrative capability has its own page">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {QUICK_LINKS.map((l) => (
+            <Link key={l.href} href={l.href} className="border border-gray-200 rounded px-4 py-3 hover:border-gray-500 transition-colors">
+              <div className="text-sm font-semibold text-black">{l.label} →</div>
+              <div className="text-xs text-gray-500 mt-1">{l.description}</div>
+            </Link>
+          ))}
         </div>
-      </div>
-    </div>
+      </Card>
+    </FeaturePage>
   );
 }

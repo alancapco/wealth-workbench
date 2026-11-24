@@ -1,5 +1,5 @@
 /**
- * RM Workbench MVP - Component JavaScript
+ * WM Workbench MVP - Component JavaScript
  * Handles interactive components and state management
  */
 
@@ -471,7 +471,7 @@ function toggleTheme() {
    ============================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('RM Workbench MVP initialized');
+    console.log('WM Workbench MVP initialized');
     console.log('Current state:', demoState.getState());
     
     // Subscribe to state changes

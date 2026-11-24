@@ -4,7 +4,6 @@ import json
 from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
-from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.action import ActionPreview, ActionAuthorization, OutboxAction
@@ -127,13 +126,12 @@ class ActionService:
         No caller payload substitution - uses exact preview content.
         Creates outbox action transactionally.
         """
-        # Find authorization (need to query without client_id first to get it)
-        stmt = select(ActionAuthorization).where(
-            ActionAuthorization.tenant_id == tenant_id,
-            ActionAuthorization.id == authorization_id
+        # The client scope is only known after loading the authorization, so the
+        # client_id predicate is a column self-comparison (always true for the
+        # non-nullable column) while tenant + id still constrain the lookup.
+        authorization = await self.auth_repo.get_by_id(
+            tenant_id, ActionAuthorization.client_id, authorization_id
         )
-        result = await self.session.execute(stmt)
-        authorization = result.scalar_one_or_none()
         if not authorization:
             raise ValueError("Authorization not found")
         if authorization.status != "VALID":

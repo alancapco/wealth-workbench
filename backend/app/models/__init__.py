@@ -1,4 +1,4 @@
-"""ORM models for RM Workbench persistence layer.
+"""ORM models for WM Workbench persistence layer.
 
 All models imported here are registered with SQLAlchemy metadata for Alembic discovery.
 """
@@ -55,6 +55,9 @@ from app.models.priority import (
     PriorityItem,
 )
 
+# Client memory / proposal workflow (API-013 / API-014)
+from app.models.memory import ClientMemory, ClientMemoryRecord
+
 # Product
 from app.models.product import (
     CandidateSelection,
@@ -73,6 +76,12 @@ from app.models.shariah import (
     ShariahEvidence,
 )
 
+# AAOIFI knowledge base (Shariah RAG source; populated by ingest_aaoifi.py)
+from app.models.aaoifi import (
+    AaoifiStandard,
+    AaoifiClause,
+)
+
 # Family pilot (default OFF, DEC-06/DEC-07 gated)
 from app.models.family import (
     FamilyRelationship,
@@ -87,6 +96,24 @@ from app.models.client_data import (
     ClientFinancialPlan,
     ClientConversation,
     ClientSuitabilityProfile,
+)
+
+from app.models.journey import (
+    JourneyApproval,
+    JourneyCart,
+    JourneyCartItem,
+    JourneyCohort,
+    JourneyDocument,
+    JourneyEvent,
+    JourneyFinancialProfile,
+    JourneyGoal,
+    JourneyHandoff,
+    JourneyInvestorProfile,
+    JourneyLeadControl,
+    JourneyNotification,
+    JourneyOpportunity,
+    JourneySignal,
+    JourneyTransaction,
 )
 
 __all__ = [
@@ -138,6 +165,9 @@ __all__ = [
     "PriorityItem",
     "PriorityControl",
     "ContactOutcome",
+    # Client memory
+    "ClientMemory",
+    "ClientMemoryRecord",
     # Product
     "CandidateSelection",
     "SuitabilityOverride",
@@ -147,6 +177,9 @@ __all__ = [
     # Shariah pilot
     "ShariahEvidence",
     "ShariahEstimate",
+    # AAOIFI knowledge base
+    "AaoifiStandard",
+    "AaoifiClause",
     # Family pilot
     "FamilyRelationship",
     "HouseholdGroup",
@@ -157,4 +190,19 @@ __all__ = [
     "ClientFinancialPlan",
     "ClientConversation",
     "ClientSuitabilityProfile",
+    "JourneySignal",
+    "JourneyLeadControl",
+    "JourneyOpportunity",
+    "JourneyInvestorProfile",
+    "JourneyFinancialProfile",
+    "JourneyGoal",
+    "JourneyDocument",
+    "JourneyTransaction",
+    "JourneyCart",
+    "JourneyCartItem",
+    "JourneyApproval",
+    "JourneyHandoff",
+    "JourneyNotification",
+    "JourneyEvent",
+    "JourneyCohort",
 ]

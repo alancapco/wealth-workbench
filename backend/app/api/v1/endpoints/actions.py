@@ -1,10 +1,17 @@
 """Action approval workflow endpoints."""
-from uuid import UUID
+from datetime import datetime, UTC
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.authorization import AuthorizationError, check_permission
 from app.core.database import get_db
+from app.core.identity import get_fixture_identity, get_fixture_principal
+from app.models.action import ActionAuthorization, ActionPreview, OutboxAction
+from app.models.artifact import ArtifactRevision
+from app.models.platform import ClientScope
 from app.schemas.action import (
     CreateActionPreviewRequest,
     ActionPreviewResponse,
@@ -12,26 +19,55 @@ from app.schemas.action import (
     ActionAuthorizationResponse,
     ExecuteActionRequest,
     ActionResponse,
-    ReconcileActionRequest,
-    RetryActionRequest,
     AttemptSummary,
 )
-from app.schemas.common import Envelope, Environment, Blocker
+from app.schemas.common import Envelope, Environment, ResponseMeta
 from app.services.actions.action_service import ActionService
 
 
 router = APIRouter(prefix="/actions", tags=["actions"])
 
 
-# Mock dependencies - real implementation would use auth
 async def get_current_tenant_id() -> str:
-    """Mock tenant resolution."""
-    return "test-tenant"
+    """Fixture tenant shared with the seeded clients/workflows."""
+    return get_fixture_identity()[0]
 
 
 async def get_current_user() -> str:
-    """Mock user resolution."""
-    return "test-user"
+    """Fixture actor shared with the rest of the fixture data."""
+    return get_fixture_identity()[1]
+
+
+def _meta() -> ResponseMeta:
+    return ResponseMeta(request_id=uuid4(), served_at=datetime.now(UTC))
+
+
+async def _check_access(
+    db: AsyncSession,
+    tenant_id: str,
+    client_id: UUID,
+    permission: str,
+) -> None:
+    """Fail closed on a missing grant or a client outside the caller's tenant scope."""
+    principal = get_fixture_principal()
+    if principal.tenant_id != tenant_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant mismatch")
+    try:
+        check_permission(principal, permission)
+    except AuthorizationError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+    in_scope = (await db.execute(
+        select(ClientScope.client_id).where(
+            ClientScope.tenant_id == tenant_id,
+            ClientScope.client_id == client_id,
+        )
+    )).scalar_one_or_none()
+    if in_scope is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Client is outside the caller's scope",
+        )
 
 
 @router.post("/preview", status_code=status.HTTP_201_CREATED)
@@ -48,27 +84,41 @@ async def create_action_preview(
     No caller payload substitution at execution time.
     """
     service = ActionService(db)
-    
-    # Mock: extract client_id from artifact_ref
-    # Real implementation would resolve artifact and validate permissions
-    client_id = UUID("00000000-0000-0000-0000-000000000001")
-    revision_id = request.artifact_ref.revision_id
-    
-    # Mock approved request - real implementation would build from artifact
+
+    # The client is owned by the revision, never by a placeholder entity ID.
+    ref = request.artifact_ref
+    revision = (await db.execute(
+        select(ArtifactRevision).where(
+            ArtifactRevision.tenant_id == tenant_id,
+            ArtifactRevision.id == ref.revision_id,
+            ArtifactRevision.artifact_id == ref.artifact_id,
+            ArtifactRevision.version == ref.version,
+            ArtifactRevision.content_hash == ref.hash,
+        )
+    )).scalar_one_or_none()
+    if revision is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artifact revision not found",
+        )
+    await _check_access(db, tenant_id, revision.client_id, "action:preview")
+    client_id = revision.client_id
+    revision_id = revision.id
+
     approved_request = {
         "artifact_ref": {
-            "artifact_id": str(request.artifact_ref.artifact_id),
-            "revision_id": str(request.artifact_ref.revision_id),
-            "version": request.artifact_ref.version,
-            "hash": request.artifact_ref.hash,
+            "artifact_id": str(ref.artifact_id),
+            "revision_id": str(ref.revision_id),
+            "version": ref.version,
+            "hash": ref.hash,
         },
         "action_class": request.action_class,
     }
-    
+
     # Mock provider/destination based on action class
     provider_key = f"mock-{request.action_class.lower()}-provider"
     destination_ref = "mock-destination"
-    
+
     try:
         preview = await service.create_preview(
             tenant_id=tenant_id,
@@ -84,10 +134,10 @@ async def create_action_preview(
             dependency_manifest={},
             created_by=actor,
         )
-        
+
         response = ActionPreviewResponse(
             id=preview.id,
-            artifact_ref=request.artifact_ref,
+            artifact_ref=ref,
             action_class=preview.action_class,
             preview_hash=preview.preview_hash,
             environment=Environment(kind=preview.environment_kind, id=preview.environment_id),
@@ -97,9 +147,9 @@ async def create_action_preview(
             created_at=preview.created_at,
             blockers=[],
         )
-        
-        return Envelope(data=response)
-        
+
+        return Envelope(data=response, meta=_meta())
+
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -119,24 +169,31 @@ async def authorize_preview(
     Cannot edit payload - approves what was previewed.
     """
     service = ActionService(db)
-    
+
     if not request.confirmation:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Confirmation required"
         )
-    
-    # Mock client_id resolution
-    client_id = UUID("00000000-0000-0000-0000-000000000001")
-    
+
+    preview = (await db.execute(
+        select(ActionPreview).where(
+            ActionPreview.tenant_id == tenant_id,
+            ActionPreview.id == preview_id,
+        )
+    )).scalar_one_or_none()
+    if preview is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Preview not found")
+    await _check_access(db, tenant_id, preview.client_id, "action:approve")
+
     try:
         authorization = await service.authorize_preview(
             tenant_id=tenant_id,
-            client_id=client_id,
+            client_id=preview.client_id,
             preview_id=preview_id,
             actor=actor,
         )
-        
+
         response = ActionAuthorizationResponse(
             id=authorization.id,
             preview_id=authorization.preview_id,
@@ -146,9 +203,9 @@ async def authorize_preview(
             authorized_at=authorization.authorized_at,
             state=authorization.status,
         )
-        
-        return Envelope(data=response)
-        
+
+        return Envelope(data=response, meta=_meta())
+
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -166,17 +223,30 @@ async def execute_action(
     Returns 202 with action in PENDING status.
     """
     service = ActionService(db)
-    
+
+    authorization = (await db.execute(
+        select(ActionAuthorization).where(
+            ActionAuthorization.tenant_id == tenant_id,
+            ActionAuthorization.id == request.authorization_id,
+        )
+    )).scalar_one_or_none()
+    if authorization is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Authorization not found",
+        )
+    await _check_access(db, tenant_id, authorization.client_id, "action:execute")
+
     try:
         action = await service.execute_action(
             tenant_id=tenant_id,
             authorization_id=request.authorization_id,
         )
-        
+
         response = ActionResponse(
             id=action.id,
             authorization_id=action.authorization_id,
-            action_class="CRM_WRITE",  # Would come from authorization
+            action_class=authorization.action_class,
             status=action.status,
             provider_ref=action.provider_ref,
             provider_state=action.provider_state,
@@ -189,9 +259,9 @@ async def execute_action(
             can_retry=action.status == "FAILED_SAFE",
             attempts=[],
         )
-        
-        return Envelope(data=response)
-        
+
+        return Envelope(data=response, meta=_meta())
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -211,13 +281,28 @@ async def get_action(
     Read-only - no dispatch side effect.
     """
     service = ActionService(db)
-    
-    # Mock client_id
-    client_id = UUID("00000000-0000-0000-0000-000000000001")
-    
+
+    # Resolve the owner from the persisted action instead of a placeholder client.
+    row = (await db.execute(
+        select(OutboxAction.client_id, ActionAuthorization.action_class)
+        .join(ActionAuthorization, and_(
+            ActionAuthorization.tenant_id == OutboxAction.tenant_id,
+            ActionAuthorization.client_id == OutboxAction.client_id,
+            ActionAuthorization.id == OutboxAction.authorization_id,
+        ))
+        .where(
+            OutboxAction.tenant_id == tenant_id,
+            OutboxAction.id == action_id,
+        )
+    )).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Action not found")
+    client_id, action_class = row
+    await _check_access(db, tenant_id, client_id, "action:execute")
+
     try:
         action, attempts = await service.get_action(tenant_id, client_id, action_id)
-        
+
         attempt_summaries = [
             AttemptSummary(
                 id=att.id,
@@ -231,11 +316,11 @@ async def get_action(
             )
             for att in attempts
         ]
-        
+
         response = ActionResponse(
             id=action.id,
             authorization_id=action.authorization_id,
-            action_class="CRM_WRITE",  # Would come from authorization
+            action_class=action_class,
             status=action.status,
             provider_ref=action.provider_ref,
             provider_state=action.provider_state,
@@ -248,8 +333,8 @@ async def get_action(
             can_retry=action.status == "FAILED_SAFE",
             attempts=attempt_summaries,
         )
-        
-        return Envelope(data=response)
-        
+
+        return Envelope(data=response, meta=_meta())
+
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

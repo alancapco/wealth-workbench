@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Stop script for RM Workbench MVP
+# Stop script for WM Workbench MVP
 
-echo "🛑 Stopping RM Workbench MVP..."
+echo "🛑 Stopping WM Workbench MVP..."
 echo ""
 
 # Stop backend

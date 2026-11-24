@@ -1,6 +1,6 @@
 """Artifact lineage and revision models."""
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import uuid4
 
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -12,7 +12,7 @@ from app.core.database import Base
 class ArtifactLineage(Base):
     __tablename__ = "artifact_lineages"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     workflow_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -44,7 +44,7 @@ class ArtifactLineage(Base):
 class ArtifactRevision(Base):
     __tablename__ = "artifact_revisions"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     artifact_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -136,7 +136,7 @@ class StageArtifactRef(Base):
 class SourceEvidence(Base):
     __tablename__ = "source_evidence"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     environment_kind = Column(Text, nullable=False)
@@ -193,7 +193,7 @@ class RevisionSource(Base):
 class ReviewDecision(Base):
     __tablename__ = "review_decisions"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     revision_id = Column(PGUUID(as_uuid=True), nullable=False)

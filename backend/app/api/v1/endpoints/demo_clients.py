@@ -3,7 +3,6 @@ from collections import defaultdict
 from datetime import date, datetime, UTC
 from uuid import UUID, uuid4
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -51,47 +50,57 @@ class FuturePlannerRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _deterministic_projection(req: FuturePlannerRequest) -> dict:
-    """Simple compound interest + monthly contribution projection as LLM fallback."""
-    years = req.retirement_age - req.current_age
-    r = req.assumed_annual_return_pct / 100.0
-    monthly_r = r / 12.0
-    months = years * 12
+    """Compound interest + monthly contributions. The model does not compute these figures."""
+    from app.services.planning.projection import project_plan
 
-    fv_lump = req.current_savings_usd_millions * ((1 + r) ** years)
-    if monthly_r > 0:
-        fv_annuity = (req.monthly_contribution_usd / 1_000_000) * (((1 + monthly_r) ** months - 1) / monthly_r)
-    else:
-        fv_annuity = (req.monthly_contribution_usd / 1_000_000) * months
+    report = project_plan(
+        current_age=req.current_age,
+        retirement_age=req.retirement_age,
+        current_savings_usd_millions=req.current_savings_usd_millions,
+        monthly_contribution_usd=req.monthly_contribution_usd,
+        target_retirement_corpus_usd_millions=req.target_retirement_corpus_usd_millions,
+        assumed_annual_return_pct=req.assumed_annual_return_pct,
+        inflation_pct=req.inflation_pct,
+    )
+    report["_note"] = "Deterministic compound-interest calculation. Narrative, when present, does not change the figures."
+    return report
 
-    projected = round(fv_lump + fv_annuity, 2)
-    target = req.target_retirement_corpus_usd_millions
-    gap = round(target - projected, 2)
-    prob = min(100.0, max(0.0, round(100.0 * projected / target, 1))) if target > 0 else 100.0
 
-    milestones = []
-    step = max(1, years // 5)
-    for yr in range(0, years + 1, step):
-        fv_l = req.current_savings_usd_millions * ((1 + r) ** yr)
-        m = yr * 12
-        fv_a = (req.monthly_contribution_usd / 1_000_000) * (((1 + monthly_r) ** m - 1) / monthly_r) if monthly_r > 0 else (req.monthly_contribution_usd / 1_000_000) * m
-        milestones.append({"year": date.today().year + yr, "age": req.current_age + yr, "corpus_usd_millions": round(fv_l + fv_a, 2)})
+async def _plan_narrative(client_name: str, report: dict, risk_profile: str) -> dict:
+    """The model explains the figures. It is not allowed to replace them."""
+    from app.services.journey.llm import complete_json
 
-    recs = []
-    if gap > 0:
-        recs.append(f"Increase monthly contributions by USD {round(gap * 1_000_000 / max(months, 1), 0):,.0f} to bridge the gap.")
-        recs.append("Consider allocating more to growth assets given the shortfall.")
-    else:
-        recs.append("Portfolio is on track to meet retirement target.")
-        recs.append("Consider reviewing asset allocation as retirement approaches.")
-
+    base = {
+        "executive_narrative": report["summary"],
+        "projection_source": "deterministic",
+        "model": None,
+        "actionable_levers": report["recommendations"],
+    }
+    raw = await complete_json(
+        "Explain this retirement illustration for a relationship manager. "
+        "Do not change any number. Reply with JSON keys executive_narrative (string) and actionable_levers (list of strings).",
+        json.dumps({
+            "client_name": client_name,
+            "risk_profile": risk_profile,
+            "summary": report["summary"],
+            "projected_corpus_usd_millions": report["projected_corpus_usd_millions"],
+            "real_projected_corpus_usd_millions": report["real_projected_corpus_usd_millions"],
+            "gap_analysis": report["gap_analysis"],
+            "scenarios": {
+                key: value["projected_corpus_usd_millions"]
+                for key, value in report.get("scenarios", {}).items()
+            },
+        }),
+        timeout_s=20,
+    )
+    if not isinstance(raw, dict) or not isinstance(raw.get("executive_narrative"), str):
+        return base
+    levers = [str(item) for item in raw.get("actionable_levers") or [] if str(item).strip()]
     return {
-        "summary": f"Based on deterministic projection at {req.assumed_annual_return_pct}% p.a., projected corpus at age {req.retirement_age} is USD {projected}M.",
-        "projected_corpus_usd_millions": projected,
-        "probability_of_success_pct": prob,
-        "year_by_year": milestones,
-        "gap_analysis": f"Gap of USD {abs(gap)}M {'below' if gap > 0 else 'above'} target.",
-        "recommendations": recs,
-        "_note": "LLM unavailable — deterministic compound-interest calculation used.",
+        "executive_narrative": raw["executive_narrative"].strip(),
+        "projection_source": "llm",
+        "model": settings.LLM_MODEL,
+        "actionable_levers": levers or report["recommendations"],
     }
 
 
@@ -264,7 +273,8 @@ async def get_currency_exposure(
         )
     ).scalars().all()
 
-    rates = await currency_service.get_latest_rates()
+    rates_info = await currency_service.get_latest_rates_with_metadata()
+    rates = rates_info["rates"]
 
     by_currency: dict[str, dict] = defaultdict(lambda: {"value_usd_millions": 0.0, "count": 0})
     total_usd = 0.0
@@ -301,6 +311,10 @@ async def get_currency_exposure(
             "total_value_usd_millions": round(total_usd, 4),
             "currency_breakdown": breakdown,
             "rates_used": rates_used,
+            "rates_source": rates_info["source"],
+            "rates_as_of": rates_info["as_of"],
+            "rates_is_live": rates_info["is_live"],
+            "rates_note": rates_info["note"],
         },
         "meta": {},
     }
@@ -372,58 +386,9 @@ async def future_planner(
         raise HTTPException(404, "Client not found")
 
     client_name = f"{client.firstname} {client.lastname}"
-    report = None
-    llm_error = None
-
-    if settings.LLM_API_KEY and settings.LLM_BASE_URL:
-        system_prompt = (
-            "You are a financial planning assistant. Generate a retirement projection report based on the "
-            "provided parameters. Include: (1) projected corpus at retirement, (2) probability of meeting target, "
-            "(3) year-by-year projection table (key milestones), (4) gap analysis if target is not met, "
-            "(5) recommendations. Format as structured JSON with keys: summary, projected_corpus_usd_millions, "
-            "probability_of_success_pct, year_by_year (list of {year, age, corpus_usd_millions}), "
-            "gap_analysis (string), recommendations (list of strings)."
-        )
-        user_content = json.dumps({
-            "client_name": client_name,
-            "current_age": req.current_age,
-            "retirement_age": req.retirement_age,
-            "current_savings_usd_millions": req.current_savings_usd_millions,
-            "monthly_contribution_usd": req.monthly_contribution_usd,
-            "target_retirement_corpus_usd_millions": req.target_retirement_corpus_usd_millions,
-            "assumed_annual_return_pct": req.assumed_annual_return_pct,
-            "inflation_pct": req.inflation_pct,
-            "goals": [g.model_dump() for g in req.goals],
-            "risk_profile": req.risk_profile,
-        })
-        try:
-            async with httpx.AsyncClient(timeout=30) as http:
-                resp = await http.post(
-                    f"{settings.LLM_BASE_URL.rstrip('/')}/chat/completions",
-                    headers={"Authorization": f"Bearer {settings.LLM_API_KEY}", "Content-Type": "application/json"},
-                    json={
-                        "model": settings.LLM_MODEL,
-                        "messages": [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_content},
-                        ],
-                        "temperature": 0.3,
-                    },
-                )
-                resp.raise_for_status()
-                content = resp.json()["choices"][0]["message"]["content"]
-                clean = content.strip()
-                if clean.startswith("```"):
-                    clean = "\n".join(clean.split("\n")[1:])
-                    clean = clean.rsplit("```", 1)[0].strip()
-                report = json.loads(clean)
-        except Exception as exc:
-            llm_error = str(exc)
-
-    if report is None:
-        report = _deterministic_projection(req)
-        if llm_error:
-            report["_llm_error"] = llm_error
+    report = _deterministic_projection(req)
+    narrative = await _plan_narrative(client_name, report, req.risk_profile)
+    report.update(narrative)
 
     return {
         "data": {

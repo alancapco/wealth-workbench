@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.admin import AuditEvent, IdempotencyRequest
+from app.models.admin import AuditChainHead, AuditEvent, IdempotencyRequest
 
 
 class AuditRepository:
@@ -31,6 +31,9 @@ class AuditRepository:
         previous_hash: str | None = None,
     ) -> AuditEvent:
         """Record append-only audit event with hash chain."""
+        head = await self.session.get(AuditChainHead, tenant_id)
+        if previous_hash is None and head is not None:
+            previous_hash = head.last_event_hash
         # Compute event hash from content
         event_content = {
             "tenant_id": tenant_id,
@@ -61,6 +64,16 @@ class AuditRepository:
             safe_details=json.dumps(safe_details),
         )
         self.session.add(event)
+        await self.session.flush()
+        if head is None:
+            self.session.add(AuditChainHead(
+                tenant_id=tenant_id,
+                last_event_id=event.id,
+                last_event_hash=event_hash,
+            ))
+        else:
+            head.last_event_id = event.id
+            head.last_event_hash = event_hash
         await self.session.flush()
         return event
 

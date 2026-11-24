@@ -1,6 +1,6 @@
 """Product search, selection, assessment and override models."""
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -12,7 +12,7 @@ class CandidateSelection(Base):
     """Records M-08 telemetry for product selection without trade intent."""
     __tablename__ = "candidate_selections"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     workflow_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -40,7 +40,7 @@ class SuitabilityOverride(Base):
     """Records RM override of soft suitability factors with justification."""
     __tablename__ = "suitability_overrides"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     assessment_revision_id = Column(PGUUID(as_uuid=True), nullable=False)

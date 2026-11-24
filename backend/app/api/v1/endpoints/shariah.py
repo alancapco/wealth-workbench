@@ -7,12 +7,13 @@ API-076: GET /shariah/evidence/{product_ref} - List valid evidence
 Feature is default OFF - returns 503 FEATURE_DISABLED if DEC-05 is OFF.
 """
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import check_permission
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.identity import get_fixture_principal
 from app.schemas.common import Envelope, ResponseMeta
@@ -62,7 +63,6 @@ async def generate_shariah_estimate(
     request: ShariahEstimateRequest,
     db: AsyncSession = Depends(get_db),
     principal: Principal = Depends(get_fixture_principal),
-    dec05_enabled: bool = False,  # DEC-05 gate: default OFF
 ) -> Envelope[ShariahEstimateResponse]:
     """Generate Shariah compliance estimate for product.
     
@@ -80,8 +80,8 @@ async def generate_shariah_estimate(
     Requires: shariah:estimate permission, DEC-05 gate enabled
     Returns: 503 FEATURE_DISABLED if DEC-05 is OFF
     """
-    # DEC-05 gate check (default OFF)
-    check_dec05_gate(dec05_enabled)
+    # DEC-05 gate check (driven by settings.SHARIAH_DEC05_ENABLED)
+    check_dec05_gate(settings.SHARIAH_DEC05_ENABLED)
 
     # Authorization
     check_permission(principal, "shariah:estimate")
@@ -111,7 +111,7 @@ async def generate_shariah_estimate(
         return Envelope(
             data=estimate_response,
             meta=ResponseMeta(
-                request_id=UUID("00000000-0000-0000-0000-000000000000"),  # Stub
+                request_id=uuid4(),
                 served_at=result["created_at"],
             ),
         )
@@ -138,7 +138,6 @@ async def list_shariah_evidence(
     product_ref: str,
     db: AsyncSession = Depends(get_db),
     principal: Principal = Depends(get_fixture_principal),
-    dec05_enabled: bool = False,  # DEC-05 gate: default OFF
 ) -> Envelope[ShariahEvidenceListResponse]:
     """List valid Shariah evidence for product.
     
@@ -150,8 +149,8 @@ async def list_shariah_evidence(
     Requires: shariah:view permission, DEC-05 gate enabled
     Returns: 503 FEATURE_DISABLED if DEC-05 is OFF
     """
-    # DEC-05 gate check (default OFF)
-    check_dec05_gate(dec05_enabled)
+    # DEC-05 gate check (driven by settings.SHARIAH_DEC05_ENABLED)
+    check_dec05_gate(settings.SHARIAH_DEC05_ENABLED)
 
     # Authorization
     check_permission(principal, "shariah:view")
@@ -163,7 +162,7 @@ async def list_shariah_evidence(
         result = await evidence_service.fetch_evidence(
             tenant_id=principal.tenant_id,
             product_ref=product_ref,
-            dec_05_enabled=dec05_enabled,
+            dec_05_enabled=settings.SHARIAH_DEC05_ENABLED,
             provider_configured=False,  # No live provider for U-015
         )
 
@@ -202,7 +201,7 @@ async def list_shariah_evidence(
         return Envelope(
             data=evidence_response,
             meta=ResponseMeta(
-                request_id=UUID("00000000-0000-0000-0000-000000000000"),  # Stub
+                request_id=uuid4(),
                 served_at=datetime.now(UTC),
             ),
         )

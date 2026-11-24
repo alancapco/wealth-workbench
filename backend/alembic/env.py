@@ -16,11 +16,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app.core.config import settings
 from app.core.database import Base
 
-# Import models when available (U-005 will provide these)
-try:
-    from app.models import *  # noqa: F401, F403
-except ImportError:
-    pass  # Models not yet implemented
+# Import every model before configuring target_metadata. A broken model import
+# must fail loudly: swallowing it here used to produce silent empty migrations.
+from app.models import *  # noqa: F401, F403
 
 # this is the Alembic Config object
 config = context.config

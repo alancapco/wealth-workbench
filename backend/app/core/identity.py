@@ -16,6 +16,15 @@ class IdentityError(Exception):
     pass
 
 
+# Single source of truth for the local fixture tenant/actor. Admin queries,
+# telemetry writes, memory/capture/action endpoints and the seed bootstrap must
+# all resolve to the same values, otherwise reads return empty while writes
+# succeed (or vice versa). Import these instead of repeating "test-tenant",
+# "fixture-tenant-001" or "test-rm" in endpoint modules.
+FIXTURE_TENANT_ID = "FIXTURE_TENANT_001"
+FIXTURE_ACTOR_ID = "fixture:rm001@example.test"
+
+
 def get_fixture_principal(check_mode: bool = True, _settings = None) -> Principal:
     """Return synthetic fixture principal for isolated testing only.
     
@@ -39,8 +48,8 @@ def get_fixture_principal(check_mode: bool = True, _settings = None) -> Principa
     
     # Synthetic fixture principal with known test tenant/book
     return Principal(
-        subject="fixture:rm001@example.test",
-        tenant_id="FIXTURE_TENANT_001",
+        subject=FIXTURE_ACTOR_ID,
+        tenant_id=FIXTURE_TENANT_ID,
         display_name="Fixture RM User",
         permissions=[
             "client:read",
@@ -64,6 +73,11 @@ def get_fixture_principal(check_mode: bool = True, _settings = None) -> Principa
             "action:execute",
             "memory:read",
             "memory:propose",
+            "shariah:view",
+            "shariah:estimate",
+            "journey:read",
+            "journey:write",
+            "approval:decide",
         ],
         books=[
             BookRef(book_id="FIXTURE_BOOK_001", display_name="Fixture Book Alpha"),
@@ -74,6 +88,16 @@ def get_fixture_principal(check_mode: bool = True, _settings = None) -> Principa
         environment=Environment(kind=EnvironmentKind.FIXTURE, id="fixture-test-env"),
         device_state=DeviceState.APPROVED,
     )
+
+
+def get_fixture_identity() -> tuple[str, str]:
+    """Return ``(tenant_id, actor_subject)`` for fixture-scoped endpoint code.
+
+    One shared source for endpoints that need the fixture tenant/actor without
+    a session dependency. It only exposes constants and does not bypass the
+    AUTH_MODE check; production identity remains an external provider gate.
+    """
+    return FIXTURE_TENANT_ID, FIXTURE_ACTOR_ID
 
 
 async def verify_oidc_token(token: str, _settings = None) -> Principal:

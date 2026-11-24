@@ -4,6 +4,7 @@ Adapted from islamic-ai/shariah 001_knowledge_graph.sql.
 Minimal: standard + clause only (no graph nodes/edges).
 """
 from datetime import datetime, UTC
+from uuid import uuid4
 
 from sqlalchemy import (
     CheckConstraint,
@@ -15,6 +16,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from pgvector.sqlalchemy import Vector
@@ -26,7 +28,7 @@ class AaoifiStandard(Base):
     """AAOIFI standard metadata (e.g. SS 8 Murabahah)."""
     __tablename__ = "aaoifi_standards"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     authority = Column(Text, nullable=False)
     standard_number = Column(Text, nullable=False)
     title = Column(Text, nullable=False)
@@ -46,7 +48,7 @@ class AaoifiClause(Base):
     """Individual clause within an AAOIFI standard — the searchable unit."""
     __tablename__ = "aaoifi_clauses"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     standard_id = Column(PGUUID(as_uuid=True), ForeignKey("aaoifi_standards.id"), nullable=False)
     clause_id = Column(Text, nullable=False)
     parent_clause_id = Column(Text)
@@ -67,11 +69,21 @@ class AaoifiClause(Base):
         UniqueConstraint("standard_id", "clause_id"),
         Index("ix_aaoifi_clauses_standard_approval", "standard_id", "approval_status"),
         Index("ix_aaoifi_clauses_approval", "approval_status"),
-        # GIN index for full-text search on embedding_text via tsvector
+        # GIN index for full-text search on embedding_text via tsvector.
+        # Must match the expression used by ShariahRagService.SPARSE_SQL
+        # (to_tsvector('english', c.embedding_text)), otherwise the RAG query
+        # cannot use this index.
         Index(
             "ix_aaoifi_clauses_embedding_text_tsv",
-            "embedding_text",
+            text("to_tsvector('english', embedding_text)"),
             postgresql_using="gin",
-            postgresql_ops={"embedding_text": "gin_trgm_ops"},
+        ),
+        # ivfflat ANN index for pgvector cosine similarity (dense branch of RAG).
+        Index(
+            "ix_aaoifi_clauses_embedding_ivfflat",
+            "embedding",
+            postgresql_using="ivfflat",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+            postgresql_with={"lists": 100},
         ),
     )

@@ -17,6 +17,10 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # The VECTOR column below needs the type to exist before CREATE TABLE runs;
+    # creating the extension afterwards used to break fresh-database upgrades.
+    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+
     op.create_table(
         'aaoifi_standards',
         sa.Column('id', sa.UUID(), nullable=False),
@@ -73,8 +77,7 @@ def upgrade() -> None:
         "ON aaoifi_clauses USING gin (to_tsvector('english', embedding_text))"
     )
 
-    # ivfflat index for pgvector cosine similarity (if extension available)
-    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    # ivfflat index for pgvector cosine similarity
     op.execute(
         "CREATE INDEX IF NOT EXISTS ix_aaoifi_clauses_embedding_ivfflat "
         "ON aaoifi_clauses USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)"

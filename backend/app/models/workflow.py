@@ -1,6 +1,6 @@
 """Workflow orchestration models."""
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -12,7 +12,7 @@ from app.core.database import Base
 class Meeting(Base):
     __tablename__ = "meetings"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     calendar_event_id = Column(PGUUID(as_uuid=True))
@@ -40,7 +40,7 @@ class Meeting(Base):
 class Workflow(Base):
     __tablename__ = "workflows"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     meeting_id = Column(PGUUID(as_uuid=True))
@@ -89,7 +89,7 @@ class SkillVersion(Base):
 class StageRun(Base):
     __tablename__ = "stage_runs"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     client_id = Column(PGUUID(as_uuid=True), nullable=False)
     workflow_id = Column(PGUUID(as_uuid=True), nullable=False)
@@ -131,7 +131,7 @@ class StageRun(Base):
 class CalendarEvent(Base):
     __tablename__ = "calendar_events"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, ForeignKey("workbench_tenants.tenant_id"), nullable=False)
     actor_subject = Column(Text, nullable=False)
     provider_key = Column(Text, nullable=False)

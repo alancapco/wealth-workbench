@@ -6,27 +6,34 @@ API-053: GET /books/{book_id}/priority-evaluations/{evaluation_id} - Get specifi
 API-054: POST /books/{book_id}/priority-controls - Set priority control
 API-055: POST /books/{book_id}/contact-outcomes - Record contact outcome
 """
-from datetime import date
-from uuid import UUID
+from datetime import date, datetime, UTC, timezone as tz
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.authorization import check_book_access, check_permission
 from app.core.database import get_db
 from app.core.identity import get_fixture_principal
-from app.schemas.common import Envelope, ResponseMeta
+from app.schemas.common import CapabilityState, CatalogRef, Envelope, ResponseMeta
 from app.schemas.identity import Principal
 from app.schemas.priority import (
     ContactOutcomeRequest,
     ContactOutcomeResponseData,
     ControlResponseData,
+    DismissControl,
     EvaluatePriorityRequest,
     EvaluationData,
     EvaluationStatusData,
+    PinControl,
     PriorityControlRequest,
+    PriorityReasonRef,
+    Reason,
+    SnoozeControl,
 )
-from app.services.priority import ControlService, RankingService
+from app.services.priority import ControlService, ControlServiceError, RankingService
 
 router = APIRouter(prefix="/books", tags=["priorities"])
 
@@ -34,39 +41,215 @@ router = APIRouter(prefix="/books", tags=["priorities"])
 convenience_router = APIRouter(prefix="/priorities", tags=["priorities"])
 
 
-@convenience_router.get("/evaluations")
-async def list_priority_evaluations(
-    principal: Principal = Depends(get_fixture_principal),
-):
-    """Convenience endpoint - returns UNCONFIGURED until DEC-03 configured"""
-    from uuid import uuid4
-    from datetime import datetime, UTC
+class SnoozeBody(BaseModel):
+    until: datetime
+
+
+class PinBody(BaseModel):
+    pinned: bool = True
+
+
+def _convenience_envelope(data: dict) -> dict:
+    """Shared data/meta envelope for the frontend convenience routes."""
     return {
-        "data": {"clients": [], "evaluation_date": datetime.now(UTC).date().isoformat(), "status": "UNCONFIGURED"},
-        "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}
+        "data": data,
+        "meta": {
+            "request_id": str(uuid4()),
+            "served_at": datetime.now(UTC).isoformat(),
+        },
     }
 
 
+@convenience_router.get("/evaluations")
+async def list_priority_evaluations(
+    db: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_fixture_principal),
+):
+    """Real latest evaluation for the principal's entitled books."""
+    check_permission(principal, "priority:read")
+    evaluation = await RankingService(db).get_latest_evaluation_for_books(
+        tenant_id=principal.tenant_id,
+        book_ids=[b.book_id for b in principal.books],
+    )
+    if not evaluation:
+        return _convenience_envelope({
+            "clients": [],
+            "evaluation_date": datetime.now(UTC).date().isoformat(),
+            "status": "UNCONFIGURED",
+            "capability_state": CapabilityState.UNCONFIGURED.value,
+        })
+
+    clients = [
+        {
+            "client_id": str(item.client.id),
+            "name": item.client.name,
+            "rank": item.rank,
+            "reasons": [
+                {
+                    "code": r.code,
+                    "explanation": r.explanation,
+                    "signals": [
+                        {"key": s.key, "value": str(s.value.value)}
+                        for s in r.signals
+                    ],
+                }
+                for r in item.reasons
+            ],
+            "controls": [
+                {"id": str(c.id), "type": c.request.get("type")}
+                for c in item.controls
+            ],
+        }
+        for item in evaluation.items
+    ]
+    return _convenience_envelope({
+        "clients": clients,
+        "evaluation_date": evaluation.date.isoformat(),
+        "status": evaluation.status.value,
+        "capability_state": (
+            CapabilityState.READY.value if evaluation.items
+            else CapabilityState.UNCONFIGURED.value
+        ),
+    })
+
+
+async def _apply_control(
+    db: AsyncSession,
+    principal: Principal,
+    client_id: UUID,
+    control_type: str,
+    success_status: str,
+    until: datetime | None = None,
+    pinned: bool = True,
+) -> dict:
+    """Persist a convenience control against a real stored priority item."""
+    check_permission(principal, "priority:control")
+    evaluation = await RankingService(db).get_latest_evaluation_for_client(
+        tenant_id=principal.tenant_id,
+        book_ids=[b.book_id for b in principal.books],
+        client_id=client_id,
+    )
+    if not evaluation or not evaluation.items or not evaluation.items[0].reasons:
+        # Controls carry a composite FK to priority_items; without a stored item
+        # there is nothing honest to persist.
+        return _convenience_envelope({
+            "status": "UNCONFIGURED",
+            "capability_state": CapabilityState.UNCONFIGURED.value,
+            "client_id": str(client_id),
+        })
+
+    check_book_access(principal, evaluation.book_id)
+    item = evaluation.items[0]
+    reason = item.reasons[0]
+    if control_type == "SNOOZE":
+        control = SnoozeControl(type="SNOOZE", until=until)
+    elif control_type == "PIN":
+        control = PinControl(type="PIN", pinned=pinned)
+    else:
+        control = DismissControl(
+            type="DISMISS",
+            reason=Reason(
+                code="RM_DISCRETION",
+                catalog_ref=CatalogRef(
+                    config_ref=evaluation.policy_ref,
+                    catalog_key="RM_DISCRETION",
+                ),
+            ),
+        )
+
+    request = PriorityControlRequest(
+        client_id=client_id,
+        recommendation_ref=PriorityReasonRef(
+            evaluation_id=evaluation.id,
+            client_id=client_id,
+            reason_key=reason.key,
+            reason_hash=reason.hash,
+        ),
+        control=control,
+    )
+    try:
+        persisted, evaluation_state = await ControlService(db).set_priority_control(
+            tenant_id=principal.tenant_id,
+            book_id=evaluation.book_id,
+            request=request,
+            principal_subject=principal.subject,
+        )
+    except ControlServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": {
+                    "code": "CONFIG_UNCONFIGURED",
+                    "message": str(e),
+                    "retryable": False,
+                }
+            },
+        )
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": {
+                    "code": "RECOMMENDATION_NOT_FOUND",
+                    "message": "The recommendation_ref does not match a stored priority item.",
+                    "retryable": False,
+                }
+            },
+        )
+
+    return _convenience_envelope({
+        "status": success_status,
+        "client_id": str(client_id),
+        "control_id": str(persisted.id),
+        "evaluation_state": evaluation_state,
+        "capability_state": CapabilityState.READY.value,
+    })
+
+
 @convenience_router.post("/{client_id}/snooze")
-async def snooze_client(client_id: UUID, principal: Principal = Depends(get_fixture_principal)):
-    from uuid import uuid4
-    from datetime import datetime, UTC
-    return {"data": {"status": "snoozed", "client_id": str(client_id)}, "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
+async def snooze_client(
+    client_id: UUID,
+    body: SnoozeBody,
+    db: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_fixture_principal),
+):
+    until = body.until if body.until.tzinfo else body.until.replace(tzinfo=UTC)
+    if until <= datetime.now(UTC):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "until must be in the future",
+                }
+            },
+        )
+    return await _apply_control(
+        db, principal, client_id, "SNOOZE", "snoozed", until=until
+    )
 
 
 @convenience_router.post("/{client_id}/dismiss")
-async def dismiss_client(client_id: UUID, principal: Principal = Depends(get_fixture_principal)):
-    from uuid import uuid4
-    from datetime import datetime, UTC
-    return {"data": {"status": "dismissed", "client_id": str(client_id)}, "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
+async def dismiss_client(
+    client_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_fixture_principal),
+):
+    return await _apply_control(db, principal, client_id, "DISMISS", "dismissed")
 
 
 @convenience_router.post("/{client_id}/pin")
-async def pin_client(client_id: UUID, principal: Principal = Depends(get_fixture_principal)):
-    from uuid import uuid4
-    from datetime import datetime, UTC
-    return {"data": {"status": "pinned", "client_id": str(client_id)}, "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
-
+async def pin_client(
+    client_id: UUID,
+    body: PinBody | None = Body(default=None),
+    db: AsyncSession = Depends(get_db),
+    principal: Principal = Depends(get_fixture_principal),
+):
+    return await _apply_control(
+        db, principal, client_id, "PIN", "pinned",
+        pinned=body.pinned if body else True,
+    )
 
 
 @router.post(
@@ -110,7 +293,6 @@ async def evaluate_book_priorities(
             timezone_str=request.timezone,
             trigger=request.trigger,
             principal_subject=principal.subject,
-            policy_config_id=None,  # UNCONFIGURED: DEC-03 external gate
         )
     except Exception as e:
         # Dependency unavailable
@@ -127,7 +309,7 @@ async def evaluate_book_priorities(
     return Envelope(
         data=EvaluationData(evaluation=evaluation),
         meta=ResponseMeta(
-            request_id=UUID("00000000-0000-0000-0000-000000000000"),
+            request_id=uuid4(),
             served_at=evaluation.evaluated_at,
         ),
     )
@@ -164,17 +346,15 @@ async def get_latest_priority_evaluation(
     )
     
     # Determine capability state
-    from app.schemas.common import CapabilityState
     capability_state = CapabilityState.READY if evaluation else CapabilityState.UNCONFIGURED
     
-    from datetime import datetime, timezone as tz
     return Envelope(
         data=EvaluationStatusData(
             evaluation=evaluation,
             capability_state=capability_state,
         ),
         meta=ResponseMeta(
-            request_id=UUID("00000000-0000-0000-0000-000000000000"),
+            request_id=uuid4(),
             served_at=datetime.now(tz.utc),
         ),
     )
@@ -230,11 +410,10 @@ async def get_priority_evaluation(
     
     evaluation = await ranking_service._model_to_dto(eval_model, item_models)
     
-    from datetime import datetime, timezone as tz
     return Envelope(
         data=EvaluationData(evaluation=evaluation),
         meta=ResponseMeta(
-            request_id=UUID("00000000-0000-0000-0000-000000000000"),
+            request_id=uuid4(),
             served_at=datetime.now(tz.utc),
         ),
     )
@@ -270,28 +449,34 @@ async def set_priority_control(
             book_id=book_id,
             request=request,
             principal_subject=principal.subject,
-            policy_config_id=None,  # UNCONFIGURED until DEC-03
         )
-    except Exception as e:
-        # Policy UNCONFIGURED or validation failed
+    except ControlServiceError as e:
+        # Policy UNCONFIGURED or the recommendation_ref does not resolve to a
+        # stored priority item. Both are actionable client errors, not 500s.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"error": {"code": "CONFIG_UNCONFIGURED", "message": str(e), "retryable": False}},
+        )
+    except IntegrityError:
+        await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "error": {
-                    "code": "CONFIG_UNCONFIGURED",
-                    "message": str(e),
+                    "code": "RECOMMENDATION_NOT_FOUND",
+                    "message": "The recommendation_ref does not match a stored priority item.",
+                    "retryable": False,
                 }
             },
         )
     
-    from datetime import datetime, timezone as tz
     return Envelope(
         data=ControlResponseData(
             control=control,
             evaluation_state=evaluation_state,
         ),
         meta=ResponseMeta(
-            request_id=UUID("00000000-0000-0000-0000-000000000000"),
+            request_id=uuid4(),
             served_at=datetime.now(tz.utc),
         ),
     )
@@ -319,7 +504,6 @@ async def record_contact_outcome(
     check_book_access(principal, book_id)
     
     # Validate occurred_at not in future
-    from datetime import datetime, timezone as tz
     if request.occurred_at > datetime.now(tz.utc):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -328,17 +512,44 @@ async def record_contact_outcome(
     
     # Service
     control_service = ControlService(db)
-    outcome_data = await control_service.record_contact_outcome(
-        tenant_id=principal.tenant_id,
-        book_id=book_id,
-        request=request,
-        principal_subject=principal.subject,
-    )
-    
+    try:
+        outcome_data = await control_service.record_contact_outcome(
+            tenant_id=principal.tenant_id,
+            book_id=book_id,
+            request=request,
+            principal_subject=principal.subject,
+        )
+    except ControlServiceError as e:
+        # Explicit guard for fk_contact_outcome_item. Previously this raised an
+        # unhandled ForeignKeyViolationError -> bare 500 with no CORS headers,
+        # which the browser reported as "Network Error".
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": {
+                    "code": "RECOMMENDATION_NOT_FOUND",
+                    "message": str(e),
+                    "retryable": False,
+                }
+            },
+        )
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": {
+                    "code": "RECOMMENDATION_NOT_FOUND",
+                    "message": "The recommendation_ref does not match a stored priority item.",
+                    "retryable": False,
+                }
+            },
+        )
+
     return Envelope(
         data=outcome_data,
         meta=ResponseMeta(
-            request_id=UUID("00000000-0000-0000-0000-000000000000"),
+            request_id=uuid4(),
             served_at=datetime.now(tz.utc),
         ),
     )

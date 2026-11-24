@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import StageRun, Workflow
+from app.models import ArtifactRevision, StageArtifactRef, StageRun, Workflow
 from app.repositories import AuditRepository, TransactionContext
 from app.schemas.common import ArtifactRef
 from app.schemas.workflow import RunStageRequest, StageStatus
@@ -25,6 +25,45 @@ class StageRunner:
         self.session = session
         self.tx = TransactionContext(session)
         self.audit = AuditRepository(session)
+
+    async def _persist_refs(
+        self,
+        run: StageRun,
+        refs: list[ArtifactRef],
+        direction: str,
+    ) -> None:
+        """Bind artifact revisions to a run; both sides of the link are FK-checked."""
+        if not refs:
+            return
+        revisions = (await self.session.execute(
+            select(ArtifactRevision).where(
+                ArtifactRevision.tenant_id == run.tenant_id,
+                ArtifactRevision.client_id == run.client_id,
+                ArtifactRevision.id.in_({ref.revision_id for ref in refs}),
+            )
+        )).scalars().all()
+        by_id = {revision.id: revision for revision in revisions}
+        seen: set[UUID] = set()
+        for ref in refs:
+            revision = by_id.get(ref.revision_id)
+            if revision is None or (
+                revision.artifact_id != ref.artifact_id
+                or revision.version != ref.version
+                or revision.content_hash != ref.hash
+            ):
+                raise ValueError(
+                    f"Artifact revision {ref.revision_id} not found or does not match the reference"
+                )
+            if ref.revision_id in seen:
+                continue
+            seen.add(ref.revision_id)
+            self.session.add(StageArtifactRef(
+                tenant_id=run.tenant_id,
+                client_id=run.client_id,
+                run_id=run.id,
+                revision_id=revision.id,
+                direction=direction,
+            ))
 
     async def create_stage_run(
         self,
@@ -99,6 +138,8 @@ class StageRunner:
         )
         
         self.session.add(run)
+        await self.session.flush()  # stage_artifact_refs has a composite FK to stage_runs
+        await self._persist_refs(run, request.input_refs, "INPUT")
         
         # Update workflow status
         if workflow.status == "NOT_STARTED":
@@ -112,9 +153,10 @@ class StageRunner:
             action="stage.create",
             resource_type="stage_run",
             resource_id=str(run.id),
+            client_id=run.client_id,
             workflow_id=workflow_id,
             correlation_id=uuid4(),
-            outcome="created"
+            safe_details={"outcome": "created"}
         )
         
         await self.tx.commit()
@@ -185,7 +227,7 @@ class StageRunner:
         run.lease_token = None
         run.lease_until = None
         
-        # Store output refs (would create StageArtifactRef records in full impl)
+        await self._persist_refs(run, output_refs, "OUTPUT")
         
         await self.audit.record_event(
             tenant_id=tenant_id,
@@ -193,9 +235,10 @@ class StageRunner:
             action="stage.complete",
             resource_type="stage_run",
             resource_id=str(run.id),
+            client_id=run.client_id,
             workflow_id=run.workflow_id,
             correlation_id=uuid4(),
-            outcome="completed"
+            safe_details={"outcome": "completed"}
         )
         
         await self.tx.commit()
@@ -240,9 +283,10 @@ class StageRunner:
             action="stage.fail",
             resource_type="stage_run",
             resource_id=str(run.id),
+            client_id=run.client_id,
             workflow_id=run.workflow_id,
             correlation_id=uuid4(),
-            outcome="failed"
+            safe_details={"outcome": "failed"}
         )
         
         await self.tx.commit()

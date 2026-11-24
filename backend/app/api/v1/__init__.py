@@ -6,6 +6,9 @@ from app.api.v1.endpoints import (
     clients, market, briefs, workflow, dashboard, priorities, products,
     actions, messages, admin, shariah, family,
     session, calendar, meetings, memory, artifacts, telemetry, demo_clients,
+    capture,
+    journey,
+    graph,
 )
 
 api_router = APIRouter()
@@ -31,3 +34,7 @@ api_router.include_router(admin.router, tags=["admin"])
 api_router.include_router(shariah.router, tags=["shariah-pilot"])
 api_router.include_router(family.router, tags=["family-pilot"])
 api_router.include_router(demo_clients.router, tags=["demo-clients"])
+# Meeting capture/consent endpoints were implemented but never mounted.
+api_router.include_router(capture.router, tags=["capture"])
+api_router.include_router(journey.router, tags=["journey"])
+api_router.include_router(graph.router, tags=["graph"])

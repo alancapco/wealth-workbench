@@ -19,7 +19,7 @@ class ResponseMeta(BaseModel):
     model_config = ConfigDict(extra="forbid")
     
     request_id: UUID
-    served_at: datetime
+    served_at: datetime | None = None
     next_cursor: str | None = None
 
 

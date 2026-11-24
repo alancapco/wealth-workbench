@@ -1,16 +1,41 @@
-"""Message provider adapter stub - returns UNCONFIGURED without DEC-02."""
+"""Message provider adapter — TEST DOUBLE.
+
+``send_message`` and ``readback_status`` simulate a provider for the U-011 unit
+tests. They MUST NOT be called from production code: no real provider is wired
+into the outbox, and a simulated ACCEPTED/DELIVERED receipt would be a false
+record of client contact.
+
+``check_dnc`` / ``check_channel_opt_out`` are fail-closed guards over the
+approved consent registry (``configuration_revisions``, CONSENT class, APPROVED
+status, config_key ``contact_policy_registry``). Its JSON value has the shape::
+
+    {"dnc": {"EMAIL:client@example.com": "CLEARED"},
+     "opt_outs": {"EMAIL:client@example.com": "CLEARED"}}
+
+A contact point is allowed only when an approved row explicitly records it as
+CLEARED. Any missing, retired, malformed or unverifiable state is blocked.
+"""
+import json
 from typing import Literal
 from uuid import UUID, uuid4
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.models.admin import ConfigurationRevision
 from app.schemas.message import Message, MessageChannel
 
 
 ProviderState = Literal["ACCEPTED", "SCHEDULED", "DELIVERED", "NOT_ACCEPTED", "UNKNOWN"]
 
+REGISTRY_CONFIG_KEY = "contact_policy_registry"
+REGISTRY_CLEARED = "CLEARED"
+
 
 class MessageProviderReceipt:
     """Receipt from message provider."""
-    
+
     def __init__(
         self,
         receipt_id: str,
@@ -27,19 +52,52 @@ class MessageProviderReceipt:
 
 
 class MessageProviderStub:
-    """
-    Stub message provider - returns UNCONFIGURED without DEC-02 provider config.
-    
-    Real implementation would:
-    - Check for approved DEC-02 integration config
-    - Load provider credentials
-    - Call external email/SMS/WhatsApp APIs
-    - Handle provider-specific error codes
-    - Support idempotency and readback
-    """
+    """Test double: simulated dispatch plus fail-closed consent-registry guards."""
 
-    def __init__(self, provider_config: dict | None = None):
+    def __init__(
+        self,
+        provider_config: dict | None = None,
+        session: AsyncSession | None = None,
+    ):
         self.provider_config = provider_config
+        self.session = session
+
+    @staticmethod
+    def _assert_test_context() -> None:
+        # Simulated receipts must never become production evidence of a client send.
+        if settings.APP_ENV.lower() == "production":
+            raise RuntimeError(
+                "MessageProviderStub is a test double and must not be used in production"
+            )
+
+    async def _registry_state(
+        self, tenant_id: str, destination: str, channel: MessageChannel, kind: str
+    ) -> str:
+        """Read the approved registry decision; UNVERIFIED when it cannot be proven."""
+        if self.session is None:
+            return "UNVERIFIED"
+        try:
+            stmt = (
+                select(ConfigurationRevision.value)
+                .where(
+                    ConfigurationRevision.tenant_id == tenant_id,
+                    ConfigurationRevision.config_class == "CONSENT",
+                    ConfigurationRevision.config_key == REGISTRY_CONFIG_KEY,
+                    ConfigurationRevision.status == "APPROVED",
+                )
+                .order_by(ConfigurationRevision.revision.desc())
+                .limit(1)
+            )
+            value = (await self.session.execute(stmt)).scalar_one_or_none()
+            if value is None:
+                return "UNVERIFIED"
+            registry = json.loads(value)
+            return str(
+                registry.get(kind, {}).get(f"{channel}:{destination}", "UNVERIFIED")
+            )
+        except Exception:
+            # Fail closed: a lookup failure is indistinguishable from a blocked contact.
+            return "UNVERIFIED"
 
     async def send_message(
         self,
@@ -48,12 +106,9 @@ class MessageProviderStub:
         tenant_id: str,
         client_id: UUID,
     ) -> MessageProviderReceipt:
-        """
-        Send message via provider.
-        
-        Returns UNCONFIGURED if no provider configured (fail-closed).
-        Real implementation would validate DNC, channel opt-out, and disclosure.
-        """
+        """Simulate a provider send (test double only)."""
+        self._assert_test_context()
+
         # Fail-closed: no provider config = UNCONFIGURED
         if not self.provider_config:
             return MessageProviderReceipt(
@@ -87,8 +142,7 @@ class MessageProviderStub:
                 error_code="RECIPIENT_NOT_CONFIRMED",
             )
 
-        # Stub: simulate successful send for testing
-        # Real implementation would call provider API here
+        # Simulated acceptance for tests; no external API is called here.
         return MessageProviderReceipt(
             receipt_id=str(uuid4()),
             provider_key=self.provider_config.get("provider_key", "test-provider"),
@@ -100,46 +154,21 @@ class MessageProviderStub:
     async def check_dnc(
         self, destination: str, channel: MessageChannel, tenant_id: str
     ) -> bool:
-        """
-        Check if destination is on Do Not Contact list for channel.
-        
-        Returns True if blocked.
-        Real implementation would check DNC registry.
-        """
-        # Stub: no DNC checks without config
-        if not self.provider_config:
-            # Fail safe: block if we can't verify
-            return True
-        
-        # Stub: allow all for testing
-        return False
+        """Return True if blocked. Only an explicit approved CLEARED row allows contact."""
+        return await self._registry_state(tenant_id, destination, channel, "dnc") != REGISTRY_CLEARED
 
     async def check_channel_opt_out(
         self, destination: str, channel: MessageChannel, tenant_id: str
     ) -> bool:
-        """
-        Check if destination has opted out of channel.
-        
-        Returns True if opted out.
-        Real implementation would check opt-out registry.
-        """
-        # Stub: no opt-out checks without config
-        if not self.provider_config:
-            # Fail safe: block if we can't verify
-            return True
-        
-        # Stub: allow all for testing
-        return False
+        """Return True if opted out. Only an explicit approved CLEARED row allows contact."""
+        return await self._registry_state(tenant_id, destination, channel, "opt_outs") != REGISTRY_CLEARED
 
     async def readback_status(
         self, provider_ref: str, provider_key: str
     ) -> MessageProviderReceipt:
-        """
-        Read back current status from provider.
-        
-        Used for reconciliation after timeout/UNKNOWN.
-        Real implementation would query provider status API.
-        """
+        """Simulate provider readback (test double only)."""
+        self._assert_test_context()
+
         if not self.provider_config:
             return MessageProviderReceipt(
                 receipt_id=str(uuid4()),
@@ -149,7 +178,7 @@ class MessageProviderStub:
                 error_code="PROVIDER_UNCONFIGURED",
             )
 
-        # Stub: simulate successful readback
+        # Simulated readback for tests; not a real provider status query.
         return MessageProviderReceipt(
             receipt_id=str(uuid4()),
             provider_key=provider_key,

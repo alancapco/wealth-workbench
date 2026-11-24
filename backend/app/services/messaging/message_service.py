@@ -4,8 +4,10 @@ import json
 from datetime import datetime, UTC
 from uuid import UUID, uuid4
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models import Client
 from app.models.artifact import ArtifactLineage, ArtifactRevision
 from app.schemas.message import MessageGenerate, Message, MessageRecipient, MessageDisclosure, MessageClaim
 from app.schemas.common import Origin, EvidenceRef
@@ -14,7 +16,7 @@ from app.schemas.common import Origin, EvidenceRef
 class MessageService:
     """
     Message generation creates Message artifacts from accepted items or priority reasons.
-    
+
     Messages are grounded in accepted meeting items (FOLLOWUP) or priority reasons (OUTREACH).
     No unsupported claims - missing facts are omitted, not fabricated.
     """
@@ -39,7 +41,7 @@ class MessageService:
     ) -> tuple[ArtifactLineage, ArtifactRevision]:
         """
         Generate message artifact from accepted items or priority reason.
-        
+
         Returns (lineage, revision) tuple.
         Messages start with unconfirmed recipients - require confirmation before send.
         """
@@ -49,8 +51,6 @@ class MessageService:
         if request.mode == "OUTREACH" and not request.priority_reason_ref:
             raise ValueError("OUTREACH messages require priority_reason_ref")
 
-        # Generate message content (stub - real implementation would use template engine)
-        # For now, create a simple message structure
         message = await self._generate_message_content(request, client_id)
 
         # Create artifact lineage
@@ -70,7 +70,7 @@ class MessageService:
         # Create first revision
         payload_dict = message.model_dump(mode="json")
         content_hash = self._compute_hash(payload_dict)
-        
+
         revision_id = uuid4()
         revision = ArtifactRevision(
             id=revision_id,
@@ -96,52 +96,89 @@ class MessageService:
 
         return lineage, revision
 
-    async def _generate_message_content(
-        self, request: MessageGenerate, client_id: UUID
-    ) -> Message:
-        """
-        Generate message content from template and basis.
-        
-        Real implementation would:
-        - Load template from config
-        - Extract facts from accepted items
-        - Apply grounding rules
-        - Validate disclosures
-        - Return UNCONFIGURED if template/policy missing
-        """
-        # Stub implementation for testing
-        # Real implementation would integrate with template engine and fact extraction
-        
-        if request.mode == "FOLLOWUP":
-            body = "Thank you for our recent meeting. Based on our discussion..."
-            subject = "Follow-up from our meeting"
-        else:  # OUTREACH
-            body = "I wanted to reach out regarding an important matter..."
-            subject = "Important update regarding your portfolio"
+    async def _resolve_recipient(
+        self, client_id: UUID, channel: str
+    ) -> MessageRecipient | None:
+        """Read the destination from the real client contact record for this channel."""
+        client = (
+            await self.session.execute(select(Client).where(Client.id == client_id))
+        ).scalar_one_or_none()
+        if client is None:
+            return None
 
-        # Recipients start unconfirmed - require explicit confirmation
-        recipients = [
-            MessageRecipient(
-                contact_id=f"contact-{client_id}",
-                destination="placeholder@example.com",  # Would come from client context
-                confirmed=False,
+        destination = client.email if channel == "EMAIL" else client.phone
+        if not destination or not destination.strip():
+            return None
+
+        prefix = "email" if channel == "EMAIL" else "phone"
+        return MessageRecipient(
+            contact_id=f"{prefix}-{client.id}",
+            destination=destination.strip(),
+            confirmed=False,  # RM confirmation is still required before send
+        )
+
+    @staticmethod
+    def _grounded_claims(request: MessageGenerate) -> list[MessageClaim]:
+        """Claims only restate the referenced basis; no client facts are inferred."""
+        if request.mode == "FOLLOWUP":
+            return [
+                MessageClaim(
+                    text=f"Accepted meeting item '{ref.item_key}' is the recorded basis for this draft.",
+                    evidence_refs=[
+                        EvidenceRef(
+                            source_id=ref.artifact_ref.artifact_id,
+                            source_version=str(ref.artifact_ref.version),
+                        )
+                    ],
+                    origin=Origin.RECORDED,
+                )
+                for ref in request.accepted_item_refs
+            ]
+
+        ref = request.priority_reason_ref
+        return [
+            MessageClaim(
+                text=(
+                    f"Priority reason '{ref.reason_key}' from evaluation "
+                    f"{ref.evaluation_id} is the recorded basis for this outreach."
+                ),
+                evidence_refs=[
+                    EvidenceRef(source_id=ref.evaluation_id, source_version=ref.reason_hash)
+                ],
+                origin=Origin.DERIVED,
             )
         ]
 
-        # Disclosures must come from approved config
+    async def _generate_message_content(
+        self, request: MessageGenerate, client_id: UUID
+    ) -> Message:
+        """Build a draft from the real client contact record and grounded claims."""
+        recipient = await self._resolve_recipient(client_id, request.channel)
+
+        # A missing destination is an honest unresolved state: never invent an address.
+        # The draft stays unsendable until an RM supplies a real, confirmed contact point.
+        if recipient is None:
+            recipients = []
+            body = (
+                f"UNRESOLVED RECIPIENT: the client record has no verified "
+                f"{request.channel} destination. A real, RM-confirmed contact point is "
+                "required before this message can be sent."
+            )
+        elif request.mode == "FOLLOWUP":
+            recipients = [recipient]
+            keys = ", ".join(f"'{ref.item_key}'" for ref in request.accepted_item_refs)
+            body = f"Draft follow-up. Recorded basis: {keys}. No other facts are asserted."
+        else:
+            recipients = [recipient]
+            body = (
+                f"Draft outreach prompted by priority reason "
+                f"'{request.priority_reason_ref.reason_key}'. No other facts are asserted."
+            )
+
         disclosures = [
             MessageDisclosure(
                 ref=request.template_ref,
                 text="This communication is for informational purposes only.",
-            )
-        ]
-
-        # Claims are grounded in evidence
-        claims = [
-            MessageClaim(
-                text="Based on your recent portfolio discussion",
-                evidence_refs=[],  # Would reference actual meeting items
-                origin=Origin.RECORDED if request.mode == "FOLLOWUP" else Origin.DERIVED,
             )
         ]
 
@@ -150,12 +187,14 @@ class MessageService:
             channel=request.channel,
             template_ref=request.template_ref,
             recipients=recipients,
-            subject=subject if request.channel == "EMAIL" else None,
+            subject=("Follow-up draft" if request.mode == "FOLLOWUP" else "Outreach draft")
+            if request.channel == "EMAIL"
+            else None,
             body=body,
             disclosures=disclosures,
             basis_refs=request.accepted_item_refs,
             priority_reason_ref=request.priority_reason_ref,
-            claims=claims,
+            claims=self._grounded_claims(request),
         )
 
     async def edit_message(
@@ -172,13 +211,11 @@ class MessageService:
     ) -> ArtifactRevision:
         """
         Edit message artifact - creates new revision.
-        
+
         Only recipients, subject, and body are editable.
         Template and claims require regeneration.
         """
         # Get current revision
-        from sqlalchemy import select
-        
         stmt = select(ArtifactRevision).join(
             ArtifactLineage,
             ArtifactRevision.artifact_id == ArtifactLineage.id
@@ -190,7 +227,7 @@ class MessageService:
         )
         result = await self.session.execute(stmt)
         current_revision = result.scalar_one_or_none()
-        
+
         if not current_revision:
             raise ValueError("Message artifact not found")
 
@@ -208,7 +245,7 @@ class MessageService:
         # Create new revision
         payload_dict = current_message.model_dump(mode="json")
         content_hash = self._compute_hash(payload_dict)
-        
+
         revision_id = uuid4()
         new_revision = ArtifactRevision(
             id=revision_id,

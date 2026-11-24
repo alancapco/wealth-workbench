@@ -6,56 +6,70 @@ __pycache__/
 .Python
 venv/
 env/
-.venv
+.venv/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
 
-# Environment variables
+# Environment / secrets
+# Keep .env.example (template). Real secrets stay local.
+# Docker Compose demo defaults live in docker-compose*.yml only.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+*.pem
+*.key
+*_credentials.json
+*_credentials.md
+HUBSPOT_CREDENTIALS.md
+secrets/
+.secrets/
+credentials/
 
-# Database
+# Database / local data dumps
 *.db
 *.sqlite
 *.sqlite3
+backend/data/
 
-# Logs
+# Logs — never check in
 *.log
-backend.log
-frontend.log
+logs/
+**/logs/
 
-# IDE
+# Process IDs
+*.pid
+
+# IDE / OS
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
+.workbuddy/
 
-# Credentials (G-28 fix)
-HUBSPOT_CREDENTIALS.md
-*_credentials.json
-*.pem
-*.key
-
-# Process IDs
-*.pid
-backend.pid
-frontend.pid
-
-# Node
+# Node / frontend build
 node_modules/
 .next/
+.next-*/
 out/
 build/
 dist/
+*.tsbuildinfo
 
-# Testing
+# Testing / coverage
 .pytest_cache/
 .coverage
 htmlcov/
+coverage/
+.nyc_output/
 
 # Alembic
 alembic/__pycache__/
+
+# Local media / scratch (not part of the runnable app)
+Wealth/
+wealth-journey/
+output/

@@ -3,10 +3,10 @@
 Persisted immutable skill_versions plus code handler allowlist.
 No arbitrary executable code from DB.
 """
+import json
 from typing import Any
-from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import SkillVersion
@@ -51,6 +51,33 @@ class SkillRegistry:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_skill_for_stage(
+        self,
+        tenant_id: str,
+        stage_key: str,
+    ) -> SkillVersion | None:
+        """Resolve the newest registered skill for a stage and load that version.
+
+        A stage key names either a skill_id or a handler_key; the version is never
+        guessed because stage_runs has a composite FK to skill_versions.
+        """
+        stmt = (
+            select(SkillVersion.skill_id, SkillVersion.version)
+            .where(
+                SkillVersion.tenant_id == tenant_id,
+                or_(
+                    SkillVersion.skill_id == stage_key,
+                    SkillVersion.handler_key == stage_key,
+                ),
+            )
+            .order_by(SkillVersion.created_at.desc(), SkillVersion.version.desc())
+            .limit(1)
+        )
+        row = (await self.session.execute(stmt)).first()
+        if row is None:
+            return None
+        return await self.get_skill(tenant_id, row.skill_id, row.version)
+
     async def list_skills(
         self,
         tenant_id: str,
@@ -68,18 +95,18 @@ class SkillRegistry:
         skills = result.scalars().all()
         
         descriptors = []
+        granted = set(permissions)
         for skill in skills:
             # Parse descriptor JSON (stored as text in model)
-            import json
             descriptor_data = json.loads(skill.descriptor)
             
             # Verify handler is allowed
             if skill.handler_key not in self.allowed_handlers:
                 continue
             
-            # Check permissions (simplified - full impl checks all required_permissions)
-            # For now, include all skills if user has any workflow permission
-            if "workflow:read" not in permissions and "workflow:start" not in permissions:
+            # A skill is visible only when the caller holds every permission its
+            # descriptor declares; an empty list means no extra grant is required.
+            if not granted.issuperset(descriptor_data.get("required_permissions", [])):
                 continue
             
             descriptors.append(SkillDescriptor(
@@ -121,7 +148,6 @@ class SkillRegistry:
         if not self.validate_handler(handler_key):
             raise ValueError(f"Handler {handler_key} not in allowlist")
         
-        import json
         skill = SkillVersion(
             tenant_id=tenant_id,
             skill_id=skill_id,

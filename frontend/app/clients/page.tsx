@@ -1,147 +1,132 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { apiClient } from '@/lib/api';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-
-interface Client {
-  client_id: string;
-  name: string;
-  aum?: number;
-  risk_profile?: string;
-  segment?: string;
-  last_contact?: string;
-}
+import { endpoints } from '@/lib/endpoints';
+import { useApp } from '@/lib/app-context';
+import { FeaturePage, Grid } from '@/components/ui/LiveFeature';
+import {
+  Card, DataTable, ErrorState, Loading, TextInput, Button, ViewAll,
+  StatusBadge, EmptyState,
+} from '@/components/ui/WorkbenchUI';
+import { money } from '@/lib/format';
 
 export default function ClientsPage() {
+  const app = useApp();
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    loadClients();
-  }, []);
-
-  const loadClients = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await apiClient.get<{ clients: Client[], count: number }>('/clients');
-      const clientsData = response.data as { clients: Client[], count: number };
-      setClients(clientsData.clients || []);
-    } catch (err: any) {
-      console.error('Error loading clients:', err);
-      setError(err.message || 'Failed to load clients');
-    } finally {
-      setLoading(false);
-    }
+  const load = () => {
+    setLoading(true);
+    endpoints.clients.list()
+      .then((r: any) => { setClients(r.data?.clients || []); setError(null); })
+      .catch((e) => setError(e))
+      .finally(() => setLoading(false));
   };
+  useEffect(load, []);
 
-  const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.client_id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center py-12">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-4 border-gray-300 border-t-black rounded-full animate-spin" />
-              <span className="text-sm text-gray-600">Loading clients...</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter((c) =>
+      [c.name, c.external_id, c.email, c.region, c.client_type, c.risk_profile]
+        .filter(Boolean).some((v: unknown) => String(v).toLowerCase().includes(q)),
     );
-  }
+  }, [clients, search]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Clients</h1>
-          <p className="text-gray-600">Manage your client relationships</p>
+    <FeaturePage
+      eyebrow="Clients & Relationships"
+      title="Client Book"
+      description={`${clients.length} clients loaded from the live client service. Select a client to work across every feature.`}
+      wide
+      actions={
+        <>
+          <ViewAll href="/relationships" label="Relationships" />
+          <ViewAll href="/briefs" label="Client briefs" />
+        </>
+      }
+    >
+      <Card title="All clients" subtitle="Everyone in your book" bodyClassName="p-0">
+        <div className="px-5 py-3 border-b border-gray-200 flex flex-wrap items-center gap-3">
+          <TextInput value={search} onChange={setSearch} placeholder="Filter by name, region, segment…" className="max-w-sm" />
+          <span className="text-xs text-gray-400">{rows.length} of {clients.length} shown</span>
+          <div className="flex-1" />
+          <Button onClick={load}>Refresh</Button>
         </div>
-
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-300 rounded p-4">
-            <p className="text-red-700">{error}</p>
-            <button
-              onClick={loadClients}
-              className="mt-2 text-sm text-red-800 underline hover:no-underline"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {/* Search and Filter */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-          <input
-            type="text"
-            placeholder="Search clients by name or ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
-          />
+        <div className="p-5">
+          {loading ? <Loading /> : error ? <ErrorState error={error} onRetry={load} /> : (
+            <DataTable
+              emptyTitle="No clients in the book"
+              emptyDetail="Load the client seed data into the database to populate this table."
+              rows={rows}
+              columns={[
+                {
+                  key: 'name', label: 'Client', render: (c: any) => (
+                    <Link href={`/clients/${c.id}`} className="font-medium text-black hover:underline">
+                      {c.name}
+                    </Link>
+                  ),
+                },
+                { key: 'client_type', label: 'Segment' },
+                { key: 'region', label: 'Region' },
+                { key: 'risk_profile', label: 'Risk profile' },
+                { key: 'aum', label: 'AUM', align: 'right', render: (c: any) => money(c.aum, c.currency) },
+                {
+                  key: 'shariah_compliant', label: 'Shariah', render: (c: any) => (
+                    <StatusBadge tone={c.shariah_compliant ? 'success' : 'neutral'}>
+                      {c.shariah_compliant ? 'Yes' : 'No'}
+                    </StatusBadge>
+                  ),
+                },
+                {
+                  key: 'actions', label: '', render: (c: any) => (
+                    <div className="flex gap-2 whitespace-nowrap">
+                      <Link href={`/clients/${c.id}`} className="text-xs text-gray-600 hover:text-black">Profile →</Link>
+                      <Link href={`/brief/${c.id}`} className="text-xs text-gray-600 hover:text-black">Brief →</Link>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          )}
         </div>
+      </Card>
 
-        {/* Client List */}
-        {filteredClients.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-            <p className="text-gray-500">
-              {searchQuery ? 'No clients found matching your search' : 'No clients available'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredClients.map((client) => (
-              <Link
-                key={client.client_id}
-                href={`/clients/${client.client_id}`}
-                className="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-400 hover:shadow-lg transition-all"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{client.name}</h3>
-                    <p className="text-sm text-gray-500">{client.client_id}</p>
-                  </div>
-                  {client.segment && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
-                      {client.segment}
-                    </span>
-                  )}
-                </div>
-
-                {client.aum !== undefined && (
-                  <div className="mb-2">
-                    <span className="text-sm text-gray-600">AUM: </span>
-                    <span className="font-semibold">
-                      ${(client.aum / 1_000_000).toFixed(1)}M
-                    </span>
-                  </div>
-                )}
-
-                {client.risk_profile && (
-                  <div className="mb-2">
-                    <span className="text-sm text-gray-600">Risk Profile: </span>
-                    <span className="font-medium">{client.risk_profile}</span>
-                  </div>
-                )}
-
-                {client.last_contact && (
-                  <div className="text-sm text-gray-500 mt-4 pt-4 border-t border-gray-100">
-                    Last contact: {new Date(client.last_contact).toLocaleDateString()}
-                  </div>
-                )}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+      <Grid>
+        <Card title="Selected client" subtitle="Shared across all feature workspaces">
+          {app.clientId ? (
+            <div className="space-y-3">
+              <div className="text-lg font-semibold text-black">
+                {app.clientOptions.find((o) => o.value === app.clientId)?.label}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href={`/clients/${app.clientId}`}><Button>Open profile</Button></Link>
+                <Link href="/relationships"><Button>Relationships</Button></Link>
+                <Link href="/memory"><Button>Client memory</Button></Link>
+                <Link href="/briefs"><Button>Briefs</Button></Link>
+              </div>
+            </div>
+          ) : <EmptyState title="No client selected" detail="Choose a client in the header or from the table." />}
+        </Card>
+        <Card title="Portfolio client book" subtitle="Clients with portfolio data">
+          {app.demoClients.length === 0 ? (
+            <EmptyState title="No portfolio clients" detail="The demo client table has no records." />
+          ) : (
+            <DataTable
+              rows={app.demoClients.slice(0, 8)}
+              columns={[
+                { key: 'name', label: 'Client' },
+                { key: 'client_segment', label: 'Segment' },
+                { key: 'portfolio_type', label: 'Portfolio' },
+                { key: 'aum_usd_millions', label: 'AUM (USD M)', align: 'right' },
+              ]}
+            />
+          )}
+        </Card>
+      </Grid>
+    </FeaturePage>
   );
 }

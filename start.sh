@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Start script for RM Workbench MVP
+# Start script for WM Workbench MVP
 # Runs PostgreSQL and Redis in Docker, backend and frontend from code
 # Uses uv for Python dependency management
 
 set -e
 
-echo "🚀 Starting RM Workbench MVP..."
+echo "🚀 Starting WM Workbench MVP..."
 echo ""
 
 # Check if .env exists

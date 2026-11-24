@@ -1,4 +1,4 @@
-// RM Workbench - Complete System Navigation & State Management
+// WM Workbench - Complete System Navigation & State Management
 // All 14 screens with full interactions
 
 const AppState = {
@@ -242,7 +242,7 @@ function showToast(message, type = 'info') {
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('RM Workbench System Initialized');
+    console.log('WM Workbench System Initialized');
     
     // Update clock
     setInterval(updateClock, 1000);

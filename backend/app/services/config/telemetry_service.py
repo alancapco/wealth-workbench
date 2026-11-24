@@ -4,7 +4,8 @@ from datetime import datetime, UTC
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import Float, cast, func, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.admin import TelemetryEvent
@@ -74,32 +75,21 @@ class TelemetryService:
         
         Returns: count, sum, avg, min, max for the metric.
         """
+        # ``measures`` is stored as TEXT containing a JSON object. Cast it to
+        # JSONB before extracting, then to a numeric type for aggregation.
+        # ``func.Float`` was a SQLAlchemy generic-function lookup and raised
+        # AttributeError at query construction time (HTTP 500).
+        value_expr = cast(
+            func.jsonb_extract_path_text(cast(TelemetryEvent.measures, JSONB), "value"),
+            Float,
+        )
+
         query = select(
             func.count(TelemetryEvent.id).label("count"),
-            func.sum(
-                func.cast(
-                    func.json_extract_path_text(TelemetryEvent.measures, "value"),
-                    func.Float,
-                )
-            ).label("sum"),
-            func.avg(
-                func.cast(
-                    func.json_extract_path_text(TelemetryEvent.measures, "value"),
-                    func.Float,
-                )
-            ).label("avg"),
-            func.min(
-                func.cast(
-                    func.json_extract_path_text(TelemetryEvent.measures, "value"),
-                    func.Float,
-                )
-            ).label("min"),
-            func.max(
-                func.cast(
-                    func.json_extract_path_text(TelemetryEvent.measures, "value"),
-                    func.Float,
-                )
-            ).label("max"),
+            func.sum(value_expr).label("sum"),
+            func.avg(value_expr).label("avg"),
+            func.min(value_expr).label("min"),
+            func.max(value_expr).label("max"),
         ).where(
             TelemetryEvent.tenant_id == tenant_id,
             TelemetryEvent.event_name == metric_name,

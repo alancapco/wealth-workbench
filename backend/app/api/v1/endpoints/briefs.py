@@ -2,21 +2,26 @@
 
 Explicit generation only (never on GET), section-level review, edit creates new revision.
 """
+import json
 import logging
-from uuid import UUID
-
+from datetime import datetime, UTC
 from typing import Optional
+from uuid import UUID, uuid4
+
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.artifact import ArtifactLineage, ArtifactRevision, ReviewDecision
+from app.core.identity import get_fixture_principal
+from app.models.artifact import ArtifactItem, ArtifactLineage, ArtifactRevision, ReviewDecision
 from app.models.models import Brief as BriefModel
-from app.repositories.artifacts import ReviewRepository
+from app.models.workflow import Workflow
 from app.schemas.brief import (
+    AgendaItem,
     Brief,
+    BriefClaim,
     BriefHeader,
     BriefListData,
     BriefSection,
@@ -36,30 +41,59 @@ from app.schemas.common import (
     Envelope,
     Environment,
     EnvironmentKind,
+    EvidenceRef,
     ResponseMeta,
     ReviewState,
     Source,
 )
-from app.services.brief.brief_generator import BriefGenerator
+from app.services.brief.brief_generator import BriefArtifactRef, BriefGenerator, canonical_hash
+from app.services.brief.brief_service import brief_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# Mock principal extraction - real implementation from U-003
+# Fixture identity is the single source of truth for actor/tenant (see app/core/identity.py).
 def get_current_actor() -> str:
-    """Extract actor from authenticated session. Placeholder for U-003 identity."""
-    return "fixture-user-001"
+    """Current authenticated actor from the shared fixture principal."""
+    return get_fixture_principal().subject
 
 
 def get_tenant_id() -> str:
-    """Extract tenant from authenticated session. Placeholder for U-003 scope."""
-    return "fixture-tenant-001"
+    """Current tenant scope from the shared fixture principal."""
+    return get_fixture_principal().tenant_id
 
 
 class ClientBriefRequest(BaseModel):
     client_id: str
     force_regenerate: bool = False
+
+
+def _parse_uuid(value: str, field: str) -> UUID:
+    try:
+        return UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid {field}")
+
+
+def _brief_version(brief_model: BriefModel) -> int:
+    if brief_model.revision_no:
+        return brief_model.revision_no
+    try:
+        return max(1, int(brief_model.version))
+    except (TypeError, ValueError):
+        return 1
+
+
+def _artifact_ref(brief_model: BriefModel) -> BriefArtifactRef:
+    """Resolve the real content hash over the stored canonical sections JSON."""
+    # Legacy rows predate artifact linkage; their own id is the only real identifier.
+    return BriefArtifactRef(
+        artifact_id=brief_model.artifact_id or brief_model.id,
+        revision_id=brief_model.artifact_revision_id or brief_model.id,
+        version=_brief_version(brief_model),
+        hash=canonical_hash(brief_model.sections),
+    )
 
 
 @router.get("")
@@ -69,9 +103,39 @@ async def list_briefs_by_client(
     db: AsyncSession = Depends(get_db),
 ):
     """GET /briefs - List briefs for a client (API-004 list variant)"""
-    from uuid import uuid4
-    from datetime import datetime, UTC
-    return {"data": [], "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
+    tenant_id = get_tenant_id()
+    stmt = select(BriefModel).where(
+        or_(BriefModel.tenant_id == tenant_id, BriefModel.tenant_id.is_(None))
+    )
+    if client_id:
+        stmt = stmt.where(BriefModel.client_id == _parse_uuid(client_id, "client_id"))
+    if workflow_id:
+        stmt = stmt.where(BriefModel.workflow_id == _parse_uuid(workflow_id, "workflow_id"))
+
+    stmt = stmt.order_by(BriefModel.generated_at.desc()).limit(50)
+    result = await db.execute(stmt)
+    brief_models = result.scalars().all()
+
+    data = []
+    for b in brief_models:
+        ref = _artifact_ref(b)
+        data.append({
+            "brief_id": str(b.id),
+            "artifact_ref": {
+                "artifact_id": str(ref["artifact_id"]),
+                "revision_id": str(ref["revision_id"]),
+                "version": ref["version"],
+                "hash": ref["hash"],
+            },
+            "workflow_id": str(b.workflow_id) if b.workflow_id else None,
+            "meeting_id": str(b.meeting_id) if b.meeting_id else None,
+            "client_id": str(b.client_id),
+            "generated_at": b.generated_at.isoformat() if b.generated_at else None,
+            "generated_by": b.generated_by or get_current_actor(),
+            "review_state": ReviewState.UNREVIEWED.value,
+        })
+
+    return {"data": data, "meta": {"request_id": str(uuid4()), "served_at": datetime.now(UTC).isoformat()}}
 
 
 @router.post("/generate")
@@ -80,8 +144,6 @@ async def generate_client_brief(
     db: AsyncSession = Depends(get_db),
 ):
     """Meeting brief for the dashboard modal, built from holdings, quotes, interactions, and news."""
-    from app.services.brief.brief_service import brief_service
-
     try:
         brief = await brief_service.generate_brief(body.client_id, db)
     except ValueError as e:
@@ -101,7 +163,7 @@ async def generate_brief(
     db: AsyncSession = Depends(get_db),
 ) -> Envelope[GenerateBriefData]:
     """POST /briefs - Generate brief explicitly per API-004.
-    
+
     Never generates on GET/reload. Uses frozen workflow context from U-006.
     Returns 201 with brief or 202 with stage run if queued.
     """
@@ -109,8 +171,6 @@ async def generate_brief(
         actor = get_current_actor()
         tenant_id = get_tenant_id()
 
-        # Fetch workflow to get client_id and validate authorization
-        from app.models.workflow import Workflow
         workflow = await db.get(Workflow, request.workflow_id)
         if not workflow:
             raise HTTPException(
@@ -153,13 +213,12 @@ async def get_brief(
     db: AsyncSession = Depends(get_db),
 ) -> Envelope[GetBriefData]:
     """GET /briefs/{brief_id} - Fetch existing brief per API-005.
-    
+
     Never generates. Returns current revision with sections from briefs.sections.
     """
     try:
         tenant_id = get_tenant_id()
 
-        # Fetch from legacy briefs table which has canonical sections
         stmt = select(BriefModel).where(
             BriefModel.id == brief_id,
             BriefModel.tenant_id == tenant_id,
@@ -173,7 +232,6 @@ async def get_brief(
                 detail=f"Brief {brief_id} not found"
             )
 
-        # Reconstruct Brief from stored sections JSON
         brief = await _reconstruct_brief_from_model(brief_model, db)
 
         return Envelope(
@@ -202,21 +260,13 @@ async def review_brief(
     db: AsyncSession = Depends(get_db),
 ) -> Envelope[ReviewBriefData]:
     """POST /briefs/{brief_id}/reviews - Section-level review per API-006.
-    
+
     Reviews exact current section hashes. Stale hash returns 409.
     """
     try:
         actor = get_current_actor()
         tenant_id = get_tenant_id()
 
-        # Validate artifact ref matches current revision
-        if if_match != f'"{request.artifact_ref.revision_id}:{request.artifact_ref.hash}"':
-            raise HTTPException(
-                status_code=status.HTTP_412_PRECONDITION_FAILED,
-                detail="If-Match header does not match artifact ref"
-            )
-
-        # Fetch brief model to get client_id
         brief_model = await db.get(BriefModel, brief_id)
         if not brief_model or brief_model.artifact_revision_id != request.artifact_ref.revision_id:
             raise HTTPException(
@@ -224,12 +274,31 @@ async def review_brief(
                 detail="Brief revision changed - stale review"
             )
 
-        # Record reviews for each section
-        review_repo = ReviewRepository(db)
-        reviews = []
-        
+        # The real content hash makes If-Match meaningful: reject stale content.
+        stored_hash = canonical_hash(brief_model.sections)
+        if (if_match != f'"{request.artifact_ref.revision_id}:{request.artifact_ref.hash}"'
+                or request.artifact_ref.hash != stored_hash):
+            raise HTTPException(
+                status_code=status.HTTP_412_PRECONDITION_FAILED,
+                detail="If-Match header does not match current brief content"
+            )
+
+        # Reviews must reference the current section hashes; a stale hash would
+        # violate the review_decisions -> artifact_items FK and surface as a 500.
         for section_review in request.sections:
-            review = await review_repo.record_review(
+            stored_section = brief_model.sections.get(section_review.key.value)
+            if not stored_section or stored_section.get("item_hash") != section_review.hash:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Section {section_review.key.value} hash changed - stale review"
+                )
+
+        reviews = []
+
+        for section_review in request.sections:
+            # Explicit id keeps the review id available in the response without an extra flush.
+            review = ReviewDecision(
+                id=uuid4(),
                 tenant_id=tenant_id,
                 client_id=brief_model.client_id,
                 revision_id=request.artifact_ref.revision_id,
@@ -239,7 +308,9 @@ async def review_brief(
                 decision=section_review.decision,
                 actor=actor,
                 reason=section_review.reason,
+                recorded_at=datetime.now(UTC),
             )
+            db.add(review)
             reviews.append({
                 "id": str(review.id),
                 "scope": "ITEM",
@@ -253,7 +324,6 @@ async def review_brief(
 
         await db.commit()
 
-        # Return updated brief with review states
         brief = await _reconstruct_brief_from_model(brief_model, db)
 
         return Envelope(
@@ -281,7 +351,7 @@ async def edit_brief(
     db: AsyncSession = Depends(get_db),
 ) -> Envelope[EditBriefData]:
     """PATCH /briefs/{brief_id} - Edit creates new revision per API-032.
-    
+
     Edits narrative/agenda only, never holdings/source data. Creates new revision,
     does not inherit reviews. Unaffected sections preserve content but not approval.
     """
@@ -289,7 +359,6 @@ async def edit_brief(
         actor = get_current_actor()
         tenant_id = get_tenant_id()
 
-        # Fetch current brief
         brief_model = await db.get(BriefModel, brief_id)
         if not brief_model:
             raise HTTPException(
@@ -297,8 +366,7 @@ async def edit_brief(
                 detail=f"Brief {brief_id} not found"
             )
 
-        # Apply edits to sections
-        sections_json = brief_model.sections.copy()
+        sections_json = {key: dict(section) for key, section in brief_model.sections.items()}
         for edit in request.section_edits:
             section_key = edit.key.value
             if section_key in sections_json:
@@ -316,46 +384,74 @@ async def edit_brief(
                         }
                         for a in edit.agenda
                     ]
-                # Recompute section hash
-                import hashlib
-                import json
-                section_canonical = {
+                canonical = {
                     "key": section_key,
                     "narrative": edit.narrative,
-                    "claims": sections_json[section_key]["claims"],
-                    "agenda": sections_json[section_key]["agenda"],
+                    "claims": [
+                        {"id": c["id"], "text": c["text"], "origin": c["origin"]}
+                        for c in sections_json[section_key]["claims"]
+                    ],
+                    "agenda": [
+                        {"id": a["id"], "text": a["text"], "origin": a["origin"]}
+                        for a in sections_json[section_key]["agenda"]
+                    ],
                 }
-                json_bytes = json.dumps(section_canonical, sort_keys=True, separators=(',', ':')).encode('utf-8')
-                sections_json[section_key]["item_hash"] = hashlib.sha256(json_bytes).hexdigest()
-                # Reset review state for edited sections
+                sections_json[section_key]["item_hash"] = canonical_hash(canonical)
                 sections_json[section_key]["review_state"] = "NEEDS_REVIEW"
 
-        # Create new brief revision
-        next_version = brief_model.revision_no + 1
-        new_brief = BriefModel(
-            id=brief_id,
-            client_id=brief_model.client_id,
-            version=str(next_version),
-            sections=sections_json,
-            generated_at=brief_model.generated_at,
-            tenant_id=brief_model.tenant_id,
-            workflow_id=brief_model.workflow_id,
-            meeting_id=brief_model.meeting_id,
-            artifact_id=brief_model.artifact_id,
-            artifact_revision_id=UUID("00000000-0000-0000-0000-000000000099"),  # Placeholder
-            revision_no=next_version,
+        current_revision = (
+            await db.get(ArtifactRevision, brief_model.artifact_revision_id)
+            if brief_model.artifact_revision_id else None
         )
-        db.add(new_brief)
+        next_version = (current_revision.version + 1) if current_revision else _brief_version(brief_model) + 1
+        revision = ArtifactRevision(
+            id=uuid4(),
+            tenant_id=tenant_id,
+            client_id=brief_model.client_id,
+            artifact_id=brief_model.artifact_id or brief_id,
+            version=next_version,
+            content_hash=canonical_hash(sections_json),
+            payload=json.dumps({"brief_id": str(brief_id), "sections": sections_json}),
+            environment_kind="FIXTURE",
+            environment_id="test-env-001",
+            created_by=actor,
+            created_at=datetime.now(UTC),
+        )
+        db.add(revision)
+        # App sessions run with autoflush=False; the composite FK on artifact_items
+        # is not ordered by the unit of work, so persist the revision first.
+        await db.flush()
+
+        lineage = await db.get(ArtifactLineage, brief_model.artifact_id or brief_id)
+        if lineage:
+            lineage.current_revision_id = revision.id
+
+        for key, section in sections_json.items():
+            db.add(ArtifactItem(
+                tenant_id=tenant_id,
+                client_id=brief_model.client_id,
+                revision_id=revision.id,
+                item_key=key,
+                item_hash=section["item_hash"],
+                status=section.get("review_state", "UNREVIEWED"),
+            ))
+
+        # Update in place: briefs.id is the primary key, so a second insert would collide.
+        brief_model.sections = sections_json
+        brief_model.version = str(next_version)
+        brief_model.revision_no = next_version
+        brief_model.artifact_revision_id = revision.id
+        brief_model.content_hash = revision.content_hash
+        brief_model.generated_by = actor
         await db.commit()
 
-        # Return updated brief
-        brief = await _reconstruct_brief_from_model(new_brief, db)
+        brief = await _reconstruct_brief_from_model(brief_model, db)
 
         return Envelope(
             data=EditBriefData(brief=brief),
             meta=ResponseMeta(
                 request_id=UUID("00000000-0000-0000-0000-000000000004"),
-                served_at=new_brief.generated_at,
+                served_at=brief_model.generated_at,
             ),
         )
 
@@ -393,17 +489,12 @@ async def list_briefs(
         headers = [
             BriefHeader(
                 brief_id=b.id,
-                artifact_ref={
-                    "artifact_id": b.artifact_id,
-                    "revision_id": b.artifact_revision_id,
-                    "version": b.revision_no,
-                    "hash": "0" * 64,  # Placeholder
-                },
+                artifact_ref=_artifact_ref(b),
                 workflow_id=b.workflow_id,
                 meeting_id=b.meeting_id,
                 client_id=b.client_id,
                 generated_at=b.generated_at,
-                generated_by="fixture-user-001",
+                generated_by=b.generated_by or get_current_actor(),
                 review_state=ReviewState.UNREVIEWED,
             )
             for b in brief_models
@@ -413,7 +504,7 @@ async def list_briefs(
             data=BriefListData(items=headers, next_cursor=None),
             meta=ResponseMeta(
                 request_id=UUID("00000000-0000-0000-0000-000000000005"),
-                served_at=brief_models[0].generated_at if brief_models else None,
+                served_at=datetime.now(UTC),
             ),
         )
 
@@ -428,9 +519,19 @@ async def list_briefs(
 async def _reconstruct_brief_from_model(brief_model: BriefModel, db: AsyncSession) -> Brief:
     """Reconstruct Brief DTO from stored BriefModel with sections JSON."""
     sections_data = brief_model.sections
-    
+
+    def parse_evidence(data: dict) -> list[EvidenceRef]:
+        return [EvidenceRef(**ref) for ref in data.get("evidence_refs", [])]
+
+    def parse_source(data: dict) -> Source:
+        fields = {
+            "id", "environment", "availability", "origin", "system_key", "record_id",
+            "record_version", "as_of", "retrieved_at", "authoritative_owner",
+            "live_response", "adapter_receipt_id", "confidence", "limitation_codes",
+        }
+        return Source(**{k: v for k, v in data.items() if k in fields})
+
     def parse_section(key: str, data: dict) -> BriefSection:
-        from app.schemas.brief import BriefClaim, AgendaItem
         return BriefSection(
             key=key,
             item_hash=data["item_hash"],
@@ -440,7 +541,7 @@ async def _reconstruct_brief_from_model(brief_model: BriefModel, db: AsyncSessio
                     id=c["id"],
                     text=c["text"],
                     origin=c["origin"],
-                    evidence_refs=[],
+                    evidence_refs=parse_evidence(c),
                     confidence=c.get("confidence"),
                 )
                 for c in data.get("claims", [])
@@ -450,15 +551,15 @@ async def _reconstruct_brief_from_model(brief_model: BriefModel, db: AsyncSessio
                     id=a["id"],
                     text=a["text"],
                     origin=a["origin"],
-                    evidence_refs=[],
+                    evidence_refs=parse_evidence(a),
                 )
                 for a in data.get("agenda", [])
             ],
             availability=Availability(data["availability"]),
             completeness=Completeness(data["completeness"]),
             capability_state=CapabilityState(data["capability_state"]),
-            review_state=ReviewState(data["review_state"]),
-            sources=[],
+            review_state=ReviewState(data.get("review_state", "UNREVIEWED")),
+            sources=[parse_source(s) for s in data.get("sources", [])],
             limitations=data.get("limitations", []),
         )
 
@@ -470,23 +571,27 @@ async def _reconstruct_brief_from_model(brief_model: BriefModel, db: AsyncSessio
         proposed_agenda=parse_section("proposed_agenda", sections_data["proposed_agenda"]),
     )
 
+    revision = (
+        await db.get(ArtifactRevision, brief_model.artifact_revision_id)
+        if brief_model.artifact_revision_id else None
+    )
+    environment = (
+        Environment(kind=EnvironmentKind(revision.environment_kind), id=revision.environment_id)
+        if revision else Environment(kind=EnvironmentKind.FIXTURE, id="test-env-001")
+    )
+
     return Brief(
         brief_id=brief_model.id,
-        artifact_ref={
-            "artifact_id": brief_model.artifact_id,
-            "revision_id": brief_model.artifact_revision_id,
-            "version": brief_model.revision_no,
-            "hash": "0" * 64,  # Placeholder
-        },
+        artifact_ref=_artifact_ref(brief_model),
         workflow_id=brief_model.workflow_id,
         meeting_id=brief_model.meeting_id,
         client_id=brief_model.client_id,
         generated_at=brief_model.generated_at,
-        generated_by="fixture-user-001",
+        generated_by=brief_model.generated_by or get_current_actor(),
         review_state=ReviewState.UNREVIEWED,
-        version=brief_model.revision_no,
-        environment=Environment(kind=EnvironmentKind.FIXTURE, id="test-env-001"),
-        source_cutoff=None,
+        version=_brief_version(brief_model),
+        environment=environment,
+        source_cutoff=revision.created_at if revision else None,
         sections=sections,
         blockers=[],
     )

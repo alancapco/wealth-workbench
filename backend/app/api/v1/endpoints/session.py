@@ -1,5 +1,6 @@
 """Session endpoint - current session info (API-001)."""
 from fastapi import APIRouter, Depends
+from uuid import uuid4
 
 from app.api.dependencies import CurrentPrincipal
 from app.schemas.common import Envelope, ResponseMeta
@@ -32,7 +33,7 @@ async def get_current_session(
             "device_state": principal.device_state,
         },
         meta=ResponseMeta(
-            request_id="00000000-0000-0000-0000-000000000000",
+            request_id=uuid4(),
             served_at=principal.session_expires_at,
         ),
     )

@@ -1,6 +1,6 @@
 """Admin and audit models."""
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -12,7 +12,7 @@ from app.core.database import Base
 class ConfigScope(Base):
     __tablename__ = "config_scopes"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, ForeignKey("workbench_tenants.tenant_id"), nullable=False)
     book_id = Column(Text)
     jurisdiction = Column(Text)
@@ -32,7 +32,7 @@ class ConfigScope(Base):
 class ConfigurationRevision(Base):
     __tablename__ = "configuration_revisions"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     scope_id = Column(PGUUID(as_uuid=True), nullable=False)
     config_key = Column(Text, nullable=False)
@@ -62,7 +62,7 @@ class ConfigurationRevision(Base):
 class GovernanceEvidence(Base):
     __tablename__ = "governance_evidence"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     scope_id = Column(PGUUID(as_uuid=True), nullable=False)
     evidence_key = Column(Text, nullable=False)
@@ -90,7 +90,7 @@ class GovernanceEvidence(Base):
 class ConfigurationApproval(Base):
     __tablename__ = "configuration_approvals"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     configuration_id = Column(PGUUID(as_uuid=True), nullable=False)
     content_hash = Column(String(64), nullable=False)
@@ -110,7 +110,7 @@ class ConfigurationApproval(Base):
 class CapabilityControl(Base):
     __tablename__ = "capability_controls"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, nullable=False)
     scope_id = Column(PGUUID(as_uuid=True), nullable=False)
     capability_key = Column(Text, nullable=False)
@@ -136,7 +136,7 @@ class CapabilityControl(Base):
 class IdempotencyRequest(Base):
     __tablename__ = "idempotency_requests"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, ForeignKey("workbench_tenants.tenant_id"), nullable=False)
     actor = Column(Text, nullable=False)
     method = Column(Text, nullable=False)
@@ -159,7 +159,7 @@ class IdempotencyRequest(Base):
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, ForeignKey("workbench_tenants.tenant_id"), nullable=False)
     client_id = Column(PGUUID(as_uuid=True))
     workflow_id = Column(PGUUID(as_uuid=True))
@@ -212,7 +212,7 @@ class AuditChainHead(Base):
 class TelemetryEvent(Base):
     __tablename__ = "telemetry_events"
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = Column(Text, ForeignKey("workbench_tenants.tenant_id"), nullable=False)
     book_id = Column(Text)
     client_id = Column(PGUUID(as_uuid=True))

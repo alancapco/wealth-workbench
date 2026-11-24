@@ -66,34 +66,45 @@ class HouseholdDetail(BaseModel):
 
 # Family Graph Visualization Schemas
 class FamilyGraphNode(BaseModel):
-    """Node in family graph for visualization."""
+    """Node in the family graph, consumed by ECharts and d3-force alike."""
     model_config = ConfigDict(extra="forbid")
 
-    id: str  # client_id as string
+    id: str
     name: str
     symbolSize: int = Field(default=60)
-    category: int = Field(default=0, description="Node category for coloring")
+    category: int = Field(default=0, description="Index into FamilyGraphResponse.categories")
     label: dict = Field(default_factory=lambda: {"show": True})
+    entitlement: str | None = Field(
+        default=None, description="Declared data entitlement for a household entity"
+    )
+    kind: str | None = Field(
+        default=None,
+        description="FAMILY_OFFICE | TRUST | PERSON | COMPANY | CLIENT",
+    )
+    is_root: bool = Field(default=False)
 
 
 class FamilyGraphEdge(BaseModel):
-    """Edge in family graph for visualization."""
+    """Edge in the family graph."""
     model_config = ConfigDict(extra="forbid")
 
-    source: str  # client_id as string
-    target: str  # client_id as string
+    source: str
+    target: str
     relationship_type: str
     value: float = Field(default=1.0)
 
 
 class FamilyGraphResponse(BaseModel):
-    """Family graph structure for ECharts visualization."""
+    """Graph structure (nodes / links / categories) for ECharts or d3-force."""
     model_config = ConfigDict(extra="forbid")
 
     nodes: list[FamilyGraphNode]
     links: list[FamilyGraphEdge]
     categories: list[dict] = Field(
         default_factory=lambda: [{"name": "Family Member"}]
+    )
+    root_id: str | None = Field(
+        default=None, description="Household root node id, used to anchor the layout"
     )
 
 
