@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { call, get, post } from '@/lib/endpoints';
 import { PageShell, Card, Button, Loading, ErrorState } from '@/components/ui/WorkbenchUI';
@@ -9,6 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 
 export default function MeetingStudioPage() {
+  return (
+    <Suspense fallback={<PageShell><Loading /></PageShell>}>
+      <MeetingStudioInner />
+    </Suspense>
+  );
+}
+
+function MeetingStudioInner() {
   const params = useSearchParams();
   const [clientId, setClientId] = useState(params.get('client') || '');
   const [leads, setLeads] = useState<any[]>([]);

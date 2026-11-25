@@ -20,7 +20,7 @@ export default function MarketPage() {
           path="/market/quotes"
           params={[{ name: 'symbols', label: 'Symbols (comma separated)', in: 'query', default: '0005.HK,00700.HK' }]}
           emptyTitle="No quotes returned"
-          emptyDetail="Configure a market data provider or check the symbols."
+          emptyDetail="Set ALPHAVANTAGE_API_KEY for live quotes, or check the symbols."
         />
         <QueryPanel
           title="Market news"
@@ -30,10 +30,6 @@ export default function MarketPage() {
           params={[
             { name: 'symbols', label: 'Symbols (comma separated, optional)', in: 'query', default: '' },
             { name: 'limit', label: 'Limit', in: 'query', type: 'number', default: '10' },
-            { name: 'lang', label: 'Language', in: 'query', type: 'select', default: 'en_US', options: [
-              { value: 'en_US', label: 'English' },
-              { value: 'zh_CN', label: 'Chinese (Tiger)' },
-            ] },
           ]}
           rowsOf={(d: any) => d?.news || []}
           emptyTitle="No news available"

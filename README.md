@@ -4,8 +4,8 @@ Relationship-manager workbench for wealth management: client books, briefs, prio
 
 ## Prerequisites
 
-- **Docker** and **Docker Compose** (PostgreSQL + Redis)
-- **Node.js** 18+ (frontend)
+- **Docker** and **Docker Compose** (PostgreSQL + Redis; optional full stack)
+- **Node.js** 18+ (frontend, when running on the host)
 - **[uv](https://docs.astral.sh/uv/)** (Python deps; `start.sh` installs it if missing)
 - **Python** 3.11–3.13 (managed by uv)
 
@@ -18,90 +18,90 @@ git clone https://github.com/alancapco/wealth-workbench.git
 cd wealth-workbench
 
 cp .env.example .env
-# Edit .env — set at least DATABASE_URL / POSTGRES_* to match docker-compose,
-# plus any API keys you need (LLM, HubSpot, Tiger, news providers).
+# Demo defaults already work locally:
+#   AUTH_MODE=fixture, APP_ENV=development
+#   POSTGRES_* / DATABASE_URL use demo_password_123 (matches Compose)
+# Add optional API keys (LLM, Alpha Vantage, news) as needed.
 
 ./start.sh
 ```
 
-Then open:
+`start.sh` will: start Postgres/Redis, `uv sync`, run `alembic upgrade head`, seed demo data (idempotent), then start API + UI.
 
-| Service    | URL                                      |
-| ---------- | ---------------------------------------- |
-| Frontend   | http://localhost:3000                    |
-| Backend    | http://localhost:8000                    |
-| API docs   | http://localhost:8000/api/docs           |
+| Service  | URL                            |
+| -------- | ------------------------------ |
+| Frontend | http://localhost:3000          |
+| Backend  | http://localhost:8000          |
+| API docs | http://localhost:8000/api/docs |
+| Ready    | http://localhost:8000/health/ready |
 
-Stop everything:
+Stop:
 
 ```bash
 ./stop.sh
 ```
 
-Logs while running:
+Logs:
 
 ```bash
 tail -f backend.log frontend.log
-docker-compose logs -f postgres redis
+docker compose logs -f postgres redis
 ```
 
-## Environment
+## Full Docker stack
 
-- **Template (safe to commit):** `.env.example`
-- **Local secrets (gitignored):** `.env`, `backend/.env`, `frontend/.env.local`
-- **Docker defaults:** `docker-compose.yml` uses demo Postgres credentials (`rm_user` / `demo_password_123`) when env vars are unset. Override them via `.env` for anything beyond local demos.
-
-Copy and fill:
+Build and run Postgres, Redis, backend, and frontend containers:
 
 ```bash
 cp .env.example .env
+docker compose --profile full up -d --build
+# or: ./setup.sh full
 ```
 
-Common keys:
-
-- `POSTGRES_*` / `DATABASE_URL` — must match Compose
-- `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` — AI features
-- `HUBSPOT_ACCESS_TOKEN` — CRM integration
-- `TIGER_*` — Tiger Broker market data (optional)
-- `NEWSFILTER_API_KEY` / `ALPHAVANTAGE_API_KEY` — news/quotes (optional)
-- `SECRET_KEY` — app secret (`openssl rand -hex 32`)
-- `NEXT_PUBLIC_API_URL` — frontend → API base URL
-
-## Alternative: full Docker setup
-
-`./setup.sh` brings up Compose services and waits for the backend health check. Prefer `./start.sh` for day-to-day local development (hot reload).
+Optional Neo4j (wealth graph):
 
 ```bash
-cp .env.example .env   # fill API keys
-./setup.sh
+# In .env: NEO4J_ENABLED=true, NEO4J_PASSWORD=changeme
+docker compose --profile full --profile neo4j up -d --build
 ```
 
 Infra only:
 
 ```bash
-docker-compose up -d postgres redis
+docker compose up -d postgres redis
 ```
+
+## Environment
+
+| File | Purpose |
+| ---- | ------- |
+| `.env.example` | Committed template — copy to `.env` |
+| `.env` | Local secrets (gitignored) |
+| `frontend/.env.local` | Optional Next overrides (gitignored) |
+| `docker-compose.yml` | Postgres/Redis always; `full` / `neo4j` profiles for app/graph |
+
+Important keys:
+
+- `AUTH_MODE=fixture` + `APP_ENV=development` — required for local/demo (OIDC is not implemented)
+- `POSTGRES_*` / `DATABASE_URL` — must share the same password
+- `EXPECTED_SCHEMA_HEAD=j0urn3y0001` — Alembic head for `/health/ready`
+- `NEO4J_ENABLED=false` — portable default; enable with the `neo4j` Compose profile
+- `LLM_*`, `ALPHAVANTAGE_API_KEY`, `NEWSFILTER_*` — optional integrations
+- `NEXT_PUBLIC_API_URL` — browser → API base URL
+- `FORCE_SEED=true` — wipe and re-seed demo clients
 
 ## Manual install
 
-### 1. Infrastructure
-
 ```bash
-docker-compose up -d postgres redis
-```
+docker compose up -d postgres redis
 
-### 2. Backend
-
-```bash
 cd backend
 uv sync
+uv run alembic upgrade head
+uv run python -m app.scripts.seed_demo_data
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
 
-### 3. Frontend
-
-```bash
-cd frontend
+cd ../frontend
 npm install
 npm run dev
 ```
@@ -109,14 +109,15 @@ npm run dev
 ## Project layout
 
 ```
-backend/     FastAPI + Alembic + uv
-frontend/    Next.js (App Router)
-demo_data/   Seed / fixture CSVs
-mockup/      Static HTML prototypes
+backend/      FastAPI + Alembic + uv
+frontend/     Next.js (App Router)
+demo_data/    Seed / fixture CSVs
+mockup/       Static HTML prototypes
 deliverables/ Specs and audit notes
 ```
 
 ## Notes
 
 - Real credentials and `*.log` files are gitignored. Do not commit `.env` or key material.
-- Demo Docker passwords in Compose are for local use only — change them before any shared or production deploy.
+- Compose demo passwords are for local/shared demos only — change them before any real production deploy.
+- Timescale image is pinned to `timescale/timescaledb:2.28.3-pg15` (includes `pgvector`).

@@ -23,15 +23,8 @@ class Settings(BaseSettings):
     ]
 
     DATABASE_URL: Optional[str] = None
-    EXPECTED_SCHEMA_HEAD: Optional[str] = None
 
     # Integration credentials are optional at boot; adapters report their own state.
-    TIGER_CLIENT_ID: str = ""
-    TIGER_PRIVATE_KEY: str = ""
-    TIGER_ACCOUNT: str = ""
-    TIGER_LICENSE: str = "TBHK"
-    TIGER_ENV: str = "PROD"
-    TIGER_TOKEN: str = ""
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = "https://api.openai.com/v1"
     LLM_MODEL: str = "gpt-4-turbo-preview"
@@ -39,6 +32,7 @@ class Settings(BaseSettings):
     NEWSFILTER_API_KEY: str = ""
     NEWS_PROVIDER: str = "newsfilter_yahoo"
     YAHOO_NEWS_DEFAULT_SYMBOLS: str = "^GSPC,^HSI,^STI,HSBC,0700.HK,D05.SI,AAPL"
+    # Quotes / history / signals (Alpha Vantage GLOBAL_QUOTE + TIME_SERIES_DAILY).
     ALPHAVANTAGE_API_KEY: str = ""
     FREECURRENCY_API_KEY: str = ""
     REDIS_URL: str = "redis://localhost:6379"
@@ -55,17 +49,25 @@ class Settings(BaseSettings):
     FAMILY_DEC06_ENABLED: bool = True
     HOUSEHOLD_DEC07_ENABLED: bool = True
 
-    # Wealth knowledge graph. Disabled automatically when the bolt port is down.
-    NEO4J_ENABLED: bool = True
+    # Wealth knowledge graph. Off by default so a fresh clone boots without Neo4j.
+    # Enable with NEO4J_ENABLED=true and `docker compose --profile neo4j up -d`.
+    NEO4J_ENABLED: bool = False
     NEO4J_URI: str = "bolt://localhost:7688"
     NEO4J_USER: str = "neo4j"
     NEO4J_PASSWORD: str = ""
     NEO4J_DATABASE: str = "neo4j"
 
-    AUTH_MODE: str = "oidc"
+    # Fixture is the only implemented auth path today. OIDC remains a stub.
+    # Production must set AUTH_MODE=oidc once a real IdP is wired (and must not
+    # use fixture — reject_fixture_in_production enforces that).
+    AUTH_MODE: str = "fixture"
     OIDC_ISSUER_URL: str = ""
     OIDC_CLIENT_ID: str = ""
     OIDC_CLIENT_SECRET: str = ""
+
+    # Keep /health/ready honest after `alembic upgrade head`.
+    # Update when the Alembic head revision changes.
+    EXPECTED_SCHEMA_HEAD: Optional[str] = "j0urn3y0001"
 
     model_config = SettingsConfigDict(
         env_file=("../.env", ".env"),
@@ -107,7 +109,7 @@ class Settings(BaseSettings):
     @property
     def provider_configuration(self) -> dict[str, str]:
         return {
-            "market_data": "CONFIGURED" if self.TIGER_CLIENT_ID and self.TIGER_PRIVATE_KEY and self.TIGER_ACCOUNT else "UNCONFIGURED",
+            "market_data": "CONFIGURED" if (self.ALPHAVANTAGE_API_KEY or "").strip() else "UNCONFIGURED",
             "market_news": "CONFIGURED" if self.market_news_configured else "UNCONFIGURED",
             "llm": "CONFIGURED" if self.LLM_API_KEY else "UNCONFIGURED",
         }

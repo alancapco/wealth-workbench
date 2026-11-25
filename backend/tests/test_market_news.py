@@ -117,7 +117,6 @@ async def test_english_news_falls_back_to_yahoo_and_normalizes_hk(service, monke
     get = MagicMock(return_value=_response(text=RSS))
     monkeypatch.setattr("app.services.market.market_service.requests.post", post)
     monkeypatch.setattr("app.services.market.market_service.requests.get", get)
-    monkeypatch.setattr(service, "_fetch_news", MagicMock(side_effect=AssertionError("Tiger on English path")))
 
     news, source, cached = await service.get_market_news(symbols=["00700.HK"], limit=5)
 
@@ -146,12 +145,11 @@ async def test_missing_symbols_use_the_default_yahoo_basket(service, monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_english_newsfilter_success_does_not_call_tiger_or_yahoo(service, monkeypatch):
+async def test_english_newsfilter_success_does_not_call_yahoo(service, monkeypatch):
     post = MagicMock(return_value=_response(payload=NEWSFILTER_ARTICLE))
     get = MagicMock(side_effect=AssertionError("Yahoo called after Newsfilter success"))
     monkeypatch.setattr("app.services.market.market_service.requests.post", post)
     monkeypatch.setattr("app.services.market.market_service.requests.get", get)
-    monkeypatch.setattr(service, "_fetch_news", MagicMock(side_effect=AssertionError("Tiger on English path")))
 
     news, source, _ = await service.get_market_news(symbols=["AAPL"], limit=4, lang="en_US")
 
@@ -205,23 +203,19 @@ def test_market_news_configured_matches_provider_modes(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_zh_cn_uses_tiger_and_skips_english_providers(service, monkeypatch):
-    monkeypatch.setattr(
-        service,
-        "_fetch_news",
-        lambda symbols, limit: [{"id": "zh-1", "title": "中文头条", "content": "", "source": "Tiger Broker"}],
-    )
-    post = MagicMock(side_effect=AssertionError("Newsfilter on Chinese path"))
-    get = MagicMock(side_effect=AssertionError("Yahoo on Chinese path"))
-    monkeypatch.setattr("app.services.market.market_service.requests.post", post)
+async def test_zh_cn_lang_is_coerced_to_english_pipeline(service, monkeypatch):
+    """Chinese lang hint is ignored; English Newsfilter/Yahoo path runs."""
+    monkeypatch.setattr(settings, "NEWSFILTER_API_KEY", "")
+    get = MagicMock(return_value=_response(text=RSS))
+    post = MagicMock(side_effect=AssertionError("Newsfilter without key"))
     monkeypatch.setattr("app.services.market.market_service.requests.get", get)
+    monkeypatch.setattr("app.services.market.market_service.requests.post", post)
 
     news, source, _ = await service.get_market_news(lang="zh_CN", limit=3)
 
-    assert source == "tiger"
-    assert news[0]["title"] == "中文头条"
-    post.assert_not_called()
-    get.assert_not_called()
+    assert source == "yahoo_finance"
+    assert news
+    assert get.call_args.kwargs["params"]["lang"] == "en-US"
 
 
 @pytest.mark.asyncio

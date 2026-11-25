@@ -269,7 +269,7 @@ class RankingService:
             for signal in market_signals:
                 evidence.append({
                     "type": "LIVE_FEED",
-                    "source": "TigerBroker",
+                    "source": signal.get("source") or "AlphaVantage",
                     "timestamp": signal.get("timestamp"),
                     "description": f"{signal['symbol']} {signal['change_percent']:+.2f}%"
                 })

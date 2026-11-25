@@ -28,9 +28,9 @@ async def get_quotes(
 async def get_market_news(
     symbols: Optional[str] = None,
     limit: int = Query(20, ge=1, le=100),
-    lang: Optional[str] = Query(None, description="Language: zh_CN or en_US"),
+    lang: Optional[str] = Query(None, description="Accepted for compatibility; news is English-only"),
 ):
-    """Get market news with caching. Returns source, cached flag, and as_of timestamp."""
+    """Get English market news with caching. Returns source, cached flag, and as_of timestamp."""
     try:
         symbol_list = [s.strip() for s in symbols.split(",") if s.strip()] if symbols else None
         news, source, cached = await market_data_service.get_market_news(

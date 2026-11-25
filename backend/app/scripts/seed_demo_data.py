@@ -731,14 +731,31 @@ async def sync_workflow_message_fixtures():
         print(f"Seeded {len(wf_by_idx)} workflows and {inserted} message artifacts")
 
 
+async def _clients_exist() -> bool:
+    async with async_session_maker() as session:
+        result = await session.execute(text("SELECT 1 FROM clients LIMIT 1"))
+        return result.first() is not None
+
+
 async def main():
     """Main seed function"""
+    import os
+
     print("🌱 Starting database seed...")
+
+    if not settings.DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is required to seed demo data")
+
+    force = os.getenv("FORCE_SEED", "").strip().lower() in {"1", "true", "yes"}
 
     try:
         # Identity/reference rows first: the destructive client seed below and all
         # FK-constrained runtime writes depend on them.
         await seed_fixture_environment()
+        if not force and await _clients_exist():
+            print("ℹ️  Demo clients already present — skipping destructive re-seed.")
+            print("   Set FORCE_SEED=true to wipe and re-seed.")
+            return
         await clear_existing_data()
         await seed_clients()
         await seed_holdings()
@@ -748,4 +765,8 @@ async def main():
         print(f"❌ Error seeding database: {e}")
         import traceback
         traceback.print_exc()
-        # Don't raise to allow container to continue starting
+        raise
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

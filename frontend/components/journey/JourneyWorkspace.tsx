@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { call, get, post } from '@/lib/endpoints';
@@ -36,7 +36,7 @@ const LINKS: { href: string; label: string; stage: Stage }[] = [
   { href: '/journey/service', label: 'Service', stage: 'service' },
 ];
 
-export function JourneyWorkspace({ stage }: { stage: Stage }) {
+function JourneyWorkspaceInner({ stage }: { stage: Stage }) {
   const params = useSearchParams();
   const requested = params.get('client') || '';
   const [clientId, setClientId] = useState<string>(requested);
@@ -310,6 +310,14 @@ export function JourneyWorkspace({ stage }: { stage: Stage }) {
         </div>
       )}
     </PageShell>
+  );
+}
+
+export function JourneyWorkspace({ stage }: { stage: Stage }) {
+  return (
+    <Suspense fallback={<PageShell><Loading /></PageShell>}>
+      <JourneyWorkspaceInner stage={stage} />
+    </Suspense>
   );
 }
 

@@ -1,80 +1,79 @@
 #!/bin/bash
+# One-shot environment bootstrap for Wealth Workbench.
+# Prefer ./start.sh for day-to-day local development (hot reload).
+# Prefer: docker compose --profile full up -d --build  for a containerized stack.
 
-# Setup script for WM Workbench MVP
-# This script initializes the development environment
+set -euo pipefail
 
-set -e
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT_DIR"
 
-echo "🚀 Setting up WM Workbench MVP..."
+echo "Setting up Wealth Workbench..."
 
-# Check if .env exists
 if [ ! -f .env ]; then
-    echo "📝 Creating .env file from template..."
+    echo "Creating .env from .env.example..."
     cp .env.example .env
-    echo "⚠️  Please edit .env and fill in your API keys before proceeding!"
-    echo "   Required: TIGER_CLIENT_ID, TIGER_PRIVATE_KEY, TIGER_ACCOUNT"
-    echo "   Required: HUBSPOT_ACCESS_TOKEN"
-    echo "   Required: OPENAI_API_KEY or ANTHROPIC_API_KEY"
+    echo ""
+    echo "Created .env with demo defaults (AUTH_MODE=fixture)."
+    echo "Edit .env to add optional API keys (LLM, Alpha Vantage, news), then re-run."
+    echo "  Required for a working local UI: AUTH_MODE=fixture, APP_ENV=development"
+    echo "  Database password in .env must match docker-compose POSTGRES_* values."
+fi
+
+set -a
+# shellcheck disable=SC1091
+source .env
+set +a
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: Docker not found. Install Docker Desktop / Engine first."
     exit 1
 fi
 
-echo "✅ .env file found"
-
-# Check Docker
-if ! command -v docker &> /dev/null; then
-    echo "❌ Docker not found. Please install Docker first."
-    exit 1
+COMPOSE="docker compose"
+if ! docker compose version >/dev/null 2>&1; then
+    if command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE="docker-compose"
+    else
+        echo "ERROR: Docker Compose not found."
+        exit 1
+    fi
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose not found. Please install Docker Compose first."
-    exit 1
-fi
+MODE="${1:-dev}"
 
-echo "✅ Docker and Docker Compose are installed"
-
-# Create necessary directories
-echo "📁 Creating directories..."
-mkdir -p backend/app/{api/v1/endpoints,core,models,schemas,services/{market,copilot,shariah,crm,ranking},db}
-mkdir -p frontend/{app,components,lib,public}
-
-# Start services
-echo "🐳 Starting Docker services..."
-docker-compose up -d
-
-# Wait for PostgreSQL to be ready
-echo "⏳ Waiting for PostgreSQL to be ready..."
-sleep 10
-
-# Check if database is ready
-until docker-compose exec -T postgres pg_isready -U ${POSTGRES_USER:-rm_user} &> /dev/null; do
-    echo "   Waiting for database..."
-    sleep 2
-done
-
-echo "✅ PostgreSQL is ready"
-
-# Wait a bit more for backend to initialize
-echo "⏳ Waiting for backend to initialize (this includes table creation and demo data seeding)..."
-sleep 15
-
-# Check if backend is responding
-echo "🔍 Checking backend health..."
-until curl -f http://localhost:8000/health &> /dev/null; do
-    echo "   Waiting for backend API..."
-    sleep 3
-done
-
-echo "✅ Backend is responding!"
-echo ""
-echo "✅ Setup complete!"
-echo ""
-echo "📊 Services running:"
-echo "   Frontend: http://localhost:3000"
-echo "   Backend API: http://localhost:8000"
-echo "   API Docs: http://localhost:8000/api/docs"
-echo ""
-echo "🔍 View logs: docker-compose logs -f"
-echo "🛑 Stop services: docker-compose down"
-echo ""
-echo "⚠️  Remember to fill in your API keys in .env file!"
+case "$MODE" in
+  full|docker)
+    echo "Starting full Docker stack (postgres, redis, backend, frontend)..."
+    $COMPOSE --profile full up -d --build
+    echo ""
+    echo "Waiting for backend /health/live (max ~2 minutes)..."
+    attempts=0
+    until curl -sf http://127.0.0.1:8000/health/live >/dev/null 2>&1; do
+        attempts=$((attempts + 1))
+        if [ "$attempts" -ge 60 ]; then
+            echo "ERROR: Backend did not become healthy."
+            $COMPOSE --profile full logs --tail=80 backend || true
+            exit 1
+        fi
+        sleep 2
+    done
+    echo "Backend is live."
+    echo ""
+    echo "  Frontend: http://localhost:3000"
+    echo "  Backend:  http://localhost:8000"
+    echo "  Ready:    http://localhost:8000/health/ready"
+    echo ""
+    echo "Logs: $COMPOSE --profile full logs -f"
+    echo "Stop: $COMPOSE --profile full down"
+    ;;
+  infra)
+    echo "Starting infrastructure only (postgres, redis)..."
+    $COMPOSE up -d postgres redis
+    echo "Done. Run ./start.sh next, or start API/UI manually."
+    ;;
+  dev|*)
+    echo "Delegating to ./start.sh (infra in Docker + host API/UI)..."
+    exec ./start.sh
+    ;;
+esac
