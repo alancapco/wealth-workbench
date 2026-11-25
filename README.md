@@ -2,6 +2,117 @@
 
 Relationship-manager workbench for wealth management: client books, briefs, priorities, workflows, market data, Shariah tools, and related admin surfaces.
 
+## Architecture
+
+### System overview
+
+```mermaid
+flowchart TB
+  subgraph Client["Browser"]
+    UI["Next.js frontend<br/>:3000"]
+  end
+
+  subgraph App["Application"]
+    API["FastAPI backend<br/>:8000 /api/v1"]
+    Worker["Outbox worker<br/>async actions"]
+  end
+
+  subgraph Data["Data plane"]
+    PG[("PostgreSQL + TimescaleDB<br/>+ pgvector :5432")]
+    Redis[("Redis :6379")]
+    Neo4j[("Neo4j optional<br/>:7688 / profile neo4j")]
+  end
+
+  subgraph External["External providers optional"]
+    AV["Alpha Vantage<br/>quotes / history"]
+    NF["Newsfilter"]
+    YH["Yahoo Finance RSS"]
+    FX["FreeCurrencyAPI"]
+    LLM["LLM OpenAI-compatible"]
+  end
+
+  UI -->|HTTP / REST| API
+  API --> PG
+  API --> Redis
+  API -.->|wealth graph| Neo4j
+  Worker --> PG
+  API --> AV
+  API --> NF
+  API --> YH
+  API --> FX
+  API --> LLM
+```
+
+### Runtime components
+
+```mermaid
+flowchart LR
+  subgraph Frontend["frontend/"]
+    Pages["App Router pages<br/>dashboard · briefs · market<br/>journey · family · admin"]
+    Lib["lib/endpoints.ts<br/>API client"]
+    UIKit["components/"]
+  end
+
+  subgraph Backend["backend/app/"]
+    EP["api/v1/endpoints/"]
+    Core["core/<br/>config · identity · database"]
+    Svc["services/<br/>brief · market · journey<br/>priority · product · shariah<br/>family · actions · graph"]
+    Models["models/ + alembic/"]
+  end
+
+  Pages --> Lib --> EP
+  UIKit --> Pages
+  EP --> Core
+  EP --> Svc
+  Svc --> Models
+```
+
+### Request / data flow
+
+Typical authenticated read (fixture mode for local demos):
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Next as Next.js
+  participant API as FastAPI
+  participant Auth as Identity fixture/OIDC
+  participant DB as PostgreSQL
+  participant Mkt as Market providers
+
+  Browser->>Next: Open workbench page
+  Next->>API: GET /api/v1/session
+  API->>Auth: Resolve principal
+  Auth-->>API: Fixture principal books/tenant
+  API-->>Next: Session payload
+  Next->>API: GET /api/v1/... domain call
+  API->>DB: SQLAlchemy async query
+  DB-->>API: Rows
+  opt Live market enrichment
+    API->>Mkt: Alpha Vantage / Newsfilter / Yahoo
+    Mkt-->>API: Quotes or headlines
+  end
+  API-->>Next: JSON
+  Next-->>Browser: Render UI
+```
+
+Market quotes path (Tiger Broker removed):
+
+```mermaid
+flowchart LR
+  UI["/market page"] --> Q["GET /api/v1/market/quotes"]
+  Q --> Svc["MarketDataService"]
+  Svc -->|ALPHAVANTAGE_API_KEY set| AV["Alpha Vantage GLOBAL_QUOTE"]
+  Svc -->|no key| Empty["Empty quotes list"]
+  AV --> UI
+
+  UI2["Market news"] --> N["GET /api/v1/market/news"]
+  N --> Svc
+  Svc --> NF["Newsfilter"]
+  NF -->|fallback| YH["Yahoo Finance RSS"]
+  YH --> UI2
+```
+
 ## Prerequisites
 
 - **Docker** and **Docker Compose** (PostgreSQL + Redis; optional full stack)
@@ -109,12 +220,14 @@ npm run dev
 ## Project layout
 
 ```
-backend/      FastAPI + Alembic + uv
-frontend/     Next.js (App Router)
+backend/      FastAPI + Alembic + uv (api, services, models)
+frontend/     Next.js App Router (pages, components, lib)
 demo_data/    Seed / fixture CSVs
 mockup/       Static HTML prototypes
 deliverables/ Specs and audit notes
 ```
+
+See **Architecture** above for Mermaid system, component, and data-flow diagrams.
 
 ## Notes
 
